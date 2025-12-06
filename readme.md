@@ -1,10 +1,10 @@
-# SCOARD 🏀
+# SCOARD: See the game blind
 
-A modern, real-time NBA scoreboard application built with React, TypeScript, and Node.js. Scoard provides live scores, detailed game statistics, and an immersive virtual court visualizer, all wrapped in a sleek, glassmorphic UI.
+A modern multi sport score app with data visualization to make the user simulate the feeling of watching the game without watching it
 
-![Scoard Banner](https://via.placeholder.com/1200x600/2D2B35/89CFF0?text=SCOARD+Dashboard)
+![Scoard Banner]()
 
-## ✨ Features
+## Features
 
 -   **Live Scoreboard:** Real-time updates for all NBA games.
 -   **Game Schedule:** Browse past results and upcoming fixtures with an intuitive date picker.
@@ -12,7 +12,7 @@ A modern, real-time NBA scoreboard application built with React, TypeScript, and
 -   **Detailed Stats:** Access box scores, play-by-play feeds, and team performance metrics.
 -   **Modern UI:** A "Fun Pastel" dark theme featuring glassmorphism and smooth Framer Motion animations.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 -   **Framework:** [React](https://react.dev/) (via [Vite](https://vitejs.dev/))
@@ -27,7 +27,7 @@ A modern, real-time NBA scoreboard application built with React, TypeScript, and
 -   **Language:** TypeScript
 -   **Data Source:** NBA Official CDN APIs
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 -   Node.js (v18+ recommended)
@@ -69,7 +69,7 @@ npm run dev:frontend
 # Runs on http://localhost:5173
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 Scoard/
@@ -86,19 +86,13 @@ Scoard/
 ├── start_servers.py        # Script to launch dev environment
 └── package.json            # Root configuration & workspaces
 ```
+## Future updates 
+-   Add Power Rankings to NBA
+-   Add Player Overview
+-   Add Team Overview
+-   Add F1 sport
+-   Add IPL/cricket
 
-## 🎨 Theme
-
-The application uses a custom "Fun Pastel" dark theme:
--   **Background:** `#2D2B35` (Charcoal)
--   **Text:** `#FFF5F5` (Lavender Blush)
--   **Primary/Accent:** `#89CFF0` (Baby Blue)
--   **Secondary:** `#B5EAD7` (Mint Green)
-
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the ISC License.
