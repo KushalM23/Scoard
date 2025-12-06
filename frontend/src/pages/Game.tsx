@@ -17,9 +17,10 @@ const Game: React.FC = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
                 const [boxRes, pbpRes] = await Promise.all([
-                    axios.get(`http://localhost:3000/api/games/${gameId}`),
-                    axios.get(`http://localhost:3000/api/games/${gameId}/pbp`)
+                    axios.get(`${API_URL}/api/games/${gameId}`),
+                    axios.get(`${API_URL}/api/games/${gameId}/pbp`)
                 ]);
                 setGameData(boxRes.data.game);
                 setPbpData(pbpRes.data.game.actions);

@@ -25,7 +25,8 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                 const apiDate = subDays(selectedDate, 1);
                 const formattedDate = format(apiDate, 'yyyy-MM-dd');
 
-                let endpoint = `http://localhost:3000/api/games/date/${formattedDate}`;
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                let endpoint = `${API_URL}/api/games/date/${formattedDate}`;
 
                 const response = await axios.get(endpoint);
                 const fetchedGames = response.data.scoreboard.games;
