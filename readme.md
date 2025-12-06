@@ -1,8 +1,8 @@
 # SCOARD: See the game blind
 
-A modern multi sport score app with data visualization to make the user simulate the feeling of watching the game without watching it
+A modern, multi-sport score app with data visualization to simulate the feeling of watching the game without watching it
 
-![Scoard Banner]()
+![Scoard Preview](preview.png)
 
 ## Features
 
