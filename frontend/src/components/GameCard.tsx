@@ -123,7 +123,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                         <span className={clsx("team-name-custom font-display tracking-wider block leading-none", homeHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.homeTeam.teamTricode}
                         </span>
-                        <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] md:text-sm text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
                             {game.homeTeam.wins}-{game.homeTeam.losses}
                         </span>
                     </div>
@@ -133,29 +133,29 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                 <div className="flex flex-col items-center justify-center game-card-center-custom">
                     {isScheduled ? (
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-[10px] font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
-                            <div className="bg-white/5 rounded-lg px-2 py-1 border border-white/5">
-                                <span className="text-base md:text-lg font-mono font-bold text-text whitespace-nowrap">
+                            <span className="text-[8px] md:text-xs font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
+                            <div className="bg-white/5 rounded-lg px-1.5 py-0.5 border border-white/5">
+                                <span className="text-sm md:text-xl font-mono font-bold text-text whitespace-nowrap">
                                     {formatToIST(game.gameEt, game.gameStatusText)}
                                 </span>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-2">
+                        <div className="flex flex-col items-center gap-1">
                             <span className={clsx(
-                                "text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-colors",
+                                "text-[8px] md:text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border transition-colors",
                                 isLive
                                     ? "bg-accent/20 border-accent/30 text-accent animate-pulse shadow-[0_0_10px_rgba(69,126,172,0.2)]"
                                     : "bg-white/5 border-white/5 text-text/40"
                             )}>
                                 {game.gameStatusText}
                             </span>
-                            <div className="flex items-center gap-2 md:gap-3">
+                            <div className="flex items-center gap-1 md:gap-3">
                                 <span className={clsx(
                                     "score-text-custom font-mono font-bold transition-colors duration-300",
                                     homeHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.homeTeam.score}</span>
-                                <span className="text-text/10 text-xl font-light">/</span>
+                                <span className="text-text/10 text-lg md:text-2xl font-light">/</span>
                                 <span className={clsx(
                                     "score-text-custom font-mono font-bold transition-colors duration-300",
                                     awayHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
@@ -179,7 +179,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                         <span className={clsx("team-name-custom font-display tracking-wider block leading-none", awayHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.awayTeam.teamTricode}
                         </span>
-                        <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] md:text-sm text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
                             {game.awayTeam.wins}-{game.awayTeam.losses}
                         </span>
                     </div>

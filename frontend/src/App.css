@@ -47,23 +47,24 @@
 /* "Even Bigger" Mobile Values */
 .game-card-custom {
   padding: 0.75rem;
-  min-height: 120px;
+  min-height: 100px;
+  border-radius: 1rem !important; /* rounded-xl */
 }
 
 .team-logo-custom {
-  width: 3.5rem;
-  /* Increased from 3rem */
-  height: 3.5rem;
+  width: 3rem;
+  /* Reduced from 4.5rem */
+  height: 3rem;
 }
 
 .team-name-custom {
-  font-size: 1.1rem;
-  /* Increased from 1rem */
-  margin-bottom: 0.15rem;
+  font-size: 1rem;
+  /* Reduced from 1.5rem */
+  margin-bottom: 0.1rem;
 }
 
 .score-text-custom {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   /* Readable big scores */
 }
 
@@ -76,28 +77,28 @@
 /* Tablet/Desktop Styles - "Back to Original" */
 @media (min-width: 768px) {
   .game-card-custom {
-    padding: 1.25rem;
-    min-height: 140px;
+    padding: 1.5rem;
+    min-height: 160px;
   }
 
   .team-logo-custom {
-    width: 4rem;
+    width: 5rem;
     /* Original Desktop Size */
-    height: 4rem;
+    height: 5rem;
   }
 
   .team-name-custom {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     /* Original Desktop Size */
     margin-bottom: 0.25rem;
   }
 
   .score-text-custom {
-    font-size: 2.25rem;
+    font-size: 2.75rem;
     /* Original Desktop Size */
   }
 
   .game-card-center-custom {
-    min-width: 100px;
+    min-width: 80px;
   }
 }
