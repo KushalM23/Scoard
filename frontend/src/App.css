@@ -1,8 +1,7 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .logo {
@@ -11,9 +10,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +23,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -39,4 +41,63 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Custom Game Card Styles for Mobile Optimization */
+/* "Even Bigger" Mobile Values */
+.game-card-custom {
+  padding: 0.75rem;
+  min-height: 120px;
+}
+
+.team-logo-custom {
+  width: 3.5rem;
+  /* Increased from 3rem */
+  height: 3.5rem;
+}
+
+.team-name-custom {
+  font-size: 1.1rem;
+  /* Increased from 1rem */
+  margin-bottom: 0.15rem;
+}
+
+.score-text-custom {
+  font-size: 1.75rem;
+  /* Readable big scores */
+}
+
+.game-card-center-custom {
+  min-width: 60px;
+  /* Slightly wider */
+  padding: 0 0.25rem;
+}
+
+/* Tablet/Desktop Styles - "Back to Original" */
+@media (min-width: 768px) {
+  .game-card-custom {
+    padding: 1.25rem;
+    min-height: 140px;
+  }
+
+  .team-logo-custom {
+    width: 4rem;
+    /* Original Desktop Size */
+    height: 4rem;
+  }
+
+  .team-name-custom {
+    font-size: 1.25rem;
+    /* Original Desktop Size */
+    margin-bottom: 0.25rem;
+  }
+
+  .score-text-custom {
+    font-size: 2.25rem;
+    /* Original Desktop Size */
+  }
+
+  .game-card-center-custom {
+    min-width: 100px;
+  }
 }

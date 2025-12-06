@@ -59,7 +59,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions }) => {
                     >
                         {/* Shot Marker */}
                         <div className={`w-3 h-3 rounded-full border-2 ${action.shotResult === 'Made' ? 'bg-green-500 border-white' :
-                                action.shotResult === 'Missed' ? 'bg-red-500 border-white' : 'bg-blue-500 border-white'
+                            action.shotResult === 'Missed' ? 'bg-red-500 border-white' : 'bg-blue-500 border-white'
                             }`} />
 
                         {/* Tooltip */}

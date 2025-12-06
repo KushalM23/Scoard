@@ -100,7 +100,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className={twMerge(
-                "glass-card p-4 md:p-5 cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center min-h-[140px]",
+                "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center",
                 isLive && "border-accent/50 shadow-[0_0_30px_rgba(69,126,172,0.15)]"
             )}
         >
@@ -116,11 +116,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                             whileHover={{ scale: 1.1, rotate: -5 }}
                             src={`https://cdn.nba.com/logos/nba/${game.homeTeam.teamId}/primary/L/logo.svg`}
                             alt={game.homeTeam.teamTricode}
-                            className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-xl transition-transform duration-300"
+                            className="team-logo-custom object-contain drop-shadow-xl transition-transform duration-300"
                         />
                     </div>
                     <div className="text-center">
-                        <span className={clsx("text-lg md:text-xl font-display tracking-wider block leading-none mb-1", homeHigh ? "text-text font-bold" : "text-text/80")}>
+                        <span className={clsx("team-name-custom font-display tracking-wider block leading-none", homeHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.homeTeam.teamTricode}
                         </span>
                         <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-2 py-0.5 rounded-full">
@@ -130,7 +130,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                 </div>
 
                 {/* Center Info */}
-                <div className="flex flex-col items-center justify-center px-1 md:px-2 min-w-[80px] md:min-w-[100px]">
+                <div className="flex flex-col items-center justify-center game-card-center-custom">
                     {isScheduled ? (
                         <div className="flex flex-col items-center gap-1">
                             <span className="text-[10px] font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
@@ -152,12 +152,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                             </span>
                             <div className="flex items-center gap-2 md:gap-3">
                                 <span className={clsx(
-                                    "text-2xl md:text-4xl font-mono font-bold transition-colors duration-300",
+                                    "score-text-custom font-mono font-bold transition-colors duration-300",
                                     homeHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.homeTeam.score}</span>
                                 <span className="text-text/10 text-xl font-light">/</span>
                                 <span className={clsx(
-                                    "text-2xl md:text-4xl font-mono font-bold transition-colors duration-300",
+                                    "score-text-custom font-mono font-bold transition-colors duration-300",
                                     awayHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.awayTeam.score}</span>
                             </div>
@@ -172,11 +172,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             src={`https://cdn.nba.com/logos/nba/${game.awayTeam.teamId}/primary/L/logo.svg`}
                             alt={game.awayTeam.teamTricode}
-                            className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-xl transition-transform duration-300"
+                            className="team-logo-custom object-contain drop-shadow-xl transition-transform duration-300"
                         />
                     </div>
                     <div className="text-center">
-                        <span className={clsx("text-lg md:text-xl font-display tracking-wider block leading-none mb-1", awayHigh ? "text-text font-bold" : "text-text/80")}>
+                        <span className={clsx("team-name-custom font-display tracking-wider block leading-none", awayHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.awayTeam.teamTricode}
                         </span>
                         <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-2 py-0.5 rounded-full">

@@ -53,7 +53,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
     const calendarDays = [-3, -2, -1, 0, 1, 2, 3].map(offset => addDays(selectedDate, offset));
 
     return (
-        <div className="w-full max-w-7xl mx-auto px-4 py-6 pb-40">
+        <div className="w-full max-w-7xl mx-auto px-2 py-4 lg:px-4 lg:py-6 pb-40 lg:pb-40">
             {/* Tabs */}
             <div className="flex justify-center mb-8">
                 <div className="glass rounded-xl p-1 flex gap-2 relative">
@@ -61,7 +61,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as 'scores' | 'standings')}
-                            className={`relative px-8 py-2.5 rounded-lg font-bold text-sm transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                            className={`relative px-12 py-5 lg:px-8 lg:py-2.5 rounded-lg font-bold text-2xl lg:text-sm transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
                         >
                             {activeTab === tab && (
                                 <motion.div
@@ -103,7 +103,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                             </div>
                         ) : (
                             <motion.div
-                                className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 mb-12"
+                                className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-6 mb-12"
                                 initial="hidden"
                                 animate="visible"
                                 variants={{
@@ -138,9 +138,9 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                 whileTap={{ scale: 0.9 }}
                                 id="prev-day-btn"
                                 onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-                                className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                                className="p-3 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
                             >
-                                <ChevronLeft className="w-5 h-5 text-text/60 group-hover:text-text" />
+                                <ChevronLeft className="w-10 h-10 lg:w-5 lg:h-5 text-text/60 group-hover:text-text" />
                             </motion.button>
 
                             <div className="flex items-center gap-1">
@@ -151,7 +151,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                             key={date.toISOString()}
                                             layout
                                             onClick={() => setSelectedDate(date)}
-                                            className={`flex flex-col items-center justify-center w-12 h-14 md:w-16 md:h-16 rounded-xl transition-colors duration-300 shrink-0 ${isSelected
+                                            className={`flex flex-col items-center justify-center w-20 h-24 lg:w-16 lg:h-16 rounded-xl transition-colors duration-300 shrink-0 ${isSelected
                                                 ? 'bg-accent text-text shadow-lg shadow-accent/20'
                                                 : 'hover:bg-white/5 text-text/60 hover:text-text'
                                                 }`}
@@ -160,8 +160,8 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                                 opacity: isSelected ? 1 : 0.7
                                             }}
                                         >
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">{format(date, 'EEE')}</span>
-                                            <span className={`font-mono font-bold ${isSelected ? 'text-xl md:text-2xl' : 'text-base md:text-lg'}`}>
+                                            <span className="text-sm lg:text-[10px] font-bold uppercase tracking-wider">{format(date, 'EEE')}</span>
+                                            <span className={`font-mono font-bold ${isSelected ? 'text-3xl lg:text-2xl' : 'text-xl lg:text-lg'}`}>
                                                 {format(date, 'd')}
                                             </span>
                                         </motion.button>
@@ -174,9 +174,9 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                 whileTap={{ scale: 0.9 }}
                                 id="next-day-btn"
                                 onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                                className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                                className="p-3 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
                             >
-                                <ChevronRight className="w-5 h-5 text-text/60 group-hover:text-text" />
+                                <ChevronRight className="w-10 h-10 lg:w-5 lg:h-5 text-text/60 group-hover:text-text" />
                             </motion.button>
                         </motion.div>
                     </motion.div>
