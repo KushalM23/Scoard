@@ -129,22 +129,29 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                     if (desc.includes('3pt') || currentEvent.subType?.includes('3PT')) points = 3;
                     else if (type.includes('free') || type.includes('throw')) points = 1;
                     
-                    subMessage = `+${points} PTS`;
+                    // Update local player stats for display
+                    // Note: This is a visual estimation based on the event, as the full player object might not be updated yet
+                    const updatedPoints = (notificationPlayer.points || 0) + points;
+                    
+                    subMessage = `${updatedPoints} PTS (+${points})`;
                     showNotification = true;
                 } 
                 // Rebounds
                 else if (type === 'rebound' || desc.includes('rebound')) {
-                    subMessage = `+1 REB`;
+                    const updatedRebs = (notificationPlayer.rebounds || 0) + 1;
+                    subMessage = `${updatedRebs} REB (+1)`;
                     showNotification = true;
                 } 
                 // Fouls
                 else if (type === 'foul' || desc.includes('foul')) {
-                    subMessage = `+1 PF`; 
+                    const updatedFouls = (notificationPlayer.fouls || 0) + 1;
+                    subMessage = `${updatedFouls} PF (+1)`; 
                     showNotification = true;
                 }
                 // Turnovers (only if not a steal by someone else, which we checked above)
                 else if (type === 'turnover' || desc.includes('turnover')) {
-                     subMessage = `+1 TO`;
+                     const updatedTO = (notificationPlayer.turnovers || 0) + 1;
+                     subMessage = `${updatedTO} TO (+1)`;
                      showNotification = true;
                 }
             }
@@ -341,19 +348,20 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                     </div>
                 </div>
 
-                {/* Court Container */}
-                <div className="relative w-full aspect-[2/1] bg-black rounded-lg overflow-hidden border-2 border-text/10">
-                    <img src={courtImage} alt="Basketball Court" className="absolute inset-0 w-full h-full object-cover" />
-
-                    {/* Defense Indicators */}
-                    <div className="absolute inset-0 pointer-events-none">
-                        <div className="absolute left-10 top-1/2 -translate-y-1/2 text-text/20 font-bold text-2xl uppercase tracking-widest rotate-90 md:rotate-0 md:left-20">
-                            {homeTeam.teamTricode} DEF
-                        </div>
-                        <div className="absolute right-10 top-1/2 -translate-y-1/2 text-text/20 font-bold text-2xl uppercase tracking-widest rotate-90 md:rotate-0 md:right-20">
-                            {awayTeam.teamTricode} DEF
-                        </div>
+                {/* Court Container Wrapper */}
+                <div className="relative w-full">
+                    {/* Defense Indicators - Outside Court */}
+                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 -rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden md:block">
+                        {homeTeam.teamTricode}
                     </div>
+                    
+                    <div className="absolute -right-16 top-1/2 -translate-y-1/2 rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden md:block">
+                        {awayTeam.teamTricode}
+                    </div>
+
+                    {/* Court Container */}
+                    <div className="relative w-full aspect-[2/1] bg-black rounded-lg overflow-hidden border-2 border-text/10">
+                        <img src={courtImage} alt="Basketball Court" className="absolute inset-0 w-full h-full object-cover" />
 
                     {/* Events */}
                     <AnimatePresence mode="wait">
@@ -445,6 +453,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         )}
                     </AnimatePresence>
                 </div>
+            </div>
             </div>
         </div>
     );

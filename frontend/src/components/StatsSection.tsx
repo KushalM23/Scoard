@@ -18,8 +18,8 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
         direction: 'desc'
     });
 
-    const homePlayers = players.filter(p => p.teamId === gameData.homeTeam.teamId);
-    const awayPlayers = players.filter(p => p.teamId === gameData.awayTeam.teamId);
+    const homePlayers = players.filter(p => String(p.teamId) === String(gameData.homeTeam.teamId));
+    const awayPlayers = players.filter(p => String(p.teamId) === String(gameData.awayTeam.teamId));
 
     const handleSort = (key: SortKey) => {
         setSortConfig(current => ({

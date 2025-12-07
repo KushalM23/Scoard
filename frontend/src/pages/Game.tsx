@@ -32,8 +32,12 @@ const Game: React.FC = () => {
                     axios.get(`${API_URL}/api/games/${gameId}/pbp`)
                 ]);
                 
-                if (boxRes.data && boxRes.data.game) {
-                    const game = boxRes.data.game;
+                // The backend returns the game object directly, or wrapped in 'game' depending on the source
+                // We handle both cases here
+                const rawGameData = boxRes.data.game || boxRes.data;
+
+                if (rawGameData && rawGameData.gameId) {
+                    const game = rawGameData;
                     
                     // Normalize team data to match our interface and prevent crashes
                     const normalizeTeam = (team: any) => ({
@@ -43,7 +47,7 @@ const Game: React.FC = () => {
                         losses: team.losses || 0,
                         // API returns periods as objects [{period: 1, score: 20}], we need numbers [20]
                         periods: Array.isArray(team.periods) 
-                            ? team.periods.map((p: any) => p.score) 
+                            ? team.periods.map((p: any) => (typeof p === 'object' && p !== null && 'score' in p) ? p.score : p) 
                             : [],
                         statistics: team.statistics // Pass through the statistics object
                     });
@@ -59,43 +63,44 @@ const Game: React.FC = () => {
                     // Process players from the API response
                     const allPlayers: Player[] = [];
                     
-                    const processTeamPlayers = (teamPlayers: any[], teamId: number) => {
-                        if (!Array.isArray(teamPlayers)) return [];
-                        return teamPlayers.map((p: any) => ({
-                            personId: p.personId,
-                            firstName: p.firstName,
-                            lastName: p.familyName,
-                            jersey: p.jerseyNum,
-                            position: p.position,
-                            status: p.status,
-                            notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
-                            points: p.statistics.points,
-                            rebounds: p.statistics.reboundsTotal,
-                            assists: p.statistics.assists,
-                            fouls: p.statistics.foulsPersonal,
-                            fgPercentage: p.statistics.fieldGoalsPercentage,
-                            threePtPercentage: p.statistics.threePointersPercentage,
-                            ftPercentage: p.statistics.freeThrowsPercentage,
-                            plusMinus: p.statistics.plusMinusPoints,
-                            fg: `${p.statistics.fieldGoalsMade}-${p.statistics.fieldGoalsAttempted}`,
-                            threePt: `${p.statistics.threePointersMade}-${p.statistics.threePointersAttempted}`,
-                            ft: `${p.statistics.freeThrowsMade}-${p.statistics.freeThrowsAttempted}`,
-                            minutes: p.statistics.minutes,
-                            blocks: p.statistics.blocks,
-                            steals: p.statistics.steals,
-                            turnovers: p.statistics.turnovers,
-                            reboundsOffensive: p.statistics.reboundsOffensive,
-                            reboundsDefensive: p.statistics.reboundsDefensive,
-                            isOnCourt: p.onCourt === '1' || p.onCourt === 1,
-                            teamId: teamId
-                        }));
-                    };
+                    const mapPlayer = (p: any, teamId: number) => ({
+                        personId: p.personId,
+                        firstName: p.firstName,
+                        lastName: p.familyName,
+                        jersey: p.jerseyNum,
+                        position: p.position,
+                        status: p.status,
+                        notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
+                        points: p.statistics.points,
+                        rebounds: p.statistics.reboundsTotal,
+                        assists: p.statistics.assists,
+                        fouls: p.statistics.foulsPersonal,
+                        fgPercentage: p.statistics.fieldGoalsPercentage,
+                        threePtPercentage: p.statistics.threePointersPercentage,
+                        ftPercentage: p.statistics.freeThrowsPercentage,
+                        plusMinus: p.statistics.plusMinusPoints,
+                        fg: `${p.statistics.fieldGoalsMade}-${p.statistics.fieldGoalsAttempted}`,
+                        threePt: `${p.statistics.threePointersMade}-${p.statistics.threePointersAttempted}`,
+                        ft: `${p.statistics.freeThrowsMade}-${p.statistics.freeThrowsAttempted}`,
+                        minutes: p.statistics.minutes,
+                        blocks: p.statistics.blocks,
+                        steals: p.statistics.steals,
+                        turnovers: p.statistics.turnovers,
+                        reboundsOffensive: p.statistics.reboundsOffensive,
+                        reboundsDefensive: p.statistics.reboundsDefensive,
+                        isOnCourt: p.onCourt === '1' || p.onCourt === 1,
+                        teamId: teamId
+                    });
 
-                    if (game.homeTeam && game.homeTeam.players) {
-                        allPlayers.push(...processTeamPlayers(game.homeTeam.players, game.homeTeam.teamId));
-                    }
-                    if (game.awayTeam && game.awayTeam.players) {
-                        allPlayers.push(...processTeamPlayers(game.awayTeam.players, game.awayTeam.teamId));
+                    if (game.players && Array.isArray(game.players)) {
+                        allPlayers.push(...game.players.map((p: any) => mapPlayer(p, p.teamId)));
+                    } else {
+                        if (game.homeTeam && game.homeTeam.players) {
+                            allPlayers.push(...game.homeTeam.players.map((p: any) => mapPlayer(p, game.homeTeam.teamId)));
+                        }
+                        if (game.awayTeam && game.awayTeam.players) {
+                            allPlayers.push(...game.awayTeam.players.map((p: any) => mapPlayer(p, game.awayTeam.teamId)));
+                        }
                     }
                     
                     setPlayers(allPlayers);
