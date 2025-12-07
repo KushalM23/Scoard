@@ -54,6 +54,34 @@ export interface Team {
     statistics?: TeamStatistics;
 }
 
+export interface SeasonStatPlayer {
+    personId: number;
+    name: string;
+    position: string;
+    gp: number;
+    min: number;
+    ppg: number;
+    rpg: number;
+    apg: number;
+    teamId: number;
+}
+
+export interface Matchup {
+    gameId: string;
+    gameDate: string;
+    matchup: string;
+    wl: string;
+    pts: number;
+    plusMinus: number;
+}
+
+export interface WinProbability {
+    homeWinPct: number;
+    awayWinPct: number;
+    homeWinProb: number;
+    awayWinProb: number;
+}
+
 export interface PlayByPlayEvent {
     actionNumber: number;
     clock: string;
@@ -76,6 +104,7 @@ export interface GameData {
     gameId: string;
     gameStatus: number; // 1: Scheduled, 2: Live, 3: Final
     gameStatusText: string;
+    gameEt: string; // Added gameEt
     period: number;
     clock: string;
     homeTeam: Team;
@@ -84,4 +113,10 @@ export interface GameData {
         name: string;
         city: string;
     };
+    seasonStats?: {
+        home: SeasonStatPlayer[];
+        away: SeasonStatPlayer[];
+    };
+    previousMatchups?: Matchup[];
+    winProbability?: WinProbability;
 }

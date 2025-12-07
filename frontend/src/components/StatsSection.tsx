@@ -19,6 +19,8 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
         direction: 'desc'
     });
 
+    const isScheduled = gameData.gameStatus === 1;
+
     const homePlayers = players.filter(p => String(p.teamId) === String(gameData.homeTeam.teamId));
     const awayPlayers = players.filter(p => String(p.teamId) === String(gameData.awayTeam.teamId));
 
@@ -67,6 +69,47 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
                 <ArrowUpDown className={`w-3 h-3 ${sortConfig.key === key ? 'text-primary' : 'text-text/20 group-hover:text-text/40'}`} />
             </div>
         </th>
+    );
+
+    const renderRosterTable = (teamPlayers: Player[]) => (
+        <div className="overflow-auto max-h-[400px] rounded-xl border border-text/10">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead className="sticky top-0 bg-background z-20">
+                    <tr className="text-text/40 text-xs md:text-sm border-b border-text/10">
+                        <th className="px-4 py-3 whitespace-nowrap text-left">JERSEY</th>
+                        <th className="px-4 py-3 whitespace-nowrap text-left w-full">PLAYER</th>
+                        <th className="px-4 py-3 whitespace-nowrap text-center">POS</th>
+                        <th className="px-4 py-3 whitespace-nowrap text-center">STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {teamPlayers.map((player) => (
+                        <tr key={player.personId} className="border-b border-text/5 text-xs md:text-sm hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-3 text-text/60 font-mono">{player.jersey}</td>
+                            <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <img 
+                                        src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.personId}.png`}
+                                        alt={`${player.firstName} ${player.lastName}`}
+                                        className="w-8 h-8 object-cover rounded-full bg-white/10"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png';
+                                        }}
+                                    />
+                                    <div className="font-bold text-text">{player.firstName} {player.lastName}</div>
+                                </div>
+                            </td>
+                            <td className="px-4 py-3 text-text/80 text-center">{player.position}</td>
+                            <td className="px-4 py-3 text-center">
+                                <span className={`px-2 py-1 rounded text-[10px] font-bold ${player.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                    {player.status}
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 
     const renderPlayerTable = (teamPlayers: Player[]) => (
@@ -155,11 +198,11 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
                 {statsList.map((stat, i) => (
                     <div key={i}>
                         <div className="flex justify-between text-sm mb-1">
-                            <span className="font-bold text-text w-16 text-left">
+                            <span className="font-bold text-primary w-16 text-left">
                                 {stat.format ? stat.format(stat.home) : stat.home}
                             </span>
                             <span className="text-text/40 font-medium uppercase tracking-wider text-xs">{stat.label}</span>
-                            <span className="font-bold text-text w-16 text-right">
+                            <span className="font-bold text-secondary w-16 text-right">
                                 {stat.format ? stat.format(stat.away) : stat.away}
                             </span>
                         </div>
@@ -182,9 +225,9 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
     const tabs = [
         { id: 'home', label: gameData.homeTeam.teamTricode, shortLabel: gameData.homeTeam.teamTricode },
         { id: 'away', label: gameData.awayTeam.teamTricode, shortLabel: gameData.awayTeam.teamTricode },
-        { id: 'team', label: 'Team Stats', shortLabel: 'Team' },
-        { id: 'pbp', label: 'Play by Play', shortLabel: 'Plays' },
-    ];
+        !isScheduled && { id: 'team', label: 'Team Stats', shortLabel: 'Team' },
+        !isScheduled && { id: 'pbp', label: 'Play by Play', shortLabel: 'Plays' },
+    ].filter(Boolean) as { id: string; label: string; shortLabel: string }[];
 
     return (
         <div className="glass rounded-2xl shadow-2xl shadow-black/50 p-4 md:p-6 h-full">
@@ -211,8 +254,8 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
             </div>
 
             <div className="h-full">
-                {activeTab === 'home' && renderPlayerTable(sortedHomePlayers)}
-                {activeTab === 'away' && renderPlayerTable(sortedAwayPlayers)}
+                {activeTab === 'home' && (isScheduled ? renderRosterTable(homePlayers) : renderPlayerTable(sortedHomePlayers))}
+                {activeTab === 'away' && (isScheduled ? renderRosterTable(awayPlayers) : renderPlayerTable(sortedAwayPlayers))}
                 {activeTab === 'team' && renderTeamStats()}
                 {activeTab === 'pbp' && (
                     <div className="overflow-auto max-h-[400px] rounded-xl border border-text/10 p-4 space-y-2">

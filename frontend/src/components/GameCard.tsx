@@ -135,7 +135,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                         <div className="flex flex-col items-center gap-1">
                             <span className="text-[8px] md:text-[10px] font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
                             <div className="bg-white/5 rounded-lg px-1.5 py-0.5 border border-white/5">
-                                <span className="text-sm md:text-base font-mono font-bold text-text whitespace-nowrap">
+                                <span className="text-xl md:text-base font-mono font-medium text-text whitespace-nowrap">
                                     {formatToIST(game.gameEt, game.gameStatusText)}
                                 </span>
                             </div>
@@ -152,12 +152,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                             </span>
                             <div className="flex items-center gap-2 md:gap-2">
                                 <span className={clsx(
-                                    "text-2xl md:text-3xl font-mono font-medium transition-colors duration-300",
+                                    "text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
                                     homeHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.homeTeam.score}</span>
                                 <span className="text-text/10 text-xl md:text-xl font-light">/</span>
                                 <span className={clsx(
-                                    "text-2xl md:text-3xl font-mono font-medium transition-colors duration-300",
+                                    "text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
                                     awayHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.awayTeam.score}</span>
                             </div>

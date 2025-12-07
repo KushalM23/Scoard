@@ -114,16 +114,16 @@ const Standings: React.FC = () => {
                                     <span className="hidden sm:inline">{team.teamCity} {team.teamName}</span>
                                     <span className="sm:hidden">{team.teamName}</span>
                                 </td>
-                                <td className="px-4 py-3 text-center font-mono">{team.wins}</td>
-                                <td className="px-4 py-3 text-center font-mono">{team.losses}</td>
-                                <td className="px-4 py-3 text-center font-mono">{(team.winPct * 100).toFixed(1)}%</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">-</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">{team.homeRecord}</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">{team.roadRecord}</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">{team.division}</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">{team.l10}</td>
-                                <td className="px-4 py-3 text-center font-mono text-text/60">{team.streak}</td>
-                                <td className={`px-4 py-3 text-center font-mono ${team.diffPointsPg > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono">{team.wins}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono">{team.losses}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono">{(team.winPct * 100).toFixed(1)}%</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">-</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.homeRecord}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.roadRecord}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.division}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.l10}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.streak}</td>
+                                <td className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.diffPointsPg > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                     {team.diffPointsPg > 0 ? '+' : ''}{team.diffPointsPg}
                                 </td>
                             </tr>

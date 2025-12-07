@@ -11,7 +11,7 @@ export default {
         text: '#faf0d5',
         primary: '#EB5E28',
         accent: '#EB5E28',
-        secondary: '#BA99AA',
+        secondary: '#7776BC',
         light: {
           background: '#FFF5F5',
           text: '#2D2B35',

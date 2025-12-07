@@ -20,7 +20,7 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
     const homeTop = getTopPerformers(homePlayers);
     const awayTop = getTopPerformers(awayPlayers);
 
-    const renderPerformerCard = (player: Player, rank: number) => (
+    const renderPerformerCard = (player: Player, rank: number, isHome: boolean) => (
         <div key={player.personId} className="bg-white/5 rounded-lg p-3 flex items-center gap-3 border border-white/5">
             <div className="relative">
                 <img 
@@ -31,7 +31,7 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
                         (e.target as HTMLImageElement).src = 'https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png';
                     }}
                 />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary text-text text-[10px] font-bold flex items-center justify-center rounded-full border border-background">
+                <div className={`absolute -bottom-1 -right-1 w-5 h-5 ${isHome ? 'bg-primary' : 'bg-secondary'} text-text text-[10px] font-bold flex items-center justify-center rounded-full border border-background`}>
                     #{rank}
                 </div>
             </div>
@@ -47,22 +47,22 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
     );
 
     return (
-        <div className="w-full bg-background p-4 rounded-lg border border-text/10">
-            <h3 className="text-lg font-bold mb-4">Top Performers</h3>
+        <div className="glass-card p-4 mb-4 max-w-2xl mx-auto">
+            <h3 className="text-lg font-bold mb-4 text-center">Top Performers</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Home Team */}
                 <div>
-                    <h4 className="text-sm font-bold text-text/60 mb-2 uppercase tracking-wider">{homeTeamName}</h4>
+                    <h4 className="text-sm font-bold text-primary mb-2 uppercase tracking-wider text-center">{homeTeamName}</h4>
                     <div className="flex flex-col gap-2">
-                        {homeTop.map((p, i) => renderPerformerCard(p, i + 1))}
+                        {homeTop.map((p, i) => renderPerformerCard(p, i + 1, true))}
                     </div>
                 </div>
 
                 {/* Away Team */}
                 <div>
-                    <h4 className="text-sm font-bold text-text/60 mb-2 uppercase tracking-wider">{awayTeamName}</h4>
+                    <h4 className="text-sm font-bold text-secondary mb-2 uppercase tracking-wider text-center">{awayTeamName}</h4>
                     <div className="flex flex-col gap-2">
-                        {awayTop.map((p, i) => renderPerformerCard(p, i + 1))}
+                        {awayTop.map((p, i) => renderPerformerCard(p, i + 1, false))}
                     </div>
                 </div>
             </div>

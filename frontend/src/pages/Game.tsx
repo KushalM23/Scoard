@@ -10,6 +10,9 @@ import VirtualCourt from '../components/VirtualCourt';
 import StatsSection from '../components/StatsSection';
 import TopPerformers from '../components/TopPerformers';
 import InjuryReport from '../components/InjuryReport';
+import SeasonStats from '../components/SeasonStats';
+import PreviousMatchups from '../components/PreviousMatchups';
+import WinProbability from '../components/WinProbability';
 import type { GameData, PlayByPlayEvent, Player } from '../types';
 
 const Game: React.FC = () => {
@@ -23,6 +26,9 @@ const Game: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout>;
+        let isMounted = true;
+
         const fetchData = async () => {
             if (!gameId) return;
             
@@ -33,12 +39,16 @@ const Game: React.FC = () => {
                     axios.get(`${API_URL}/api/games/${gameId}/pbp`)
                 ]);
                 
+                if (!isMounted) return;
+
                 // The backend returns the game object directly, or wrapped in 'game' depending on the source
                 // We handle both cases here
                 const rawGameData = boxRes.data.game || boxRes.data;
+                let currentGameStatus = 0;
 
                 if (rawGameData && rawGameData.gameId) {
                     const game = rawGameData;
+                    currentGameStatus = game.gameStatus;
                     
                     // Normalize team data to match our interface and prevent crashes
                     const normalizeTeam = (team: any) => ({
@@ -64,34 +74,39 @@ const Game: React.FC = () => {
                     // Process players from the API response
                     const allPlayers: Player[] = [];
                     
-                    const mapPlayer = (p: any, teamId: number) => ({
-                        personId: p.personId,
-                        firstName: p.firstName,
-                        lastName: p.familyName,
-                        jersey: p.jerseyNum,
-                        position: p.position,
-                        status: p.status,
-                        notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
-                        points: p.statistics.points,
-                        rebounds: p.statistics.reboundsTotal,
-                        assists: p.statistics.assists,
-                        fouls: p.statistics.foulsPersonal,
-                        fgPercentage: p.statistics.fieldGoalsPercentage,
-                        threePtPercentage: p.statistics.threePointersPercentage,
-                        ftPercentage: p.statistics.freeThrowsPercentage,
-                        plusMinus: p.statistics.plusMinusPoints,
-                        fg: `${p.statistics.fieldGoalsMade}-${p.statistics.fieldGoalsAttempted}`,
-                        threePt: `${p.statistics.threePointersMade}-${p.statistics.threePointersAttempted}`,
-                        ft: `${p.statistics.freeThrowsMade}-${p.statistics.freeThrowsAttempted}`,
-                        minutes: p.statistics.minutes,
-                        blocks: p.statistics.blocks,
-                        steals: p.statistics.steals,
-                        turnovers: p.statistics.turnovers,
-                        reboundsOffensive: p.statistics.reboundsOffensive,
-                        reboundsDefensive: p.statistics.reboundsDefensive,
-                        isOnCourt: p.onCourt === '1' || p.onCourt === 1,
-                        teamId: teamId
-                    });
+                    const mapPlayer = (p: any, teamId: number) => {
+                        // Handle both nested statistics (CDN) and flat structure (Backend/Scheduled)
+                        const stats = p.statistics || p;
+                        
+                        return {
+                            personId: p.personId,
+                            firstName: p.firstName,
+                            lastName: p.familyName || p.lastName,
+                            jersey: p.jerseyNum || p.jersey,
+                            position: p.position,
+                            status: p.status,
+                            notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
+                            points: stats.points || 0,
+                            rebounds: stats.reboundsTotal || stats.rebounds || 0,
+                            assists: stats.assists || 0,
+                            fouls: stats.foulsPersonal || stats.fouls || 0,
+                            fgPercentage: stats.fieldGoalsPercentage || stats.fgPercentage || 0,
+                            threePtPercentage: stats.threePointersPercentage || stats.threePtPercentage || 0,
+                            ftPercentage: stats.freeThrowsPercentage || stats.ftPercentage || 0,
+                            plusMinus: stats.plusMinusPoints || stats.plusMinus || 0,
+                            fg: stats.fieldGoalsMade ? `${stats.fieldGoalsMade}-${stats.fieldGoalsAttempted}` : (stats.fg || '0-0'),
+                            threePt: stats.threePointersMade ? `${stats.threePointersMade}-${stats.threePointersAttempted}` : (stats.threePt || '0-0'),
+                            ft: stats.freeThrowsMade ? `${stats.freeThrowsMade}-${stats.freeThrowsAttempted}` : (stats.ft || '0-0'),
+                            minutes: stats.minutes || "0",
+                            blocks: stats.blocks || 0,
+                            steals: stats.steals || 0,
+                            turnovers: stats.turnovers || 0,
+                            reboundsOffensive: stats.reboundsOffensive || 0,
+                            reboundsDefensive: stats.reboundsDefensive || 0,
+                            isOnCourt: p.onCourt === '1' || p.onCourt === 1 || p.isOnCourt === true,
+                            teamId: teamId
+                        };
+                    };
 
                     if (game.players && Array.isArray(game.players)) {
                         allPlayers.push(...game.players.map((p: any) => mapPlayer(p, p.teamId)));
@@ -111,17 +126,33 @@ const Game: React.FC = () => {
                     setPbpData(pbpRes.data.game.actions);
                 }
                 setError(null);
+
+                // Schedule next fetch based on game status
+                if (currentGameStatus === 2) {
+                    // Live game: poll every 5 seconds
+                    timeoutId = setTimeout(fetchData, 5000);
+                } else if (currentGameStatus === 1) {
+                    // Scheduled game: poll every 60 seconds to check for start
+                    timeoutId = setTimeout(fetchData, 60000);
+                }
+                // If status is 3 (Final), stop polling
+
             } catch (error) {
                 console.error('Error fetching game data:', error);
                 setError('Failed to load game data. Please try again later.');
+                // Retry on error
+                timeoutId = setTimeout(fetchData, 10000);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
+        
+        return () => {
+            isMounted = false;
+            clearTimeout(timeoutId);
+        };
     }, [gameId]);
 
     if (loading && !gameData) {
@@ -149,15 +180,23 @@ const Game: React.FC = () => {
             <Layout>
                 <Header />
                 <div className="flex justify-center items-center h-[calc(100vh-80px)]">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold text-red-500 mb-2">Error</h2>
-                        <p className="text-text/60 mb-4">{error || 'Game not found'}</p>
-                        <button 
-                            onClick={() => navigate('/')}
-                            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                        >
-                            Back to Games
-                        </button>
+                    <div className="text-center space-y-4">
+                        <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
+                        <p className="text-text/60 max-w-md mx-auto">{error || 'We couldn\'t find the game you\'re looking for.'}</p>
+                        <div className="flex gap-4 justify-center">
+                            <button 
+                                onClick={() => window.location.reload()}
+                                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-colors"
+                            >
+                                Retry
+                            </button>
+                            <button 
+                                onClick={() => navigate('/')}
+                                className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                                Back to Games
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Layout>
@@ -210,31 +249,44 @@ const Game: React.FC = () => {
                             />
                         ) : (
                             <div className="space-y-6">
-                                <InjuryReport 
-                                    homeTeamName={gameData.homeTeam.teamTricode}
-                                    awayTeamName={gameData.awayTeam.teamTricode}
-                                    homePlayers={players.filter(p => p.teamId === gameData.homeTeam.teamId)}
-                                    awayPlayers={players.filter(p => p.teamId === gameData.awayTeam.teamId)}
-                                />
-                                <div className="text-center text-text/40 py-10">
-                                    Game starts at {gameData.gameStatusText}
-                                </div>
+                                {gameData.winProbability && (
+                                    <WinProbability 
+                                        data={gameData.winProbability}
+                                        homeTeamName={gameData.homeTeam.teamName}
+                                        awayTeamName={gameData.awayTeam.teamName}
+                                    />
+                                )}
+                                
+                                {gameData.seasonStats && (
+                                    <SeasonStats 
+                                        homeStats={gameData.seasonStats.home}
+                                        awayStats={gameData.seasonStats.away}
+                                        homeTeamName={gameData.homeTeam.teamName}
+                                        awayTeamName={gameData.awayTeam.teamName}
+                                    />
+                                )}
+
+                                {gameData.previousMatchups && (
+                                    <PreviousMatchups 
+                                        matchups={gameData.previousMatchups}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>
 
                     {/* Stats Section */}
-                    {gameData.gameStatus !== 1 && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                            className="w-full"
-                        >
-                            <h3 className="text-xl md:text-lg font-bold mb-4 md:mb-3">Game Stats</h3>
-                            <StatsSection gameData={gameData} players={players} actions={pbpData} />
-                        </motion.div>
-                    )}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="w-full"
+                    >
+                        <h3 className="text-xl md:text-lg font-bold mb-4 md:mb-3">
+                            {gameData.gameStatus === 1 ? 'Team Rosters' : 'Game Stats'}
+                        </h3>
+                        <StatsSection gameData={gameData} players={players} actions={pbpData} />
+                    </motion.div>
                 </div>
             </motion.div>
         </Layout>

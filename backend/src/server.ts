@@ -31,12 +31,18 @@ const setCachedData = (key: string, data: any) => {
 
 // NBA Stats API Headers
 const STATS_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Referer': 'https://www.nba.com/',
-    'Origin': 'https://www.nba.com',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'x-nba-stats-origin': 'stats',
-    'x-nba-stats-token': 'true'
+    'Host': 'stats.nba.com',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Referer': 'https://stats.nba.com/',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache',
+    'Sec-Ch-Ua': '"Chromium";v="140", "Google Chrome";v="140", "Not;A=Brand";v="24"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Fetch-Dest': 'empty'
 };
 
 // Routes
@@ -108,11 +114,15 @@ app.get('/api/games/:gameId', async (req, res) => {
         }
 
         // 2. Fallback: BoxscoreSummaryV2 (Reliable for Scheduled Games)
-        // We skip boxscoretraditionalv2 for scheduled games as it often fails or returns empty
+        console.log(`Fetching BoxScoreSummaryV2 for ${gameId}...`);
+        console.log('Headers:', JSON.stringify(STATS_HEADERS, null, 2));
+        
         const summaryResponse = await axios.get('https://stats.nba.com/stats/boxscoresummaryv2', {
             params: { GameID: gameId },
-            headers: STATS_HEADERS
+            headers: STATS_HEADERS,
+            timeout: 10000 // 10s timeout
         });
+        console.log('BoxScoreSummaryV2 success');
 
         const summarySets = summaryResponse.data.resultSets;
         const gameSummary = summarySets[0].rowSet[0];
@@ -136,20 +146,54 @@ app.get('/api/games/:gameId', async (req, res) => {
 
         // Fetch Rosters for Scheduled Games to populate "players" for Injury Report
         let allPlayers: any[] = [];
+        let seasonStats: any = null;
+        let previousMatchups: any[] = [];
+        let winProbability: any = null;
+        let homeRecord = { wins: 0, losses: 0 };
+        let awayRecord = { wins: 0, losses: 0 };
         const gameStatus = getValue(gameSummary, summaryHeaders, 'GAME_STATUS_ID');
 
         if (gameStatus === 1) {
              try {
-                const [homeRosterRes, awayRosterRes] = await Promise.all([
+                const results = await Promise.allSettled([
                     axios.get('https://stats.nba.com/stats/commonteamroster', {
                         params: { TeamID: homeTeamId, Season: '2025-26' },
-                        headers: STATS_HEADERS
+                        headers: STATS_HEADERS,
+                        timeout: 5000
                     }),
                     axios.get('https://stats.nba.com/stats/commonteamroster', {
                         params: { TeamID: awayTeamId, Season: '2025-26' },
-                        headers: STATS_HEADERS
+                        headers: STATS_HEADERS,
+                        timeout: 5000
+                    }),
+                    axios.get('https://stats.nba.com/stats/teamplayerdashboard', {
+                        params: { TeamID: homeTeamId, Season: '2025-26', PerMode: 'PerGame', SeasonType: 'Regular Season' },
+                        headers: STATS_HEADERS,
+                        timeout: 5000
+                    }),
+                    axios.get('https://stats.nba.com/stats/teamplayerdashboard', {
+                        params: { TeamID: awayTeamId, Season: '2025-26', PerMode: 'PerGame', SeasonType: 'Regular Season' },
+                        headers: STATS_HEADERS,
+                        timeout: 5000
+                    }),
+                    axios.get('https://stats.nba.com/stats/teamgamelog', {
+                        params: { TeamID: homeTeamId, Season: '2025-26', SeasonType: 'Regular Season' },
+                        headers: STATS_HEADERS,
+                        timeout: 5000
+                    }),
+                    axios.get('https://stats.nba.com/stats/leaguestandings', {
+                        params: { Season: '2025-26', SeasonType: 'Regular Season', LeagueID: '00' },
+                        headers: STATS_HEADERS,
+                        timeout: 5000
                     })
                 ]);
+
+                const homeRosterRes = results[0].status === 'fulfilled' ? results[0].value : null;
+                const awayRosterRes = results[1].status === 'fulfilled' ? results[1].value : null;
+                const homeStatsRes = results[2].status === 'fulfilled' ? results[2].value : null;
+                const awayStatsRes = results[3].status === 'fulfilled' ? results[3].value : null;
+                const homeLogRes = results[4].status === 'fulfilled' ? results[4].value : null;
+                const standingsRes = results[5].status === 'fulfilled' ? results[5].value : null;
 
                 const mapRosterPlayer = (p: any[], headers: string[], teamId: number) => ({
                     personId: getValue(p, headers, 'PLAYER_ID'),
@@ -167,15 +211,98 @@ app.get('/api/games/:gameId', async (req, res) => {
                     isOnCourt: false
                 });
 
-                const homeHeaders = homeRosterRes.data.resultSets[0].headers;
-                const awayHeaders = awayRosterRes.data.resultSets[0].headers;
+                if (homeRosterRes) {
+                    const homeHeaders = homeRosterRes.data.resultSets[0].headers;
+                    allPlayers.push(...homeRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, homeHeaders, homeTeamId)));
+                }
+                if (awayRosterRes) {
+                    const awayHeaders = awayRosterRes.data.resultSets[0].headers;
+                    allPlayers.push(...awayRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId)));
+                }
 
-                allPlayers = [
-                    ...homeRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, homeHeaders, homeTeamId)),
-                    ...awayRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId))
-                ];
+                // Process Season Stats (Top 5 by MIN)
+                const processStats = (res: any, teamId: number) => {
+                    const headers = res.data.resultSets[1].headers; // PlayersSeasonTotals
+                    const rows = res.data.resultSets[1].rowSet;
+                    
+                    return rows
+                        .map((row: any[]) => ({
+                            personId: getValue(row, headers, 'PLAYER_ID'),
+                            name: getValue(row, headers, 'PLAYER_NAME'),
+                            position: 'N/A',
+                            gp: getValue(row, headers, 'GP'),
+                            min: getValue(row, headers, 'MIN'),
+                            ppg: getValue(row, headers, 'PTS'),
+                            rpg: getValue(row, headers, 'REB'),
+                            apg: getValue(row, headers, 'AST'),
+                            teamId: teamId
+                        }))
+                        .sort((a: any, b: any) => b.min - a.min)
+                        .slice(0, 5);
+                };
+
+                if (homeStatsRes && awayStatsRes) {
+                    seasonStats = {
+                        home: processStats(homeStatsRes, homeTeamId),
+                        away: processStats(awayStatsRes, awayTeamId)
+                    };
+                }
+
+                // Process Previous Matchups
+                if (homeLogRes) {
+                    const logHeaders = homeLogRes.data.resultSets[0].headers;
+                    const logRows = homeLogRes.data.resultSets[0].rowSet;
+                    // Try to find away team tricode from game summary or just use ID if possible, but matchup string uses tricode
+                    // We can get away tricode from lineScore if available, or from gameSummary
+                    const awayTricode = getValue(gameSummary, summaryHeaders, 'VISITOR_TEAM_ABBREVIATION') || 'SAC'; 
+
+                    previousMatchups = logRows
+                        .filter((row: any[]) => getValue(row, logHeaders, 'MATCHUP').includes(awayTricode))
+                        .map((row: any[]) => ({
+                            gameId: getValue(row, logHeaders, 'Game_ID'),
+                            gameDate: getValue(row, logHeaders, 'GAME_DATE'),
+                            matchup: getValue(row, logHeaders, 'MATCHUP'),
+                            wl: getValue(row, logHeaders, 'WL'),
+                            pts: getValue(row, logHeaders, 'PTS'),
+                            plusMinus: getValue(row, logHeaders, 'Plus_Minus')
+                        }));
+                }
+
+                // Process Win Probability
+                if (standingsRes) {
+                    const standingsHeaders = standingsRes.data.resultSets[0].headers;
+                    const standingsRows = standingsRes.data.resultSets[0].rowSet;
+                    
+                    const homeRow = standingsRows.find((row: any[]) => getValue(row, standingsHeaders, 'TeamID') === homeTeamId);
+                    const awayRow = standingsRows.find((row: any[]) => getValue(row, standingsHeaders, 'TeamID') === awayTeamId);
+
+                    if (homeRow && awayRow) {
+                        const homeWinPct = getValue(homeRow, standingsHeaders, 'WinPCT');
+                        const awayWinPct = getValue(awayRow, standingsHeaders, 'WinPCT');
+                        
+                        homeRecord = {
+                            wins: getValue(homeRow, standingsHeaders, 'WINS'),
+                            losses: getValue(homeRow, standingsHeaders, 'LOSSES')
+                        };
+                        awayRecord = {
+                            wins: getValue(awayRow, standingsHeaders, 'WINS'),
+                            losses: getValue(awayRow, standingsHeaders, 'LOSSES')
+                        };
+
+                        // Log5 Formula
+                        const homeWinProb = (homeWinPct * (1 - awayWinPct)) / ((homeWinPct * (1 - awayWinPct)) + ((1 - homeWinPct) * awayWinPct));
+                    
+                    winProbability = {
+                        homeWinPct,
+                        awayWinPct,
+                        homeWinProb: homeWinProb * 100,
+                        awayWinProb: (1 - homeWinProb) * 100
+                    };
+                }
+                }
+
              } catch (e) {
-                 console.log('Roster fetch failed', e);
+                 console.log('Scheduled game details fetch failed', e);
              }
         }
 
@@ -191,8 +318,8 @@ app.get('/api/games/:gameId', async (req, res) => {
                 teamCity: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_CITY_NAME') : '',
                 teamTricode: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'HOM',
                 score: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'PTS') : 0,
-                wins: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[0] : 0,
-                losses: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[1] : 0,
+                wins: gameStatus === 1 ? homeRecord.wins : (homeLineScore ? (getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES') || '0-0').split('-')[0] : 0),
+                losses: gameStatus === 1 ? homeRecord.losses : (homeLineScore ? (getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES') || '0-0').split('-')[1] : 0),
                 periods: [],
                 statistics: null,
                 inBonus: false,
@@ -204,20 +331,27 @@ app.get('/api/games/:gameId', async (req, res) => {
                 teamCity: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_CITY_NAME') : '',
                 teamTricode: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'AWY',
                 score: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'PTS') : 0,
-                wins: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[0] : 0,
-                losses: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[1] : 0,
+                wins: gameStatus === 1 ? awayRecord.wins : (awayLineScore ? (getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES') || '0-0').split('-')[0] : 0),
+                losses: gameStatus === 1 ? awayRecord.losses : (awayLineScore ? (getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES') || '0-0').split('-')[1] : 0),
                 periods: [],
                 statistics: null,
                 inBonus: false,
                 timeoutsRemaining: 0
             },
-            players: allPlayers
+            players: allPlayers,
+            seasonStats,
+            previousMatchups,
+            winProbability
         };
 
         res.json(mappedData);
 
-    } catch (error) {
-        console.error('Error fetching game data:', error);
+    } catch (error: any) {
+        console.error('Error fetching game data:', error.message);
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', JSON.stringify(error.response.data).substring(0, 200));
+        }
         res.status(500).json({ error: 'Failed to fetch game data' });
     }
 });

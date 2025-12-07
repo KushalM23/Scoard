@@ -2,7 +2,9 @@
 
 A modern, multi-sport score app with data visualization to simulate the feeling of watching the game without watching it
 
-![Scoard Preview](preview.png)
+**Live Demo:** [scoard.vercel.app](https://scoard.vercel.app)
+
+![Scoard Preview](preview1.png)[Scoard Preview](preview2.png)[Scoard Preview](preview3.png)
 
 ## Features
 
