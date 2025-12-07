@@ -60,11 +60,11 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
 
                     {/* Score */}
                     <div className="flex items-center gap-4">
-                        <span className={`text-3xl md:text-4xl font-mono font-bold tracking-tighter ${isHomeLeading ? 'text-primary' : 'text-text'}`}>
+                        <span className={`text-3xl md:text-4xl font-mono font-medium tracking-tighter ${isHomeLeading ? 'text-primary' : 'text-text'}`}>
                             {homeTeam.score}
                         </span>
                         <span className="text-text/10 text-2xl font-light">-</span>
-                        <span className={`text-3xl md:text-4xl font-mono font-bold tracking-tighter ${isAwayLeading ? 'text-primary' : 'text-text'}`}>
+                        <span className={`text-3xl md:text-4xl font-mono font-medium tracking-tighter ${isAwayLeading ? 'text-primary' : 'text-text'}`}>
                             {awayTeam.score}
                         </span>
                     </div>

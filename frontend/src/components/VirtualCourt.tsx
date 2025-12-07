@@ -50,6 +50,29 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 lastProcessedIdRef.current = Number(latest.actionNumber);
                 setPossessionTeamId(latest.teamId);
                 isFirstLoad.current = false;
+
+                // Check if the latest action is a special event (Timeout/Period) and show overlay immediately
+                // This ensures that if the user loads the page during a timeout, they see the overlay
+                const type = latest.actionType ? latest.actionType.toLowerCase() : '';
+                const desc = latest.description ? latest.description.toLowerCase() : '';
+                
+                if (type === 'timeout' || desc.includes('timeout')) {
+                     setOverlayEvent({ title: 'TIMEOUT', description: latest.description });
+                     // Auto-hide after 4 seconds
+                     setTimeout(() => setOverlayEvent(null), 4000);
+                } else if (type === 'period' || desc.includes('end of') || desc.includes('start of')) {
+                     const isEnd = desc.includes('end');
+                     const isStart = desc.includes('start');
+                     const periodName = latest.period <= 4 ? `Q${latest.period}` : `OT${latest.period - 4}`;
+                     
+                     let title = 'PERIOD UPDATE';
+                     if (isEnd) title = `END OF ${periodName}`;
+                     else if (isStart) title = `START OF ${periodName}`;
+
+                     setOverlayEvent({ title, description: latest.description });
+                     setTimeout(() => setOverlayEvent(null), 4000);
+                }
+
                 return;
             }
 
@@ -169,36 +192,37 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
             // --- Overlay Logic (Timeouts, Subs, Quarter End) ---
             const actionType = currentEvent.actionType ? currentEvent.actionType.toLowerCase() : '';
+            const description = currentEvent.description ? currentEvent.description : '';
+            const descLower = description.toLowerCase();
 
-            if (actionType === 'timeout' || currentEvent.description.toLowerCase().includes('timeout')) {
-                setOverlayEvent({ title: 'TIMEOUT', description: currentEvent.description });
+            if (actionType === 'timeout' || descLower.includes('timeout')) {
+                setOverlayEvent({ title: 'TIMEOUT', description: description });
             } else if (actionType === 'substitution') {
                 // Try to find the pair in recent events (or just use description)
-                // Since we are processing sequentially, we might want to look at the queue or history?
-                // For simplicity, let's just show the current event's description nicely formatted
-                let description = currentEvent.description;
-                if (description.includes('enters')) {
-                     description = `IN: ${currentEvent.playerNameI}`;
-                } else if (description.includes('leaves')) {
-                     description = `OUT: ${currentEvent.playerNameI}`;
+                let displayDesc = description;
+                if (displayDesc.includes('enters')) {
+                     displayDesc = `IN: ${currentEvent.playerNameI}`;
+                } else if (displayDesc.includes('leaves')) {
+                     displayDesc = `OUT: ${currentEvent.playerNameI}`;
                 }
-                setOverlayEvent({ title: 'SUBSTITUTION', description });
-            } else if (actionType === 'period' || currentEvent.description.includes('End of') || currentEvent.description.includes('Start of')) {
-                 const isEnd = currentEvent.description.includes('End');
-                 const isStart = currentEvent.description.includes('Start');
+                setOverlayEvent({ title: 'SUBSTITUTION', description: displayDesc });
+            } else if (actionType === 'period' || descLower.includes('end of') || descLower.includes('start of')) {
+                 const isEnd = descLower.includes('end');
+                 const isStart = descLower.includes('start');
                  const periodName = currentEvent.period <= 4 ? `Q${currentEvent.period}` : `OT${currentEvent.period - 4}`;
                  
                  let title = 'PERIOD UPDATE';
                  if (isEnd) title = `END OF ${periodName}`;
                  else if (isStart) title = `START OF ${periodName}`;
 
-                 setOverlayEvent({ title, description: currentEvent.description });
+                 setOverlayEvent({ title, description: description });
             } else {
                 setOverlayEvent(null);
             }
 
             // Remove from queue after delay
-            const delay = 2000; // 1.5 seconds per event
+            // Increase delay for readability
+            const delay = (actionType === 'timeout' || actionType === 'period') ? 4000 : 2500; 
             timerRef.current = setTimeout(() => {
                 setOverlayEvent(null); // Clear overlay when event finishes
                 setEventQueue(prev => prev.slice(1));
@@ -296,7 +320,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         initial={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
-                        className={`absolute bottom-8 ${sideNotification.teamId === homeTeam.teamId ? '-left-4 md:-left-12' : '-right-4 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
+                        className={`absolute bottom-16 scale-90 ${sideNotification.teamId === homeTeam.teamId ? '-left-4 md:-left-12' : '-right-4 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
                     >
                         <div className={`bg-background/90 backdrop-blur-md p-3 rounded-lg border border-text/20 shadow-lg min-w-[120px] flex items-center gap-3 ${sideNotification.teamId === homeTeam.teamId ? 'flex-row' : 'flex-row-reverse'}`}>
                             {/* Player Image */}
@@ -434,25 +458,25 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                             </React.Fragment>
                         )}
                     </AnimatePresence>
-
-                    {/* Timeout / Substitution / Period Overlay */}
-                    <AnimatePresence>
-                        {overlayEvent && (
-                            <motion.div
-                                key={recentAction?.actionNumber ? `overlay-${recentAction.actionNumber}` : 'overlay'}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                className="absolute inset-0 flex items-center justify-center z-50 bg-black/40 backdrop-blur-sm"
-                            >
-                                <div className="bg-background text-text p-4 md:p-6 rounded-xl shadow-2xl text-center max-w-md border border-text/10">
-                                    <h3 className="text-xl md:text-2xl font-bold mb-2 uppercase text-primary">{overlayEvent.title}</h3>
-                                    <p className="text-sm md:text-lg font-semibold">{overlayEvent.description}</p>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
+
+                {/* Timeout / Substitution / Period Overlay - Moved outside overflow-hidden container */}
+                <AnimatePresence>
+                    {overlayEvent && (
+                        <motion.div
+                            key={recentAction?.actionNumber ? `overlay-${recentAction.actionNumber}` : 'overlay'}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                        >
+                            <div className="bg-background/95 backdrop-blur-md text-text p-6 rounded-xl shadow-2xl text-center max-w-md border border-text/10 pointer-events-auto">
+                                <h3 className="text-2xl font-bold mb-2 uppercase text-primary font-display tracking-wider">{overlayEvent.title}</h3>
+                                <p className="text-lg font-semibold font-mono">{overlayEvent.description}</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
             </div>
         </div>

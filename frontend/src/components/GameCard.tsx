@@ -152,12 +152,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                             </span>
                             <div className="flex items-center gap-2 md:gap-2">
                                 <span className={clsx(
-                                    "text-2xl md:text-3xl font-mono font-bold transition-colors duration-300",
+                                    "text-2xl md:text-3xl font-mono font-medium transition-colors duration-300",
                                     homeHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.homeTeam.score}</span>
                                 <span className="text-text/10 text-xl md:text-xl font-light">/</span>
                                 <span className={clsx(
-                                    "text-2xl md:text-3xl font-mono font-bold transition-colors duration-300",
+                                    "text-2xl md:text-3xl font-mono font-medium transition-colors duration-300",
                                     awayHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.awayTeam.score}</span>
                             </div>
