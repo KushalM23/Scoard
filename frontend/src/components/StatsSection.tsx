@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowUpDown } from 'lucide-react';
 import type { GameData, Player, PlayByPlayEvent } from '../types';
 
@@ -178,33 +179,35 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
         );
     };
 
+    const tabs = [
+        { id: 'home', label: gameData.homeTeam.teamTricode, shortLabel: gameData.homeTeam.teamTricode },
+        { id: 'away', label: gameData.awayTeam.teamTricode, shortLabel: gameData.awayTeam.teamTricode },
+        { id: 'team', label: 'Team Stats', shortLabel: 'Team' },
+        { id: 'pbp', label: 'Play by Play', shortLabel: 'Plays' },
+    ];
+
     return (
         <div className="glass rounded-2xl shadow-2xl shadow-black/50 p-4 md:p-6 h-full">
-            <div className="flex gap-4 mb-6 border-b border-text/10 pb-2">
-                <button
-                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'home' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
-                    onClick={() => setActiveTab('home')}
-                >
-                    {gameData.homeTeam.teamTricode}
-                </button>
-                <button
-                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'away' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
-                    onClick={() => setActiveTab('away')}
-                >
-                    {gameData.awayTeam.teamTricode}
-                </button>
-                <button
-                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'team' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
-                    onClick={() => setActiveTab('team')}
-                >
-                    Team Stats
-                </button>
-                <button
-                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'pbp' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
-                    onClick={() => setActiveTab('pbp')}
-                >
-                    Play by Play
-                </button>
+            <div className="flex justify-center mb-6">
+                <div className="bg-transparent rounded-xl p-1 flex gap-1 md:gap-2 relative w-full md:w-auto justify-between md:justify-center">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`relative flex-1 md:flex-none px-2 md:px-6 py-2 rounded-lg font-bold text-xs md:text-sm transition-colors duration-300 font-sans tracking-wide z-10 whitespace-nowrap ${activeTab === tab.id ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                        >
+                            {activeTab === tab.id && (
+                                <motion.div
+                                    layoutId="activeGameTab"
+                                    className="absolute inset-0 bg-accent rounded-lg shadow-lg"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <span className="relative z-10 uppercase hidden md:inline">{tab.label}</span>
+                            <span className="relative z-10 uppercase md:hidden">{tab.shortLabel}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="h-full">

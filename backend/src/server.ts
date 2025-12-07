@@ -142,11 +142,11 @@ app.get('/api/games/:gameId', async (req, res) => {
              try {
                 const [homeRosterRes, awayRosterRes] = await Promise.all([
                     axios.get('https://stats.nba.com/stats/commonteamroster', {
-                        params: { TeamID: homeTeamId, Season: '2024-25' },
+                        params: { TeamID: homeTeamId, Season: '2025-26' },
                         headers: STATS_HEADERS
                     }),
                     axios.get('https://stats.nba.com/stats/commonteamroster', {
-                        params: { TeamID: awayTeamId, Season: '2024-25' },
+                        params: { TeamID: awayTeamId, Season: '2025-26' },
                         headers: STATS_HEADERS
                     })
                 ]);
@@ -268,6 +268,47 @@ app.get('/api/games/date/:date', async (req, res) => {
         console.log(`Fetching schedule from CDN for date ${date}`);
         const scheduleResponse = await axios.get('https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json');
         
+        // Fetch standings to populate wins/losses
+        let standingsMap: Record<string, { wins: number, losses: number }> = {};
+        try {
+             // Check cache for standings first
+             const standingsCacheKey = 'standings_internal';
+             let standingsData = getCachedData(standingsCacheKey);
+             
+             if (!standingsData) {
+                 const season = '2025-26'; 
+                 const standingsResponse = await axios.get('https://stats.nba.com/stats/leaguestandingsv3', {
+                    headers: STATS_HEADERS,
+                    params: {
+                        'LeagueID': '00',
+                        'Season': season,
+                        'SeasonType': 'Regular Season'
+                    }
+                });
+                standingsData = standingsResponse.data;
+                setCachedData(standingsCacheKey, standingsData);
+             }
+
+             if (standingsData && standingsData.resultSets && standingsData.resultSets.length > 0) {
+                 const resultSet = standingsData.resultSets[0];
+                 const headers = resultSet.headers;
+                 const rowSet = resultSet.rowSet;
+                 const teamIdIdx = headers.indexOf('TeamID');
+                 const winsIdx = headers.indexOf('WINS');
+                 const lossesIdx = headers.indexOf('LOSSES');
+
+                 rowSet.forEach((row: any[]) => {
+                     const teamId = row[teamIdIdx];
+                     standingsMap[teamId] = {
+                         wins: row[winsIdx],
+                         losses: row[lossesIdx]
+                     };
+                 });
+             }
+        } catch (e) {
+            console.error('Failed to fetch standings for schedule enrichment', e);
+        }
+
         // Convert YYYY-MM-DD to MM/DD/YYYY format
         const [year, month, day] = date.split('-');
         const targetDateString = `${month}/${day}/${year}`;
@@ -279,26 +320,31 @@ app.get('/api/games/date/:date', async (req, res) => {
             return res.json({ scoreboard: { games: [] } });
         }
 
-        const games = dayData.games.map((g: any) => ({
-            gameId: g.gameId,
-            gameStatus: 1, // Default to scheduled/pre-game
-            gameStatusText: g.gameStatusText,
-            gameEt: g.gameDateTimeEst,
-            homeTeam: {
-                teamId: g.homeTeam.teamId,
-                teamTricode: g.homeTeam.teamTricode,
-                score: 0,
-                wins: 0,
-                losses: 0
-            },
-            awayTeam: {
-                teamId: g.awayTeam.teamId,
-                teamTricode: g.awayTeam.teamTricode,
-                score: 0,
-                wins: 0,
-                losses: 0
-            }
-        }));
+        const games = dayData.games.map((g: any) => {
+            const homeRecord = standingsMap[g.homeTeam.teamId] || { wins: 0, losses: 0 };
+            const awayRecord = standingsMap[g.awayTeam.teamId] || { wins: 0, losses: 0 };
+            
+            return {
+                gameId: g.gameId,
+                gameStatus: 1, // Default to scheduled/pre-game
+                gameStatusText: g.gameStatusText,
+                gameEt: g.gameDateTimeEst,
+                homeTeam: {
+                    teamId: g.homeTeam.teamId,
+                    teamTricode: g.homeTeam.teamTricode,
+                    score: 0,
+                    wins: homeRecord.wins,
+                    losses: homeRecord.losses
+                },
+                awayTeam: {
+                    teamId: g.awayTeam.teamId,
+                    teamTricode: g.awayTeam.teamTricode,
+                    score: 0,
+                    wins: awayRecord.wins,
+                    losses: awayRecord.losses
+                }
+            };
+        });
 
         // [SC-Workaround] Fetch scores for each game individually
         // Since the schedule endpoint doesn't have scores, we fetch the boxscore for each game ID.
@@ -338,6 +384,57 @@ app.get('/api/games/date/:date', async (req, res) => {
             details: error.message,
             responseKeys: error.response?.data ? Object.keys(error.response.data) : 'No response data'
         });
+    }
+});
+
+app.get('/api/standings', async (req, res) => {
+    const cacheKey = 'standings_full';
+    const cached = getCachedData(cacheKey);
+    if (cached) return res.json(cached);
+
+    try {
+        const season = '2025-26';
+        const response = await axios.get('https://stats.nba.com/stats/leaguestandingsv3', {
+            headers: STATS_HEADERS,
+            params: {
+                'LeagueID': '00',
+                'Season': season,
+                'SeasonType': 'Regular Season'
+            }
+        });
+
+        const resultSet = response.data.resultSets[0];
+        const headers = resultSet.headers;
+        const rowSet = resultSet.rowSet;
+
+        const getValue = (row: any[], key: string) => row[headers.indexOf(key)];
+
+        const standings = rowSet.map((row: any[]) => ({
+            teamId: getValue(row, 'TeamID'),
+            teamCity: getValue(row, 'TeamCity'),
+            teamName: getValue(row, 'TeamName'),
+            conference: getValue(row, 'Conference'),
+            division: getValue(row, 'Division'),
+            wins: getValue(row, 'WINS'),
+            losses: getValue(row, 'LOSSES'),
+            winPct: getValue(row, 'WinPCT'),
+            homeRecord: getValue(row, 'HOME'),
+            roadRecord: getValue(row, 'ROAD'),
+            l10: getValue(row, 'L10'),
+            streak: getValue(row, 'strCurrentStreak'),
+            pointsPg: getValue(row, 'PointsPG'),
+            oppPointsPg: getValue(row, 'OppPointsPG'),
+            diffPointsPg: getValue(row, 'DiffPointsPG'),
+            conferenceRank: getValue(row, 'PlayoffRank'),
+            divisionRank: getValue(row, 'DivisionRank')
+        }));
+
+        console.log(`Fetched ${standings.length} standings records`);
+        setCachedData(cacheKey, standings);
+        res.json(standings);
+    } catch (error) {
+        console.error('Error fetching standings:', error);
+        res.status(500).json({ error: 'Failed to fetch standings' });
     }
 });
 

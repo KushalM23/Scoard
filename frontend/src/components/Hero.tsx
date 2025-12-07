@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameCard from './GameCard';
+import Standings from './Standings';
 
 interface HeroProps {
     onGameSelect: (gameId: string) => void;
@@ -191,10 +192,8 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.3 }}
-                        className="glass-card p-12 text-center"
                     >
-                        <h3 className="text-2xl font-bold mb-4 font-display">STANDINGS</h3>
-                        <p className="text-text/60 font-sans">League standings coming soon...</p>
+                        <Standings />
                     </motion.div>
                 )}
             </AnimatePresence>
