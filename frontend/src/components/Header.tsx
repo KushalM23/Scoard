@@ -27,7 +27,7 @@ const Header: React.FC = () => {
                         transition={{ duration: 0.5, type: "spring" }}
                         className="text-4xl md:text-6xl font-mono tracking-wider text-primary drop-shadow-sm cursor-default"
                     >
-                        SCOARD
+                        SCOARD!
                     </motion.h1>
                 </div>
 

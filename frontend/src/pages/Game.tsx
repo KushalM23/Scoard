@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import Scoreboard from '../components/Scoreboard';
@@ -129,8 +130,14 @@ const Game: React.FC = () => {
                 <Header />
                 <div className="flex justify-center items-center h-[calc(100vh-80px)]">
                     <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                        <p className="text-text/60 animate-pulse">Loading Game Data...</p>
+                        <motion.div
+                            animate={{ y: [0, -20, 0] }}
+                            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+                            className="text-4xl"
+                        >
+                            🏀
+                        </motion.div>
+                        <p className="text-text/60 font-mono animate-pulse">LOADING GAME DATA...</p>
                     </div>
                 </div>
             </Layout>
@@ -160,7 +167,12 @@ const Game: React.FC = () => {
     return (
         <Layout>
             <Header />
-            <div className="max-w-5xl mx-auto px-6 md:px-4 py-8 md:py-6">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-5xl mx-auto px-6 md:px-4 py-8 md:py-6"
+            >
                 <button
                     onClick={() => navigate('/')}
                     className="flex items-center gap-2 text-text/60 hover:text-text mb-6 md:mb-4 transition-colors text-base md:text-sm"
@@ -176,7 +188,11 @@ const Game: React.FC = () => {
                     {/* Dynamic Visualizer Section */}
                     <div className="w-full">
                         {gameData.gameStatus === 2 ? (
-                            <>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
                                 <VirtualCourt 
                                     actions={pbpData} 
                                     gameStatus={gameData.gameStatus}
@@ -184,7 +200,7 @@ const Game: React.FC = () => {
                                     awayTeam={gameData.awayTeam}
                                     players={players}
                                 />
-                            </>
+                            </motion.div>
                         ) : gameData.gameStatus === 3 ? (
                             <TopPerformers 
                                 homeTeamName={gameData.homeTeam.teamTricode}
@@ -209,13 +225,18 @@ const Game: React.FC = () => {
 
                     {/* Stats Section */}
                     {gameData.gameStatus !== 1 && (
-                        <div className="w-full">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="w-full"
+                        >
                             <h3 className="text-xl md:text-lg font-bold mb-4 md:mb-3">Game Stats</h3>
                             <StatsSection gameData={gameData} players={players} actions={pbpData} />
-                        </div>
+                        </motion.div>
                     )}
                 </div>
-            </div>
+            </motion.div>
         </Layout>
     );
 };

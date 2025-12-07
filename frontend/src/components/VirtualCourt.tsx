@@ -58,8 +58,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 
                 if (type === 'timeout' || desc.includes('timeout')) {
                      setOverlayEvent({ title: 'TIMEOUT', description: latest.description });
-                     // Auto-hide after 4 seconds
-                     setTimeout(() => setOverlayEvent(null), 4000);
+                     // No timeout here, wait for next event
                 } else if (type === 'period' || desc.includes('end of') || desc.includes('start of')) {
                      const isEnd = desc.includes('end');
                      const isStart = desc.includes('start');
@@ -70,7 +69,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                      else if (isStart) title = `START OF ${periodName}`;
 
                      setOverlayEvent({ title, description: latest.description });
-                     setTimeout(() => setOverlayEvent(null), 4000);
+                     // No timeout here, wait for next event
                 }
 
                 return;
@@ -195,6 +194,16 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             const description = currentEvent.description ? currentEvent.description : '';
             const descLower = description.toLowerCase();
 
+            // Clear previous overlay if this is a new event and NOT an overlay event
+            // This ensures overlays persist until the next event
+            const isOverlayEvent = actionType === 'timeout' || descLower.includes('timeout') || 
+                                   actionType === 'substitution' || 
+                                   actionType === 'period' || descLower.includes('end of') || descLower.includes('start of');
+            
+            if (!isOverlayEvent) {
+                setOverlayEvent(null);
+            }
+
             if (actionType === 'timeout' || descLower.includes('timeout')) {
                 setOverlayEvent({ title: 'TIMEOUT', description: description });
             } else if (actionType === 'substitution') {
@@ -216,15 +225,17 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                  else if (isStart) title = `START OF ${periodName}`;
 
                  setOverlayEvent({ title, description: description });
-            } else {
-                setOverlayEvent(null);
             }
 
             // Remove from queue after delay
             // Increase delay for readability
             const delay = (actionType === 'timeout' || actionType === 'period') ? 4000 : 2500; 
             timerRef.current = setTimeout(() => {
-                setOverlayEvent(null); // Clear overlay when event finishes
+                // Only clear overlay if it's a substitution (short lived)
+                // Timeouts and Periods stay until next event (handled at start of this block)
+                if (actionType === 'substitution') {
+                    setOverlayEvent(null);
+                }
                 setEventQueue(prev => prev.slice(1));
                 setIsProcessing(false);
             }, delay);
@@ -320,7 +331,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         initial={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
-                        className={`absolute bottom-16 scale-90 ${sideNotification.teamId === homeTeam.teamId ? '-left-4 md:-left-12' : '-right-4 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
+                        className={`absolute bottom-0 scale-90 ${sideNotification.teamId === homeTeam.teamId ? '-left-4 md:-left-12' : '-right-4 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
                     >
                         <div className={`bg-background/90 backdrop-blur-md p-3 rounded-lg border border-text/20 shadow-lg min-w-[120px] flex items-center gap-3 ${sideNotification.teamId === homeTeam.teamId ? 'flex-row' : 'flex-row-reverse'}`}>
                             {/* Player Image */}
@@ -441,7 +452,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                                                   getEventCoordinates(recentAction).x > 80 ? 'right-0 translate-x-0 items-end' : 
                                                   'left-1/2 -translate-x-1/2 items-center'}`}
                                         >
-                                            <span className="font-bold">{recentAction.playerNameI}</span>
+                                            <span className="font-bold">{recentAction.playerNameI} <span className="text-white/60 font-normal">({recentAction.teamTricode})</span></span>
                                             <span className="text-[10px] opacity-80 uppercase tracking-wider">
                                                 {recentAction.subType || recentAction.actionType} {recentAction.shotResult}
                                             </span>
