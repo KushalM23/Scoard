@@ -105,7 +105,7 @@ const Standings: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {teams.map((team, index) => (
+                        {teams.map((team) => (
                             <tr key={team.teamId} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
                                 <td className="px-4 py-3 font-medium text-text/60 sticky left-0 bg-background z-10">
                                     {activeTab === 'East' || activeTab === 'West' ? team.conferenceRank : team.divisionRank}
