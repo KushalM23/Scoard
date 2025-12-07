@@ -9,7 +9,6 @@ import Scoreboard from '../components/Scoreboard';
 import VirtualCourt from '../components/VirtualCourt';
 import StatsSection from '../components/StatsSection';
 import TopPerformers from '../components/TopPerformers';
-import InjuryReport from '../components/InjuryReport';
 import SeasonStats from '../components/SeasonStats';
 import PreviousMatchups from '../components/PreviousMatchups';
 import WinProbability from '../components/WinProbability';
