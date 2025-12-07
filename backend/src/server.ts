@@ -29,6 +29,16 @@ const setCachedData = (key: string, data: any) => {
     cache[key] = { data, timestamp: Date.now() };
 };
 
+// NBA Stats API Headers
+const STATS_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Referer': 'https://www.nba.com/',
+    'Origin': 'https://www.nba.com',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'x-nba-stats-origin': 'stats',
+    'x-nba-stats-token': 'true'
+};
+
 // Routes
 // Fetch live games from CDN
 app.get('/api/games/live', async (req, res) => {
@@ -48,16 +58,166 @@ app.get('/api/games/live', async (req, res) => {
 
 app.get('/api/games/:gameId', async (req, res) => {
     const { gameId } = req.params;
-    const cacheKey = `game_${gameId}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return res.json(cached);
 
     try {
-        const response = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
-        setCachedData(cacheKey, response.data);
-        res.json(response.data);
+        // 1. Try CDN (Best for Live/Finished games)
+        try {
+            const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
+            const data = cdnResponse.data.game;
+            
+            const mappedData = {
+                gameId: data.gameId,
+                gameStatus: data.gameStatus,
+                gameStatusText: data.gameStatusText,
+                period: data.period,
+                clock: data.gameClock,
+                homeTeam: {
+                    teamId: data.homeTeam.teamId,
+                    teamName: data.homeTeam.teamName,
+                    teamCity: data.homeTeam.teamCity,
+                    teamTricode: data.homeTeam.teamTricode,
+                    score: data.homeTeam.score,
+                    wins: 0,
+                    losses: 0,
+                    periods: data.homeTeam.periods.map((p: any) => p.score),
+                    statistics: data.homeTeam.statistics,
+                    inBonus: false, // Default, as CDN might not have it directly in this structure
+                    timeoutsRemaining: 0
+                },
+                awayTeam: {
+                    teamId: data.awayTeam.teamId,
+                    teamName: data.awayTeam.teamName,
+                    teamCity: data.awayTeam.teamCity,
+                    teamTricode: data.awayTeam.teamTricode,
+                    score: data.awayTeam.score,
+                    wins: 0,
+                    losses: 0,
+                    periods: data.awayTeam.periods.map((p: any) => p.score),
+                    statistics: data.awayTeam.statistics,
+                    inBonus: false,
+                    timeoutsRemaining: 0
+                },
+                players: [
+                    ...data.homeTeam.players.map((p: any) => ({ ...p, teamId: data.homeTeam.teamId })),
+                    ...data.awayTeam.players.map((p: any) => ({ ...p, teamId: data.awayTeam.teamId }))
+                ]
+            };
+            return res.json(mappedData);
+        } catch (e) {
+            console.log(`CDN fetch failed for ${gameId}, trying Stats API...`);
+        }
+
+        // 2. Fallback: BoxscoreSummaryV2 (Reliable for Scheduled Games)
+        // We skip boxscoretraditionalv2 for scheduled games as it often fails or returns empty
+        const summaryResponse = await axios.get('https://stats.nba.com/stats/boxscoresummaryv2', {
+            params: { GameID: gameId },
+            headers: STATS_HEADERS
+        });
+
+        const summarySets = summaryResponse.data.resultSets;
+        const gameSummary = summarySets[0].rowSet[0];
+        const lineScore = summarySets[5].rowSet;
+
+        if (!gameSummary) throw new Error('Game not found');
+
+        const getValue = (row: any[], headers: string[], key: string) => {
+            const index = headers.indexOf(key);
+            return row[index];
+        };
+        
+        const summaryHeaders = summarySets[0].headers;
+        const lineScoreHeaders = summarySets[5].headers;
+
+        const homeTeamId = getValue(gameSummary, summaryHeaders, 'HOME_TEAM_ID');
+        const awayTeamId = getValue(gameSummary, summaryHeaders, 'VISITOR_TEAM_ID');
+
+        const homeLineScore = lineScore.find((row: any[]) => getValue(row, lineScoreHeaders, 'TEAM_ID') === homeTeamId);
+        const awayLineScore = lineScore.find((row: any[]) => getValue(row, lineScoreHeaders, 'TEAM_ID') === awayTeamId);
+
+        // Fetch Rosters for Scheduled Games to populate "players" for Injury Report
+        let allPlayers: any[] = [];
+        const gameStatus = getValue(gameSummary, summaryHeaders, 'GAME_STATUS_ID');
+
+        if (gameStatus === 1) {
+             try {
+                const [homeRosterRes, awayRosterRes] = await Promise.all([
+                    axios.get('https://stats.nba.com/stats/commonteamroster', {
+                        params: { TeamID: homeTeamId, Season: '2024-25' },
+                        headers: STATS_HEADERS
+                    }),
+                    axios.get('https://stats.nba.com/stats/commonteamroster', {
+                        params: { TeamID: awayTeamId, Season: '2024-25' },
+                        headers: STATS_HEADERS
+                    })
+                ]);
+
+                const mapRosterPlayer = (p: any[], headers: string[], teamId: number) => ({
+                    personId: getValue(p, headers, 'PLAYER_ID'),
+                    firstName: getValue(p, headers, 'PLAYER').split(' ')[0],
+                    lastName: getValue(p, headers, 'PLAYER').split(' ').slice(1).join(' '),
+                    jersey: getValue(p, headers, 'NUM'),
+                    position: getValue(p, headers, 'POSITION'),
+                    teamId: teamId,
+                    status: getValue(p, headers, 'STATUS'), // ACTIVE or INACTIVE
+                    points: 0, assists: 0, rebounds: 0, minutes: "0",
+                    fg: '0-0', threePt: '0-0', ft: '0-0',
+                    fgPercentage: 0, threePtPercentage: 0, ftPercentage: 0,
+                    steals: 0, blocks: 0, turnovers: 0, plusMinus: 0,
+                    reboundsOffensive: 0, reboundsDefensive: 0, fouls: 0,
+                    isOnCourt: false
+                });
+
+                const homeHeaders = homeRosterRes.data.resultSets[0].headers;
+                const awayHeaders = awayRosterRes.data.resultSets[0].headers;
+
+                allPlayers = [
+                    ...homeRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, homeHeaders, homeTeamId)),
+                    ...awayRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId))
+                ];
+             } catch (e) {
+                 console.log('Roster fetch failed', e);
+             }
+        }
+
+        const mappedData = {
+            gameId: getValue(gameSummary, summaryHeaders, 'GAME_ID'),
+            gameStatus: gameStatus,
+            gameStatusText: getValue(gameSummary, summaryHeaders, 'GAME_STATUS_TEXT'),
+            period: getValue(gameSummary, summaryHeaders, 'LIVE_PERIOD'),
+            clock: getValue(gameSummary, summaryHeaders, 'LIVE_PC_TIME'),
+            homeTeam: {
+                teamId: homeTeamId,
+                teamName: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_NAME') : 'Home',
+                teamCity: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_CITY_NAME') : '',
+                teamTricode: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'HOM',
+                score: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'PTS') : 0,
+                wins: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[0] : 0,
+                losses: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[1] : 0,
+                periods: [],
+                statistics: null,
+                inBonus: false,
+                timeoutsRemaining: 0
+            },
+            awayTeam: {
+                teamId: awayTeamId,
+                teamName: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_NAME') : 'Away',
+                teamCity: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_CITY_NAME') : '',
+                teamTricode: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'AWY',
+                score: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'PTS') : 0,
+                wins: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[0] : 0,
+                losses: awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_WINS_LOSSES').split('-')[1] : 0,
+                periods: [],
+                statistics: null,
+                inBonus: false,
+                timeoutsRemaining: 0
+            },
+            players: allPlayers
+        };
+
+        res.json(mappedData);
+
     } catch (error) {
-        console.error(`Error fetching game ${gameId}:`, error);
+        console.error('Error fetching game data:', error);
         res.status(500).json({ error: 'Failed to fetch game data' });
     }
 });
@@ -73,8 +233,13 @@ app.get('/api/games/:gameId/pbp', async (req, res) => {
         setCachedData(cacheKey, response.data);
         res.json(response.data);
     } catch (error) {
-        console.error(`Error fetching PBP for ${gameId}:`, error);
-        res.status(500).json({ error: 'Failed to fetch play-by-play data' });
+        console.log(`PBP fetch failed for ${gameId} (likely scheduled), returning empty.`);
+        // Return empty PBP structure for scheduled games instead of error
+        res.json({
+            game: {
+                actions: []
+            }
+        });
     }
 });
 

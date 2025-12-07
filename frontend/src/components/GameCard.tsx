@@ -100,7 +100,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className={twMerge(
-                "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center",
+                "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center p-4 md:p-4",
                 isLive && "border-accent/50 shadow-[0_0_30px_rgba(69,126,172,0.15)]"
             )}
         >
@@ -110,32 +110,32 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
 
             <div className="flex justify-between items-center w-full">
                 {/* Home Team (Left) */}
-                <div className={clsx("flex flex-col items-center gap-2 flex-1 transition-all duration-300", getTeamOpacity(homeHigh))}>
+                <div className={clsx("flex flex-col items-center gap-2 md:gap-1.5 flex-1 transition-all duration-300", getTeamOpacity(homeHigh))}>
                     <div className="relative">
                         <motion.img
                             whileHover={{ scale: 1.1, rotate: -5 }}
                             src={`https://cdn.nba.com/logos/nba/${game.homeTeam.teamId}/primary/L/logo.svg`}
                             alt={game.homeTeam.teamTricode}
-                            className="team-logo-custom object-contain drop-shadow-xl transition-transform duration-300"
+                            className="w-12 h-12 md:w-14 md:h-14 object-contain drop-shadow-xl transition-transform duration-300"
                         />
                     </div>
                     <div className="text-center">
-                        <span className={clsx("team-name-custom font-display tracking-wider block leading-none", homeHigh ? "text-text font-bold" : "text-text/80")}>
+                        <span className={clsx("text-base md:text-lg font-display tracking-wider block leading-none", homeHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.homeTeam.teamTricode}
                         </span>
-                        <span className="text-[10px] md:text-sm text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
                             {game.homeTeam.wins}-{game.homeTeam.losses}
                         </span>
                     </div>
                 </div>
 
                 {/* Center Info */}
-                <div className="flex flex-col items-center justify-center game-card-center-custom">
+                <div className="flex flex-col items-center justify-center min-w-[100px]">
                     {isScheduled ? (
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-[8px] md:text-xs font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
+                            <span className="text-[8px] md:text-[10px] font-bold text-text/50 tracking-widest uppercase">TIPOFF (IST)</span>
                             <div className="bg-white/5 rounded-lg px-1.5 py-0.5 border border-white/5">
-                                <span className="text-sm md:text-xl font-mono font-bold text-text whitespace-nowrap">
+                                <span className="text-sm md:text-base font-mono font-bold text-text whitespace-nowrap">
                                     {formatToIST(game.gameEt, game.gameStatusText)}
                                 </span>
                             </div>
@@ -143,21 +143,21 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                     ) : (
                         <div className="flex flex-col items-center gap-1">
                             <span className={clsx(
-                                "text-[8px] md:text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border transition-colors",
+                                "text-[8px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border transition-colors",
                                 isLive
                                     ? "bg-accent/20 border-accent/30 text-accent animate-pulse shadow-[0_0_10px_rgba(69,126,172,0.2)]"
                                     : "bg-white/5 border-white/5 text-text/40"
                             )}>
                                 {game.gameStatusText}
                             </span>
-                            <div className="flex items-center gap-1 md:gap-3">
+                            <div className="flex items-center gap-2 md:gap-2">
                                 <span className={clsx(
-                                    "score-text-custom font-mono font-bold transition-colors duration-300",
+                                    "text-2xl md:text-3xl font-mono font-bold transition-colors duration-300",
                                     homeHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.homeTeam.score}</span>
-                                <span className="text-text/10 text-lg md:text-2xl font-light">/</span>
+                                <span className="text-text/10 text-xl md:text-xl font-light">/</span>
                                 <span className={clsx(
-                                    "score-text-custom font-mono font-bold transition-colors duration-300",
+                                    "text-2xl md:text-3xl font-mono font-bold transition-colors duration-300",
                                     awayHigh ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-text/30"
                                 )}>{game.awayTeam.score}</span>
                             </div>
@@ -166,20 +166,20 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                 </div>
 
                 {/* Away Team (Right) */}
-                <div className={clsx("flex flex-col items-center gap-2 flex-1 transition-all duration-300", getTeamOpacity(awayHigh))}>
+                <div className={clsx("flex flex-col items-center gap-2 md:gap-1.5 flex-1 transition-all duration-300", getTeamOpacity(awayHigh))}>
                     <div className="relative">
                         <motion.img
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             src={`https://cdn.nba.com/logos/nba/${game.awayTeam.teamId}/primary/L/logo.svg`}
                             alt={game.awayTeam.teamTricode}
-                            className="team-logo-custom object-contain drop-shadow-xl transition-transform duration-300"
+                            className="w-12 h-12 md:w-14 md:h-14 object-contain drop-shadow-xl transition-transform duration-300"
                         />
                     </div>
                     <div className="text-center">
-                        <span className={clsx("team-name-custom font-display tracking-wider block leading-none", awayHigh ? "text-text font-bold" : "text-text/80")}>
+                        <span className={clsx("text-base md:text-lg font-display tracking-wider block leading-none", awayHigh ? "text-text font-bold" : "text-text/80")}>
                             {game.awayTeam.teamTricode}
                         </span>
-                        <span className="text-[10px] md:text-sm text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] md:text-xs text-secondary font-sans font-medium tracking-wide bg-secondary/10 px-1.5 py-0.5 rounded-full">
                             {game.awayTeam.wins}-{game.awayTeam.losses}
                         </span>
                     </div>

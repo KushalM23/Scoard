@@ -1,0 +1,257 @@
+import React, { useState } from 'react';
+import { ArrowUpDown } from 'lucide-react';
+import type { GameData, Player, PlayByPlayEvent } from '../types';
+
+interface StatsSectionProps {
+    gameData: GameData;
+    players: Player[];
+    actions?: PlayByPlayEvent[];
+}
+
+type SortKey = keyof Player | 'minutes';
+type SortDirection = 'asc' | 'desc';
+
+const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions = [] }) => {
+    const [activeTab, setActiveTab] = useState<'home' | 'away' | 'team' | 'pbp'>('home');
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
+        key: 'isOnCourt', 
+        direction: 'desc'
+    });
+
+    const homePlayers = players.filter(p => p.teamId === gameData.homeTeam.teamId);
+    const awayPlayers = players.filter(p => p.teamId === gameData.awayTeam.teamId);
+
+    const handleSort = (key: SortKey) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
+        }));
+    };
+
+    const sortPlayers = (teamPlayers: Player[]) => {
+        return [...teamPlayers].sort((a, b) => {
+            // Always put active players first if sorting by default logic
+            if (sortConfig.key === 'minutes' && a.isOnCourt !== b.isOnCourt) {
+                return a.isOnCourt ? -1 : 1;
+            }
+
+            const aValue = a[sortConfig.key];
+            const bValue = b[sortConfig.key];
+
+            // Handle string comparisons (like minutes "PT12M")
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return sortConfig.direction === 'asc' 
+                    ? aValue.localeCompare(bValue) 
+                    : bValue.localeCompare(aValue);
+            }
+
+            // Handle numeric comparisons
+            const valA = aValue ?? 0;
+            const valB = bValue ?? 0;
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    };
+
+    const sortedHomePlayers = sortPlayers(homePlayers);
+    const sortedAwayPlayers = sortPlayers(awayPlayers);
+
+    const formatPercentage = (val: number) => `${(val * 100).toFixed(1)}%`;
+
+    const renderSortHeader = (label: string, key: SortKey) => (
+        <th className="px-4 py-3 whitespace-nowrap cursor-pointer hover:text-text transition-colors group min-w-[80px]" onClick={() => handleSort(key)}>
+            <div className="flex items-center justify-center gap-1">
+                {label}
+                <ArrowUpDown className={`w-3 h-3 ${sortConfig.key === key ? 'text-primary' : 'text-text/20 group-hover:text-text/40'}`} />
+            </div>
+        </th>
+    );
+
+    const renderPlayerTable = (teamPlayers: Player[]) => (
+        <div className="overflow-auto max-h-[400px] rounded-xl border border-text/10">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+                <thead className="sticky top-0 bg-background z-20">
+                    <tr className="text-text/40 text-sm border-b border-text/10">
+                        <th className="px-4 py-3 whitespace-nowrap text-left sticky left-0 bg-background z-30 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">PLAYER</th>
+                        {renderSortHeader('MIN', 'minutes')}
+                            {renderSortHeader('PTS', 'points')}
+                            {renderSortHeader('REB', 'rebounds')}
+                            {renderSortHeader('AST', 'assists')}
+                            {renderSortHeader('STL', 'steals')}
+                            {renderSortHeader('BLK', 'blocks')}
+                            {renderSortHeader('TO', 'turnovers')}
+                            {renderSortHeader('PF', 'fouls')}
+                            {renderSortHeader('FG%', 'fgPercentage')}
+                            {renderSortHeader('3P%', 'threePtPercentage')}
+                            {renderSortHeader('FT%', 'ftPercentage')}
+                            {renderSortHeader('+/-', 'plusMinus')}
+                            <th className="px-4 py-3 whitespace-nowrap text-center min-w-[80px]">FG</th>
+                            <th className="px-4 py-3 whitespace-nowrap text-center min-w-[80px]">3PT</th>
+                            <th className="px-4 py-3 whitespace-nowrap text-center min-w-[80px]">FT</th>
+                            {renderSortHeader('OREB', 'reboundsOffensive')}
+                            {renderSortHeader('DREB', 'reboundsDefensive')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {teamPlayers.map((player) => (
+                            <tr key={player.personId} className={`border-b border-text/5 ${player.isOnCourt ? 'bg-text/5' : ''} text-sm hover:bg-white/5 transition-colors`}>
+                                <td className="px-4 py-3 whitespace-nowrap text-left sticky left-0 bg-background z-10 border-r border-text/5 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
+                                    <div className="flex items-center gap-2">
+                                        {player.isOnCourt && (
+                                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse" title="On Court" />
+                                        )}
+                                        <div className="font-bold text-text">{player.firstName.charAt(0)}. {player.lastName}</div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 text-text/80 font-mono text-center">{player.minutes.replace('PT', '').replace('M', ':').replace('S', '').split('.')[0]}</td>
+                                <td className="px-4 py-3 text-text font-bold text-center">{player.points}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.rebounds}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.assists}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.steals}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.blocks}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.turnovers}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{player.fouls}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{formatPercentage(player.fgPercentage)}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{formatPercentage(player.threePtPercentage)}</td>
+                                <td className="px-4 py-3 text-text/80 text-center">{formatPercentage(player.ftPercentage)}</td>
+                                <td className={`px-4 py-3 text-center ${player.plusMinus > 0 ? 'text-green-400' : player.plusMinus < 0 ? 'text-red-400' : 'text-text/60'}`}>
+                                    {player.plusMinus > 0 ? `+${player.plusMinus}` : player.plusMinus}
+                                </td>
+                                <td className="px-4 py-3 text-text/60 text-center">{player.fg}</td>
+                                <td className="px-4 py-3 text-text/60 text-center">{player.threePt}</td>
+                                <td className="px-4 py-3 text-text/60 text-center">{player.ft}</td>
+                                <td className="px-4 py-3 text-text/60 text-center">{player.reboundsOffensive}</td>
+                                <td className="px-4 py-3 text-text/60 text-center">{player.reboundsDefensive}</td>
+                            </tr>
+                        ))}
+                </tbody>
+            </table>
+        </div>
+    );
+
+    const renderTeamStats = () => {
+        const homeStats = gameData.homeTeam.statistics;
+        const awayStats = gameData.awayTeam.statistics;
+
+        if (!homeStats || !awayStats) return <div className="p-4 text-center text-text/40">Team stats unavailable</div>;
+
+        const statsList = [
+            { label: 'Field Goal %', home: homeStats.fieldGoalsPercentage, away: awayStats.fieldGoalsPercentage, format: formatPercentage },
+            { label: '3PT %', home: homeStats.threePointersPercentage, away: awayStats.threePointersPercentage, format: formatPercentage },
+            { label: 'Free Throw %', home: homeStats.freeThrowsPercentage, away: awayStats.freeThrowsPercentage, format: formatPercentage },
+            { label: 'Rebounds', home: homeStats.reboundsTotal, away: awayStats.reboundsTotal },
+            { label: 'Assists', home: homeStats.assists, away: awayStats.assists },
+            { label: 'Steals', home: homeStats.steals, away: awayStats.steals },
+            { label: 'Blocks', home: homeStats.blocks, away: awayStats.blocks },
+            { label: 'Turnovers', home: homeStats.turnovers, away: awayStats.turnovers },
+            { label: 'Points in Paint', home: homeStats.pointsInThePaint, away: awayStats.pointsInThePaint },
+            { label: 'Fast Break PTS', home: homeStats.fastBreakPoints, away: awayStats.fastBreakPoints },
+        ];
+
+        return (
+            <div className="space-y-6 max-w-2xl mx-auto">
+                {statsList.map((stat, i) => (
+                    <div key={i}>
+                        <div className="flex justify-between text-sm mb-1">
+                            <span className="font-bold text-text w-16 text-left">
+                                {stat.format ? stat.format(stat.home) : stat.home}
+                            </span>
+                            <span className="text-text/40 font-medium uppercase tracking-wider text-xs">{stat.label}</span>
+                            <span className="font-bold text-text w-16 text-right">
+                                {stat.format ? stat.format(stat.away) : stat.away}
+                            </span>
+                        </div>
+                        <div className="flex h-2 rounded-full overflow-hidden bg-text/10">
+                            <div 
+                                className="bg-primary h-full transition-all duration-500" 
+                                style={{ width: `${(stat.home / (stat.home + stat.away)) * 100}%` }}
+                            />
+                            <div 
+                                className="bg-secondary h-full transition-all duration-500" 
+                                style={{ width: `${(stat.away / (stat.home + stat.away)) * 100}%` }}
+                            />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    return (
+        <div className="glass rounded-2xl shadow-2xl shadow-black/50 p-4 md:p-6 h-full">
+            <div className="flex gap-4 mb-6 border-b border-text/10 pb-2">
+                <button
+                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'home' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
+                    onClick={() => setActiveTab('home')}
+                >
+                    {gameData.homeTeam.teamTricode}
+                </button>
+                <button
+                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'away' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
+                    onClick={() => setActiveTab('away')}
+                >
+                    {gameData.awayTeam.teamTricode}
+                </button>
+                <button
+                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'team' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
+                    onClick={() => setActiveTab('team')}
+                >
+                    Team Stats
+                </button>
+                <button
+                    className={`pb-2 px-2 text-sm md:text-base font-bold transition-colors ${activeTab === 'pbp' ? 'border-b-2 border-primary text-text' : 'text-text/40 hover:text-text/60'}`}
+                    onClick={() => setActiveTab('pbp')}
+                >
+                    Play by Play
+                </button>
+            </div>
+
+            <div className="h-full">
+                {activeTab === 'home' && renderPlayerTable(sortedHomePlayers)}
+                {activeTab === 'away' && renderPlayerTable(sortedAwayPlayers)}
+                {activeTab === 'team' && renderTeamStats()}
+                {activeTab === 'pbp' && (
+                    <div className="overflow-auto max-h-[400px] rounded-xl border border-text/10 p-4 space-y-2">
+                        {actions.slice().reverse().map((action) => {
+                            // Format clock from PT12M00.00S to 12:00
+                            let formattedClock = action.clock;
+                            if (action.clock.startsWith('PT')) {
+                                const match = action.clock.match(/PT(\d+)M(\d+(\.\d+)?)S/);
+                                if (match) {
+                                    const minutes = match[1];
+                                    const seconds = Math.floor(parseFloat(match[2])).toString().padStart(2, '0');
+                                    formattedClock = `${minutes}:${seconds}`;
+                                }
+                            }
+                            
+                            return (
+                                <div key={action.actionNumber} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-text/5">
+                                    <div className="text-xl font-mono text-text/40 mt-1 min-w-[60px] font-bold">
+                                        Q{action.period} {formattedClock}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`font-bold text-sm ${action.teamId === gameData.homeTeam.teamId ? 'text-primary' : 'text-secondary'}`}>
+                                                {action.teamTricode}
+                                            </span>
+                                            <span className="text-xs text-text/60 uppercase tracking-wider border border-text/10 px-1.5 rounded">
+                                                {action.actionType}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-text/90">{action.description}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {actions.length === 0 && (
+                            <div className="text-center text-text/40 py-10">No plays available yet.</div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default StatsSection;

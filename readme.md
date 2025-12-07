@@ -6,11 +6,15 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 
 ## Features
 
--   **Live Scoreboard:** Real-time updates for all NBA games.
+-   **Live Scoreboard:** Real-time updates for all NBA games with live possession indicators.
+-   **Enhanced Virtual Court:** 
+    -   **Sequential Playback:** Intelligent event queue system that visualizes plays one-by-one for a broadcast-like feel.
+    -   **Dynamic Overlays:** Visual alerts for Timeouts, Substitutions, and Quarter updates.
+    -   **Smart Notifications:** Context-aware side popups for points, rebounds, assists, steals, and blocks.
+    -   **Accurate Mapping:** Precise shot locations with specific logic for offensive/defensive rebounds and free throws.
 -   **Game Schedule:** Browse past results and upcoming fixtures with an intuitive date picker.
--   **Virtual Court:** Visualize live game actions and shot locations on an interactive court.
--   **Detailed Stats:** Access box scores, play-by-play feeds, and team performance metrics.
--   **Modern UI:** A "Fun Pastel" dark theme featuring glassmorphism and smooth Framer Motion animations.
+-   **Detailed Stats:** Access box scores, play-by-play feeds, and team performance metrics with active player indicators.
+-   **Modern UI:** A "Fun Pastel" dark theme featuring glassmorphism, smooth Framer Motion animations, and fully responsive design.
 
 ## Tech Stack
 

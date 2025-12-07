@@ -54,15 +54,15 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
     const calendarDays = [-3, -2, -1, 0, 1, 2, 3].map(offset => addDays(selectedDate, offset));
 
     return (
-        <div className="w-full md:w-full mx-auto px-2 py-4 md:px-12 md:py-10 pb-32">
+        <div className="w-full md:w-full mx-auto px-2 py-4 md:px-8 md:py-6 pb-32 md:pb-24">
             {/* Tabs */}
-            <div className="flex justify-center mb-6">
-                <div className="glass rounded-xl p-1 flex gap-2 relative">
+            <div className="flex justify-center mb-6 md:mb-4">
+                <div className="glass rounded-xl p-1 flex gap-2 md:gap-1.5 relative">
                     {['scores', 'standings'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as 'scores' | 'standings')}
-                            className={`relative px-6 py-2 md:px-12 md:py-4 rounded-lg font-bold text-sm md:text-xl transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                            className={`relative px-6 py-2 md:px-8 md:py-2.5 rounded-lg font-bold text-sm md:text-base transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
                         >
                             {activeTab === tab && (
                                 <motion.div
@@ -155,7 +155,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                             key={date.toISOString()}
                                             layout
                                             onClick={() => setSelectedDate(date)}
-                                            className={`flex flex-col items-center justify-center w-12 h-12 lg:w-24 lg:h-24 rounded-xl transition-colors duration-300 shrink-0 ${isHiddenOnMobile ? 'hidden md:flex' : 'flex'} ${isSelected
+                                            className={`flex flex-col items-center justify-center w-12 h-12 lg:w-20 lg:h-20 rounded-xl transition-colors duration-300 shrink-0 ${isHiddenOnMobile ? 'hidden md:flex' : 'flex'} ${isSelected
                                                 ? 'bg-accent text-text shadow-lg shadow-accent/20'
                                                 : 'hover:bg-white/5 text-text/60 hover:text-text'
                                                 }`}

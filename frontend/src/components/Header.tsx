@@ -6,16 +6,16 @@ const Header: React.FC = () => {
     const [isSportOpen, setIsSportOpen] = useState(false);
 
     return (
-        <header className="sticky top-1 z-50 px-4 py-4 md:py-6 bg-transparent backdrop-blur-md">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <header className="sticky top-1 z-50 px-4 py-4 md:py-4 bg-transparent backdrop-blur-md">
+            <div className="max-w-5xl mx-auto flex justify-between items-center">
                 {/* Left: User Profile */}
                 <div className="flex justify-start">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                        className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
                     >
-                        <User className="w-5 h-5 md:w-7 md:h-7 text-text/80" />
+                        <User className="w-5 h-5 md:w-5 md:h-5 text-text/80" />
                     </motion.button>
                 </div>
 
@@ -25,7 +25,7 @@ const Header: React.FC = () => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, type: "spring" }}
-                        className="text-2xl md:text-5xl font-display tracking-wider text-primary drop-shadow-sm cursor-default"
+                        className="text-4xl md:text-6xl font-mono tracking-wider text-primary drop-shadow-sm cursor-default"
                     >
                         SCOARD
                     </motion.h1>
@@ -37,14 +37,14 @@ const Header: React.FC = () => {
                         onClick={() => setIsSportOpen(!isSportOpen)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="flex items-center gap-2 px-3 py-2 md:px-6 md:py-3 rounded-lg glass hover:bg-white/5 transition-all duration-300 border border-white/10 hover:border-accent/50 group"
+                        className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg glass hover:bg-white/5 transition-all duration-300 border border-white/10 hover:border-accent/50 group"
                     >
-                        <span className="font-medium font-sans group-hover:text-accent transition-colors text-sm md:text-xl">NBA</span>
+                        <span className="font-medium font-display group-hover:text-accent transition-colors text-sm md:text-base">NBA</span>
                         <motion.div
                             animate={{ rotate: isSportOpen ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <ChevronDown className="w-4 h-4 md:w-6 md:h-6 text-text/60" />
+                            <ChevronDown className="w-4 h-4 md:w-4 md:h-4 text-text/60" />
                         </motion.div>
                     </motion.button>
 
