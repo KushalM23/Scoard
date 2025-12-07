@@ -4,7 +4,7 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 
 **Live Demo:** [scoard.vercel.app](https://scoard.vercel.app)
 
-![Scoard Preview](preview1.png)[Scoard Preview](preview2.png)[Scoard Preview](preview3.png)
+![Scoard Preview](preview.png)
 
 ## Features
 
