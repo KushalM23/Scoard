@@ -357,7 +357,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 <div className="flex justify-between mb-2 px-4">
                     <div className={`flex items-center gap-2 transition-opacity duration-300 ${possessionTeamId === homeTeam.teamId ? 'opacity-100' : 'opacity-30'}`}>
                         <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-                        <span className="font-bold text-sm">{homeTeam.teamTricode} Possession</span>
+                        <span className="font-bold text-sm">{homeTeam.teamTricode} </span>
                         {possessionTeamId === homeTeam.teamId && (
                             <motion.div 
                                 initial={{ x: -5, opacity: 0 }} 
@@ -378,7 +378,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                                 ←
                             </motion.div>
                         )}
-                        <span className="font-bold text-sm">{awayTeam.teamTricode} Possession</span>
+                        <span className="font-bold text-sm">{awayTeam.teamTricode} </span>
                         <div className="w-3 h-3 rounded-full bg-secondary animate-pulse" />
                     </div>
                 </div>
