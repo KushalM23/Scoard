@@ -37,7 +37,10 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 
 ### Prerequisites
 -   Node.js (v18+ recommended)
--   npm or yarn
+-   [pnpm](https://pnpm.io/) (v8+ recommended)
+    ```bash
+    npm install -g pnpm
+    ```
 
 ### Installation
 
@@ -48,9 +51,9 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
     ```
 
 2.  **Install Dependencies**
-    This project uses npm workspaces. You can install dependencies for both frontend and backend from the root:
+    This project uses pnpm workspaces. Install dependencies for both frontend and backend from the root:
     ```bash
-    npm install
+    pnpm install
     ```
 
 ### Running the Application
@@ -65,32 +68,46 @@ Or run them individually in separate terminals:
 
 **Backend:**
 ```bash
-npm run dev:backend
+pnpm run dev:backend
 # Runs on http://localhost:3000
 ```
 
 **Frontend:**
 ```bash
-npm run dev:frontend
+pnpm run dev:frontend
 # Runs on http://localhost:5173
+```
+
+### Building for Production
+
+```bash
+# Build all workspaces
+pnpm -r build
+
+# Build specific workspace
+pnpm --filter frontend build
+pnpm --filter backend build
 ```
 
 ## Project Structure
 
 ```
 Scoard/
-├── backend/                # Express server & API proxy
+├── backend/                      # Express server & API proxy
 │   ├── src/
-│   │   └── server.ts       # Main server entry point
+│   │   └── server.ts             # Main server entry point
 │   └── package.json
-├── frontend/               # React application
+├── frontend/                     # React application
 │   ├── src/
-│   │   ├── components/     # Reusable UI components (Header, GameCard, etc.)
-│   │   ├── pages/          # Route pages (Home, Game)
+│   │   ├── components/           # Reusable UI components (Header, GameCard, etc.)
+│   │   ├── pages/                # Route pages (Home, Game)
 │   │   └── App.tsx
 │   └── package.json
-├── start_servers.py        # Script to launch dev environment
-└── package.json            # Root configuration & workspaces
+├── pnpm-workspace.yaml           # pnpm workspace configuration
+├── .npmrc                        # pnpm settings
+├── pnpm-lock.yaml               # pnpm lock file
+├── start_servers.py             # Script to launch dev environment
+└── package.json                 # Root configuration & workspaces
 ```
 ## Future updates 
 -   Add Power Rankings to NBA
