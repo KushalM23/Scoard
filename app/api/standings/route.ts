@@ -4,24 +4,16 @@ import { NextResponse } from 'next/server';
 // Force dynamic rendering - don't try to build this at build time
 export const dynamic = 'force-dynamic';
 
-const STATS_HEADERS = {
-    'Host': 'stats.nba.com',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Referer': 'https://stats.nba.com/',
-};
+const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
 
 export async function GET() {
     try {
         const season = '2025-26';
-        const response = await axios.get('https://stats.nba.com/stats/leaguestandingsv3', {
-            headers: STATS_HEADERS,
+        const response = await axios.get(`${PROXY_URL}/api/standings`, {
             params: {
-                'LeagueID': '00',
-                'Season': season,
-                'SeasonType': 'Regular Season'
+                Season: season
             },
-            timeout: 15000
+            timeout: 35000
         });
 
         const resultSet = response.data.resultSets[0];

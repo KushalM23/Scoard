@@ -1,21 +1,10 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 
-// NBA Stats API Headers
-const STATS_HEADERS = {
-    'Host': 'stats.nba.com',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Referer': 'https://stats.nba.com/',
-    'Pragma': 'no-cache',
-    'Cache-Control': 'no-cache',
-    'Sec-Ch-Ua': '"Chromium";v="140", "Google Chrome";v="140", "Not;A=Brand";v="24"',
-    'Sec-Ch-Ua-Mobile': '?0',
-    'Sec-Fetch-Dest': 'empty'
-};
+// Force dynamic rendering to prevent build-time Stats API calls
+export const dynamic = 'force-dynamic';
+
+const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
 
 export async function GET(
     request: NextRequest,
@@ -78,10 +67,8 @@ export async function GET(
         }
 
         // 2. Fallback: BoxscoreSummaryV2 (Reliable for Scheduled Games)
-        const summaryResponse = await axios.get('https://stats.nba.com/stats/boxscoresummaryv2', {
-            params: { GameID: gameId },
-            headers: STATS_HEADERS,
-            timeout: 10000
+        const summaryResponse = await axios.get(`${PROXY_URL}/api/boxscore/${gameId}`, {
+            timeout: 35000
         });
 
         const summarySets = summaryResponse.data.resultSets;
@@ -114,25 +101,21 @@ export async function GET(
         if (gameStatus === 1) {
              try {
                 const results = await Promise.allSettled([
-                    axios.get('https://stats.nba.com/stats/commonteamroster', {
-                        params: { TeamID: homeTeamId, Season: '2025-26' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
+                    axios.get(`${PROXY_URL}/api/roster/${homeTeamId}`, {
+                        params: { Season: '2025-26' },
+                        timeout: 35000
                     }),
-                    axios.get('https://stats.nba.com/stats/commonteamroster', {
-                        params: { TeamID: awayTeamId, Season: '2025-26' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
+                    axios.get(`${PROXY_URL}/api/roster/${awayTeamId}`, {
+                        params: { Season: '2025-26' },
+                        timeout: 35000
                     }),
-                    axios.get('https://stats.nba.com/stats/teamgamelog', {
-                        params: { TeamID: homeTeamId, Season: '2025-26', SeasonType: 'Regular Season' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
+                    axios.get(`${PROXY_URL}/api/gamelog/${homeTeamId}`, {
+                        params: { Season: '2025-26' },
+                        timeout: 35000
                     }),
-                    axios.get('https://stats.nba.com/stats/leaguestandings', {
-                        params: { Season: '2025-26', SeasonType: 'Regular Season', LeagueID: '00' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
+                    axios.get(`${PROXY_URL}/api/standings`, {
+                        params: { Season: '2025-26' },
+                        timeout: 35000
                     })
                 ]);
 
