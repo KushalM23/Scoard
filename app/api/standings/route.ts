@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
 
-// Cache standings for 5 minutes (only fetched when user opens standings)
-export const revalidate = 300;
+// Force dynamic rendering - don't try to build this at build time
+export const dynamic = 'force-dynamic';
 
 const STATS_HEADERS = {
     'Host': 'stats.nba.com',
@@ -20,7 +20,8 @@ export async function GET() {
                 'LeagueID': '00',
                 'Season': season,
                 'SeasonType': 'Regular Season'
-            }
+            },
+            timeout: 15000
         });
 
         const resultSet = response.data.resultSets[0];
@@ -49,7 +50,11 @@ export async function GET() {
             divisionRank: getValue(row, 'DivisionRank')
         }));
 
-        return NextResponse.json(standings);
+        return NextResponse.json(standings, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+            }
+        });
     } catch (error) {
         console.error('Error fetching standings:', error);
         return NextResponse.json({ error: 'Failed to fetch standings' }, { status: 500 });
