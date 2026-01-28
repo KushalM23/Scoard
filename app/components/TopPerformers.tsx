@@ -33,9 +33,6 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
                         (e.target as HTMLImageElement).src = 'https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png';
                     }}
                 />
-                <div className={`absolute -bottom-1 -right-1 w-5 h-5 ${isHome ? 'bg-primary' : 'bg-secondary'} text-text text-[10px] font-bold flex items-center justify-center rounded-full border border-background`}>
-                    #{rank}
-                </div>
             </div>
             <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm truncate">{player.firstName.charAt(0)}. {player.lastName}</div>

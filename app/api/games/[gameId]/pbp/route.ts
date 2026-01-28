@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Cache play-by-play for 5 seconds
+export const revalidate = 5;
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ gameId: string }> }

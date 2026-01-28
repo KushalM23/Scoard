@@ -19,7 +19,15 @@ export async function GET(
         try {
             const cdnResponse = await axios.get('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json');
             if (cdnResponse.data.scoreboard.gameDate === date) {
-                return NextResponse.json(cdnResponse.data);
+                const hasLive = cdnResponse.data.scoreboard.games.some((g: any) => g.gameStatus === 2);
+                const allFinished = cdnResponse.data.scoreboard.games.every((g: any) => g.gameStatus === 3);
+                const cacheTime = allFinished ? 86400 : hasLive ? 5 : 1800;
+                
+                return NextResponse.json(cdnResponse.data, {
+                    headers: {
+                        'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
+                    }
+                });
            }
         } catch (e) {
             console.log('CDN fetch failed, falling back to schedule');
@@ -122,7 +130,15 @@ export async function GET(
             }
         };
         
-        return NextResponse.json(formattedResponse);
+        const hasLive = games.some((g: any) => g.gameStatus === 2);
+        const allFinished = games.every((g: any) => g.gameStatus === 3);
+        const cacheTime = allFinished ? 86400 : hasLive ? 5 : 1800;
+        
+        return NextResponse.json(formattedResponse, {
+            headers: {
+                'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
+            }
+        });
     } catch (error: any) {
         console.error(`Error fetching games for date ${date}:`, error.message);
         return NextResponse.json({

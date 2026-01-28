@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { NextResponse } from 'next/server';
 
+// Cache standings for 5 minutes (only fetched when user opens standings)
+export const revalidate = 300;
+
 const STATS_HEADERS = {
     'Host': 'stats.nba.com',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',

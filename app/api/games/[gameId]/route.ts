@@ -44,8 +44,8 @@ export async function GET(
                     teamCity: data.homeTeam.teamCity,
                     teamTricode: data.homeTeam.teamTricode,
                     score: data.homeTeam.score,
-                    wins: 0,
-                    losses: 0,
+                    wins: data.homeTeam.wins || 0,
+                    losses: data.homeTeam.losses || 0,
                     periods: data.homeTeam.periods.map((p: any) => p.score),
                     statistics: data.homeTeam.statistics,
                     inBonus: false,
@@ -57,8 +57,8 @@ export async function GET(
                     teamCity: data.awayTeam.teamCity,
                     teamTricode: data.awayTeam.teamTricode,
                     score: data.awayTeam.score,
-                    wins: 0,
-                    losses: 0,
+                    wins: data.awayTeam.wins || 0,
+                    losses: data.awayTeam.losses || 0,
                     periods: data.awayTeam.periods.map((p: any) => p.score),
                     statistics: data.awayTeam.statistics,
                     inBonus: false,
@@ -69,7 +69,10 @@ export async function GET(
                     ...data.awayTeam.players.map((p: any) => ({ ...p, teamId: data.awayTeam.teamId }))
                 ]
             };
-            return NextResponse.json(mappedData);
+            const cacheTime = data.gameStatus === 3 ? 86400 : data.gameStatus === 1 ? 1800 : 5;
+            return NextResponse.json(mappedData, {
+                 headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+            });
         } catch (e) {
             console.log(`CDN fetch failed for ${gameId}, trying Stats API...`);
         }
@@ -254,7 +257,10 @@ export async function GET(
             winProbability
         };
 
-        return NextResponse.json(mappedData);
+        const cacheTime = gameStatus === 3 ? 86400 : gameStatus === 1 ? 1800 : 5;
+        return NextResponse.json(mappedData, {
+            headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+        });
 
     } catch (error: any) {
         console.error('Error fetching game data:', error.message);
