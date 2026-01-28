@@ -9,7 +9,6 @@ import Scoreboard from '../components/Scoreboard';
 import VirtualCourt from '../components/VirtualCourt';
 import StatsSection from '../components/StatsSection';
 import TopPerformers from '../components/TopPerformers';
-import SeasonStats from '../components/SeasonStats';
 import PreviousMatchups from '../components/PreviousMatchups';
 import WinProbability from '../components/WinProbability';
 import type { GameData, PlayByPlayEvent, Player } from '../types';
@@ -212,7 +211,17 @@ const Game: React.FC = () => {
                 className="max-w-5xl mx-auto px-6 md:px-4 py-8 md:py-6"
             >
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                        // Use the fromDate query parameter to navigate back to the correct date
+                        const searchParams = new URLSearchParams(window.location.search);
+                        const fromDate = searchParams.get('fromDate');
+                        
+                        if (fromDate) {
+                            navigate(`/?date=${fromDate}`);
+                        } else {
+                            navigate('/');
+                        }
+                    }}
                     className="flex items-center gap-2 text-text/60 hover:text-text mb-6 md:mb-4 transition-colors text-base md:text-sm"
                 >
                     <ArrowLeft className="w-5 h-5 md:w-4 md:h-4" />
@@ -256,14 +265,6 @@ const Game: React.FC = () => {
                                     />
                                 )}
                                 
-                                {gameData.seasonStats && (
-                                    <SeasonStats 
-                                        homeStats={gameData.seasonStats.home}
-                                        awayStats={gameData.seasonStats.away}
-                                        homeTeamName={gameData.homeTeam.teamName}
-                                        awayTeamName={gameData.awayTeam.teamName}
-                                    />
-                                )}
 
                                 {gameData.previousMatchups && (
                                     <PreviousMatchups 

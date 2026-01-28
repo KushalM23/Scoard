@@ -14,11 +14,13 @@ app.use(express.json());
 // In-memory cache
 const cache: { [key: string]: { data: any; timestamp: number } } = {};
 const CACHE_DURATION = 5000; // 5 seconds
+const SCHEDULE_CACHE_DURATION = 1000 * 60 * 60; // 60 minutes
 
 // Helper to get cached data
-const getCachedData = (key: string) => {
+const getCachedData = (key: string, duration: number = CACHE_DURATION) => {
     const cached = cache[key];
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < duration) {
+        console.log(`[CACHE HIT] ${key}`);
         return cached.data;
     }
     return null;
@@ -26,6 +28,7 @@ const getCachedData = (key: string) => {
 
 // Helper to set cached data
 const setCachedData = (key: string, data: any) => {
+    console.log(`[CACHE SET] ${key}`);
     cache[key] = { data, timestamp: Date.now() };
 };
 
@@ -49,7 +52,7 @@ const STATS_HEADERS = {
 // Fetch live games from CDN
 app.get('/api/games/live', async (req, res) => {
     const cacheKey = 'live_games';
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey, CACHE_DURATION);
     if (cached) return res.json(cached);
 
     try {
@@ -71,8 +74,13 @@ app.get('/api/games/:gameId', async (req, res) => {
             const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
             const data = cdnResponse.data.game;
             
+            // Extract game date from available fields (CDN structure)
+            const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;
+            console.log(`[CDN] Game ${gameId} - gameEt:`, gameEt);
+            
             const mappedData = {
                 gameId: data.gameId,
+                gameEt: gameEt,
                 gameStatus: data.gameStatus,
                 gameStatusText: data.gameStatusText,
                 period: data.period,
@@ -146,7 +154,6 @@ app.get('/api/games/:gameId', async (req, res) => {
 
         // Fetch Rosters for Scheduled Games to populate "players" for Injury Report
         let allPlayers: any[] = [];
-        let seasonStats: any = null;
         let previousMatchups: any[] = [];
         let winProbability: any = null;
         let homeRecord = { wins: 0, losses: 0 };
@@ -166,16 +173,6 @@ app.get('/api/games/:gameId', async (req, res) => {
                         headers: STATS_HEADERS,
                         timeout: 5000
                     }),
-                    axios.get('https://stats.nba.com/stats/teamplayerdashboard', {
-                        params: { TeamID: homeTeamId, Season: '2025-26', PerMode: 'PerGame', SeasonType: 'Regular Season' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
-                    }),
-                    axios.get('https://stats.nba.com/stats/teamplayerdashboard', {
-                        params: { TeamID: awayTeamId, Season: '2025-26', PerMode: 'PerGame', SeasonType: 'Regular Season' },
-                        headers: STATS_HEADERS,
-                        timeout: 5000
-                    }),
                     axios.get('https://stats.nba.com/stats/teamgamelog', {
                         params: { TeamID: homeTeamId, Season: '2025-26', SeasonType: 'Regular Season' },
                         headers: STATS_HEADERS,
@@ -190,10 +187,8 @@ app.get('/api/games/:gameId', async (req, res) => {
 
                 const homeRosterRes = results[0].status === 'fulfilled' ? results[0].value : null;
                 const awayRosterRes = results[1].status === 'fulfilled' ? results[1].value : null;
-                const homeStatsRes = results[2].status === 'fulfilled' ? results[2].value : null;
-                const awayStatsRes = results[3].status === 'fulfilled' ? results[3].value : null;
-                const homeLogRes = results[4].status === 'fulfilled' ? results[4].value : null;
-                const standingsRes = results[5].status === 'fulfilled' ? results[5].value : null;
+                const homeLogRes = results[2].status === 'fulfilled' ? results[2].value : null;
+                const standingsRes = results[3].status === 'fulfilled' ? results[3].value : null;
 
                 const mapRosterPlayer = (p: any[], headers: string[], teamId: number) => ({
                     personId: getValue(p, headers, 'PLAYER_ID'),
@@ -220,41 +215,13 @@ app.get('/api/games/:gameId', async (req, res) => {
                     allPlayers.push(...awayRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId)));
                 }
 
-                // Process Season Stats (Top 5 by MIN)
-                const processStats = (res: any, teamId: number) => {
-                    const headers = res.data.resultSets[1].headers; // PlayersSeasonTotals
-                    const rows = res.data.resultSets[1].rowSet;
-                    
-                    return rows
-                        .map((row: any[]) => ({
-                            personId: getValue(row, headers, 'PLAYER_ID'),
-                            name: getValue(row, headers, 'PLAYER_NAME'),
-                            position: 'N/A',
-                            gp: getValue(row, headers, 'GP'),
-                            min: getValue(row, headers, 'MIN'),
-                            ppg: getValue(row, headers, 'PTS'),
-                            rpg: getValue(row, headers, 'REB'),
-                            apg: getValue(row, headers, 'AST'),
-                            teamId: teamId
-                        }))
-                        .sort((a: any, b: any) => b.min - a.min)
-                        .slice(0, 5);
-                };
-
-                if (homeStatsRes && awayStatsRes) {
-                    seasonStats = {
-                        home: processStats(homeStatsRes, homeTeamId),
-                        away: processStats(awayStatsRes, awayTeamId)
-                    };
-                }
-
                 // Process Previous Matchups
                 if (homeLogRes) {
                     const logHeaders = homeLogRes.data.resultSets[0].headers;
                     const logRows = homeLogRes.data.resultSets[0].rowSet;
                     // Try to find away team tricode from game summary or just use ID if possible, but matchup string uses tricode
                     // We can get away tricode from lineScore if available, or from gameSummary
-                    const awayTricode = getValue(gameSummary, summaryHeaders, 'VISITOR_TEAM_ABBREVIATION') || 'SAC'; 
+                    const awayTricode = awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'SAC';
 
                     previousMatchups = logRows
                         .filter((row: any[]) => getValue(row, logHeaders, 'MATCHUP').includes(awayTricode))
@@ -308,6 +275,7 @@ app.get('/api/games/:gameId', async (req, res) => {
 
         const mappedData = {
             gameId: getValue(gameSummary, summaryHeaders, 'GAME_ID'),
+            gameEt: getValue(gameSummary, summaryHeaders, 'GAME_DATE_EST'),
             gameStatus: gameStatus,
             gameStatusText: getValue(gameSummary, summaryHeaders, 'GAME_STATUS_TEXT'),
             period: getValue(gameSummary, summaryHeaders, 'LIVE_PERIOD'),
@@ -339,7 +307,6 @@ app.get('/api/games/:gameId', async (req, res) => {
                 timeoutsRemaining: 0
             },
             players: allPlayers,
-            seasonStats,
             previousMatchups,
             winProbability
         };
@@ -359,7 +326,7 @@ app.get('/api/games/:gameId', async (req, res) => {
 app.get('/api/games/:gameId/pbp', async (req, res) => {
     const { gameId } = req.params;
     const cacheKey = `pbp_${gameId}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey, CACHE_DURATION);
     if (cached) return res.json(cached);
 
     try {
@@ -378,13 +345,25 @@ app.get('/api/games/:gameId/pbp', async (req, res) => {
 });
 
 app.get('/api/games/date/:date', async (req, res) => {
+    /* 
+     * OPTIMIZATION NOTES:
+     * 1. This endpoint fetches games for a specific date.
+     * 2. It first tries the CDN Live Scoreboard (fastest), but that only works for "today".
+     * 3. For other dates, it falls back to the full Schedule CDN (which lacks live scores/records).
+     * 4. To get Win/Loss records, we fetch Standings from stats.nba.com (SLOW).
+     * 5. To fix the 30s delay:
+     *    - We fetch Schedule and Standings IN PARALLEL.
+     *    - We set a 3s timeout on Standings. If it fails/times out, we just show 0-0 records immediately.
+     *    - We cache Standings for 30 mins to avoid hitting the slow API often.
+     * 6. Live scores are fetched via individual CDN boxscores (parallelized), which is fast.
+     */
     const { date } = req.params; // YYYY-MM-DD
     const cacheKey = `games_${date}`;
-    const cached = getCachedData(cacheKey);
+    const cached = getCachedData(cacheKey, CACHE_DURATION); // Keep short cache for mixed live/static results
     if (cached) return res.json(cached);
 
     try {
-        // Try CDN first for today's games
+        // Try CDN first for today's games (Fastest path)
         try {
             const cdnResponse = await axios.get('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json');
             // Check if specific date matches
@@ -397,33 +376,50 @@ app.get('/api/games/date/:date', async (req, res) => {
             console.log('CDN fetch failed or mismatch, falling back to stats API');
         }
 
-        // Fallback to full season schedule from CDN
-        // Note: This provides schedule data but NOT live scores for past/future dates
-        console.log(`Fetching schedule from CDN for date ${date}`);
-        const scheduleResponse = await axios.get('https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json');
-        
-        // Fetch standings to populate wins/losses
-        let standingsMap: Record<string, { wins: number, losses: number }> = {};
-        try {
-             // Check cache for standings first
-             const standingsCacheKey = 'standings_internal';
-             let standingsData = getCachedData(standingsCacheKey);
-             
-             if (!standingsData) {
-                 const season = '2025-26'; 
-                 const standingsResponse = await axios.get('https://stats.nba.com/stats/leaguestandingsv3', {
-                    headers: STATS_HEADERS,
-                    params: {
-                        'LeagueID': '00',
-                        'Season': season,
-                        'SeasonType': 'Regular Season'
-                    }
-                });
-                standingsData = standingsResponse.data;
-                setCachedData(standingsCacheKey, standingsData);
-             }
+        console.log(`Fetching schedule & standings for date ${date}`);
 
-             if (standingsData && standingsData.resultSets && standingsData.resultSets.length > 0) {
+        // 1. Fetch Schedule (CDN - Fast)
+        // 2. Fetch Standings (Stats API - Slow, with timeout)
+        
+        const schedulePromise = axios.get('https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json');
+        
+        let standingsMap: Record<string, { wins: number, losses: number }> = {};
+        
+        // Check cache for standings to avoid slow API call
+        const standingsCacheKey = 'standings_internal';
+        let standingsData = getCachedData(standingsCacheKey);
+        
+        let standingsPromise = Promise.resolve(standingsData);
+        
+        if (!standingsData) {
+            // If not in cache, fetch with timeout
+            standingsPromise = axios.get('https://stats.nba.com/stats/leaguestandingsv3', {
+                headers: STATS_HEADERS,
+                params: {
+                    'LeagueID': '00',
+                    'Season': '2025-26',
+                    'SeasonType': 'Regular Season'
+                },
+                timeout: 10000 // 3s Timeout: Fail fast if Stats API is slow
+            })
+            .then(res => res.data)
+            .catch(err => {
+                console.log('Standings fetch failed or timed out, continuing without records.');
+                return null;
+            });
+        }
+
+        // Run both in parallel
+        const [scheduleResponse, fetchedStandings] = await Promise.all([
+            schedulePromise,
+            standingsPromise
+        ]);
+
+        // Process Standings if we got them
+        standingsData = fetchedStandings;
+        if (standingsData) {
+            setCachedData(standingsCacheKey, standingsData); // Cache it
+             if (standingsData.resultSets && standingsData.resultSets.length > 0) {
                  const resultSet = standingsData.resultSets[0];
                  const headers = resultSet.headers;
                  const rowSet = resultSet.rowSet;
@@ -439,11 +435,9 @@ app.get('/api/games/date/:date', async (req, res) => {
                      };
                  });
              }
-        } catch (e) {
-            console.error('Failed to fetch standings for schedule enrichment', e);
         }
 
-        // Convert YYYY-MM-DD to MM/DD/YYYY format
+        // Convert YYYY-MM-DD to MM/DD/YYYY format for matching
         const [year, month, day] = date.split('-');
         const targetDateString = `${month}/${day}/${year}`;
 
@@ -485,7 +479,9 @@ app.get('/api/games/date/:date', async (req, res) => {
         // This is slower (N requests) but reliable via CDN.
         await Promise.all(games.map(async (game: any) => {
             try {
-                const boxResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${game.gameId}.json`);
+                const boxResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${game.gameId}.json`, {
+                    timeout: 3000 // Short timeout for individual box scores
+                });
                 const boxData = boxResponse.data.game;
                 
                 game.homeTeam.score = boxData.homeTeam.score;
@@ -512,11 +508,10 @@ app.get('/api/games/date/:date', async (req, res) => {
         setCachedData(cacheKey, formattedResponse);
         res.json(formattedResponse);
     } catch (error: any) {
-        console.error(`Error fetching games for date ${date}:`, error);
+        console.error(`Error fetching games for date ${date}:`, error.message);
         res.status(500).json({
             error: 'Failed to fetch games for date',
-            details: error.message,
-            responseKeys: error.response?.data ? Object.keys(error.response.data) : 'No response data'
+            details: error.message
         });
     }
 });

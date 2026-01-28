@@ -3,6 +3,7 @@ import { format, addDays, subDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import GameCard from './GameCard';
 import Standings from './Standings';
 
@@ -11,15 +12,34 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [games, setGames] = useState<any[]>([]);
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    
+    // Initialize date from URL or default to today
+    // Note: We use useMemo to derive the date object to prevent unnecessary re-renders
+    const selectedDate = React.useMemo(() => {
+        const dateParam = searchParams.get('date');
+        if (dateParam) {
+            // Parse YYYY-MM-DD manually to avoid timezone issues with new Date(string)
+            const [year, month, day] = dateParam.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+        return new Date();
+    }, [searchParams]);
+
+    const setSelectedDate = (date: Date) => {
+        setSearchParams({ date: format(date, 'yyyy-MM-dd') }, { replace: true });
+    };
+
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'scores' | 'standings'>('scores');
 
     useEffect(() => {
+        let isMounted = true; 
+
         const fetchGames = async () => {
             try {
-                setLoading(true);
+                if (isMounted) setLoading(true);
 
                 // Adjust date for API: If user selects "Dec 7" (IST), they want "Dec 6" (ET) games
                 // Subtract 1 day from selected date for API call
@@ -39,16 +59,20 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                     return new Date(a.gameEt).getTime() - new Date(b.gameEt).getTime();
                 });
 
-                setGames(sortedGames);
+                if (isMounted) setGames(sortedGames);
             } catch (error) {
-                console.error('Failed to fetch games', error);
-                setGames([]);
+                if (isMounted) {
+                    console.error('Failed to fetch games', error);
+                    setGames([]);
+                }
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchGames();
+
+        return () => { isMounted = false; };
     }, [selectedDate]);
 
     // Generate array of 7 days (3 before, current, 3 after)

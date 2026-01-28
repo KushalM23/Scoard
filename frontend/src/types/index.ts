@@ -54,18 +54,6 @@ export interface Team {
     statistics?: TeamStatistics;
 }
 
-export interface SeasonStatPlayer {
-    personId: number;
-    name: string;
-    position: string;
-    gp: number;
-    min: number;
-    ppg: number;
-    rpg: number;
-    apg: number;
-    teamId: number;
-}
-
 export interface Matchup {
     gameId: string;
     gameDate: string;
@@ -112,10 +100,6 @@ export interface GameData {
     arena: {
         name: string;
         city: string;
-    };
-    seasonStats?: {
-        home: SeasonStatPlayer[];
-        away: SeasonStatPlayer[];
     };
     previousMatchups?: Matchup[];
     winProbability?: WinProbability;
