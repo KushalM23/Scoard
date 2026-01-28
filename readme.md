@@ -21,11 +21,13 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 ## Tech Stack
 
 ### Frontend
--   **Framework:** [React](https://react.dev/) (via [Vite](https://vitejs.dev/))
+-   **Framework:** [Next.js 15](https://nextjs.org/) with App Router
+-   **UI Library:** [React 19](https://react.dev/)
 -   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
 -   **Animations:** [Framer Motion](https://www.framer.com/motion/)
 -   **Icons:** [Lucide React](https://lucide.dev/)
 -   **HTTP Client:** Axios
+-   **Language:** TypeScript
 
 ### Backend
 -   **Runtime:** [Node.js](https://nodejs.org/)
@@ -51,14 +53,14 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
     ```
 
 2.  **Install Dependencies**
-    This project uses pnpm workspaces. Install dependencies for both frontend and backend from the root:
+    This project uses pnpm workspaces for the backend and Next.js at the root:
     ```bash
     pnpm install
     ```
 
 ### Running the Application
 
-You can start both the frontend and backend servers simultaneously using the provided Python script (Windows/Linux):
+You can start both the Next.js frontend and backend servers simultaneously using the provided Python script (Windows/Linux):
 
 ```bash
 python start_servers.py
