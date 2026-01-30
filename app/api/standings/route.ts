@@ -1,17 +1,20 @@
 import axios from 'axios';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Force dynamic rendering - don't try to build this at build time
 export const dynamic = 'force-dynamic';
 
 const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const season = '2025-26';
+        const bustCache = request.nextUrl.searchParams.get('bustCache') === 'true';
+        
         const response = await axios.get(`${PROXY_URL}/api/standings`, {
             params: {
-                Season: season
+                Season: season,
+                bustCache: bustCache
             },
             timeout: 35000
         });

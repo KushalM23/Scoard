@@ -9,27 +9,27 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 ## Features
 
 -   **Live Scoreboard:** Real-time updates for all NBA games with live scores, game clock, and quarter information.
--   **Enhanced Virtual Court:** 
-    -   **Sequential Playback:** Intelligent event queue system that visualizes plays one-by-one for a broadcast-like feel.
-    -   **Dynamic Overlays:** Visual alerts for Timeouts, Substitutions, and Quarter updates.
-    -   **Smart Notifications:** Context-aware side popups for points, rebounds, assists, steals, and blocks.
-    -   **Accurate Mapping:** Precise shot locations with specific logic for offensive/defensive rebounds and free throws.
--   **Game Schedule:** Browse past results and upcoming fixtures with an intuitive date picker.
--   **Detailed Stats:** Access box scores, play-by-play feeds, and team performance metrics with active player indicators.
--   **League Standings:** Full NBA standings with conference/division rankings, records, and streaks.
--   **Modern UI:** A "Fun Pastel" dark theme featuring glassmorphism, smooth Framer Motion animations, and fully responsive design.
--   **Performance Optimized:** Smart caching strategies - live games cached for 5s, finished games for 24h.
+-   **Enhanced Virtual Court Visualization:** 
+    -   **Sequential Playback:** Intelligent event queue system that visualizes plays one-by-one for a broadcast-like experience.
+    -   **Dynamic Overlays:** Visual alerts for timeouts, substitutions, and quarter transitions.
+    -   **Smart Notifications:** Context-aware side popups displaying points, rebounds, assists, steals, and blocks.
+    -   **Accurate Shot Mapping:** Precise shot location visualization with specific logic for offensive/defensive rebounds and free throws.
+-   **Game Schedule:** Browse past results and upcoming fixtures with an intuitive date picker interface.
+-   **Comprehensive Stats:** Access detailed box scores, play-by-play feeds, and team performance metrics with active player indicators.
+-   **League Standings:** Full NBA standings with conference/division rankings, win-loss records, and current streaks.
+-   **Modern UI:** Featuring a "Fun Pastel" dark theme with glassmorphism effects, smooth Framer Motion animations, and fully responsive design.
 
 ## Tech Stack
 
--   **Framework:** [Next.js 15](https://nextjs.org/) with App Router
--   **UI Library:** [React 19](https://react.dev/)
--   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
--   **Animations:** [Framer Motion](https://www.framer.com/motion/)
--   **Icons:** [Lucide React](https://lucide.dev/)
+-   **Framework:** Next.js 15
+-   **UI Library:** React 19
+-   **Styling:** Tailwind CSS
+-   **Animations:** Framer Motion
+-   **Icons:** Lucide React
 -   **HTTP Client:** Axios
--   **Language:** TypeScript
--   **Data Source:** NBA Official CDN & Stats APIs
+-   **Date Handling:** date-fns
+-   **Language:** TypeScript 5
+-   **Data Sources:** NBA Official CDN & Stats APIs
 
 ## Getting Started
 
@@ -53,18 +53,38 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
     pnpm install
     ```
 
+## Proxy Server
+
+The app requires a proxy server (located in `express-proxy/`) to handle NBA Stats API requests. The proxy is essential for:
+- **League Standings** - Fetches current NBA standings
+- **Scheduled Game Details** - Provides rosters, game logs, and win probability
+- **Stats API Access** - Handles proper headers and caching for stats.nba.com
+- **Rate Limiting Protection** - Prevents API throttling with smart caching
+
 ### Running the Application
 
 **Development:**
-```bash
-pnpm dev
-# Runs on http://localhost:3000
-```
 
-**Production:**
+1. **Start the proxy server** (in one terminal):
+    ```bash
+    cd express-proxy
+    npm install
+    npm start
+    # Proxy runs on http://localhost:3001
+    ```
+
+2. **Start the Next.js app** (in another terminal):
+    ```bash
+    pnpm dev
+    # Runs on http://localhost:3000
+    ```
+
+**Production Mode:**
 ```bash
 pnpm build
 pnpm start
+# Build and start the production server
+# Ensure proxy server is also running on port 3001
 ```
 
 ## API Routes
@@ -85,43 +105,51 @@ Scoard/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API routes (serverless functions)
 │   │   ├── games/
-│   │   │   ├── [gameId]/        # Individual game data & play-by-play
-│   │   │   └── date/[date]/     # Games by date with scores
-│   │   └── standings/           # NBA standings
+│   │   │   ├── [gameId]/        # Individual game data
+│   │   │   │   ├── route.ts     # Game details endpoint
+│   │   │   │   └── pbp/         # Play-by-play data
+│   │   │   │       └── route.ts
+│   │   │   └── date/[date]/     # Games by date
+│   │   │       └── route.ts
+│   │   └── standings/           # NBA standings API
+│   │       └── route.ts
 │   ├── components/              # React components
-│   │   ├── GameCard.tsx         # Game list item
+│   │   ├── GameCard.tsx         # Game list item with score display
 │   │   ├── Header.tsx           # Navigation header
 │   │   ├── Hero.tsx             # Hero section with date picker
 │   │   ├── Layout.tsx           # Page layout wrapper
 │   │   ├── PreviousMatchups.tsx # Team head-to-head history
-│   │   ├── Scoreboard.tsx       # Live game scoreboard
+│   │   ├── Scoreboard.tsx       # Live game scoreboard with clock
 │   │   ├── Standings.tsx        # League standings table
-│   │   ├── StatsSection.tsx     # Box score stats
+│   │   ├── StatsSection.tsx     # Box score statistics
 │   │   ├── TopPerformers.tsx    # Top players display
 │   │   ├── VirtualCourt.tsx     # Animated court visualization
 │   │   └── WinProbability.tsx   # Win probability chart
 │   ├── game/[gameId]/           # Dynamic game detail pages
 │   │   └── page.tsx
 │   ├── types/                   # TypeScript type definitions
-│   │   └── index.ts
+│   │   └── index.ts             # Game, team, player types
 │   ├── layout.tsx               # Root layout with metadata
-│   ├── page.tsx                 # Homepage
-│   └── globals.css              # Global styles & theme
-├── public/                      # Static assets (images, icons)
+│   ├── page.tsx                 # Homepage with game listing
+│   └── globals.css              # Global styles & custom theme variables
+├── express-proxy/               # Optional Express.js proxy server
+│   ├── server.js                # Proxy server with caching
+│   ├── package.json             # Proxy dependencies
+│   └── README.md                # Proxy documentation
+├── public/                      # Static assets (images, icons, fonts)
 ├── .gitignore                   # Git ignore rules
 ├── next.config.js               # Next.js configuration
-├── tailwind.config.ts           # Tailwind CSS config
-├── postcss.config.mjs           # PostCSS config
-├── tsconfig.json                # TypeScript config
+├── next-env.d.ts                # Next.js TypeScript declarations
+├── tailwind.config.ts           # Tailwind CSS config with custom theme
+├── postcss.config.mjs           # PostCSS config for Tailwind
+├── tsconfig.json                # TypeScript compiler config
 ├── package.json                 # Dependencies & scripts
-└── pnpm-lock.yaml               # pnpm lock file
+├── pnpm-lock.yaml               # pnpm lock file
+├── IMMEDIATE_OPTIMIZATION_STEPS.md  # Performance optimization guide
+├── SSE_IMPLEMENTATION_PLAN.md   # Server-Sent Events implementation plan
+├── NBA_API_GUIDE.md             # NBA API documentation
+└── readme.md                    # This file
 ```
-## Future updates 
--   Add Power Rankings to NBA
--   Add Player Overview
--   Add Team Overview
--   Add F1 sport
--   Add IPL/cricket
 
 ## Contributing
 

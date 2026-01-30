@@ -57,28 +57,40 @@ const Standings: React.FC = () => {
         }
     }, [viewMode]);
 
-    useEffect(() => {
-        const fetchStandings = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get(`/api/standings`);
-                
-                if (Array.isArray(response.data) && response.data.length > 0) {
-                    setStandings(response.data);
-                    setError(null);
-                } else {
-                    setError('No standings data found');
-                }
-            } catch (err: any) {
-                console.error('Error fetching standings:', err);
-                setError(err.message || 'Failed to load standings');
-            } finally {
-                setLoading(false);
+    const fetchStandings = async (bustCache = false) => {
+        try {
+            setLoading(true);
+            const url = bustCache ? `/api/standings?bustCache=true` : `/api/standings`;
+            const response = await axios.get(url);
+            
+            if (Array.isArray(response.data) && response.data.length > 0) {
+                setStandings(response.data);
+                setError(null);
+            } else {
+                setError('No standings data found');
             }
-        };
+        } catch (err: any) {
+            console.error('Error fetching standings:', err);
+            setError(err.message || 'Failed to load standings');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchStandings();
     }, []);
+
+    useEffect(() => {
+  fetch(process.env.NEXT_PUBLIC_API_URL + "/api/standings?Season=2024-25")
+    .then(res => res.json())
+    .then(data => {
+      console.log("FRONTEND → BACKEND OK:", data);
+    })
+    .catch(err => {
+      console.error("FRONTEND → BACKEND FAIL:", err);
+    });
+}, []);
 
     const renderTable = (teams: TeamStanding[]) => (
         <div className="mb-8 glass-card overflow-hidden">
@@ -153,7 +165,7 @@ const Standings: React.FC = () => {
                         {error.toUpperCase()}
                     </p>
                     <button 
-                        onClick={() => window.location.reload()} 
+                        onClick={() => fetchStandings(true)} 
                         className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-bold transition-all hover:scale-105"
                     >
                         RETRY CONNECTION

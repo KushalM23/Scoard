@@ -11,6 +11,7 @@ export async function GET(
     { params }: { params: Promise<{ gameId: string }> }
 ) {
     const { gameId } = await params;
+    const bustCache = request.nextUrl.searchParams.get('bustCache') === 'true';
 
     try {
         // 1. Try CDN (Best for Live/Finished games)
@@ -68,6 +69,7 @@ export async function GET(
 
         // 2. Fallback: BoxscoreSummaryV2 (Reliable for Scheduled Games)
         const summaryResponse = await axios.get(`${PROXY_URL}/api/boxscore/${gameId}`, {
+            params: { bustCache },
             timeout: 35000
         });
 
@@ -102,19 +104,19 @@ export async function GET(
              try {
                 const results = await Promise.allSettled([
                     axios.get(`${PROXY_URL}/api/roster/${homeTeamId}`, {
-                        params: { Season: '2025-26' },
+                        params: { Season: '2025-26', bustCache },
                         timeout: 35000
                     }),
                     axios.get(`${PROXY_URL}/api/roster/${awayTeamId}`, {
-                        params: { Season: '2025-26' },
+                        params: { Season: '2025-26', bustCache },
                         timeout: 35000
                     }),
                     axios.get(`${PROXY_URL}/api/gamelog/${homeTeamId}`, {
-                        params: { Season: '2025-26' },
+                        params: { Season: '2025-26', bustCache },
                         timeout: 35000
                     }),
                     axios.get(`${PROXY_URL}/api/standings`, {
-                        params: { Season: '2025-26' },
+                        params: { Season: '2025-26', bustCache },
                         timeout: 35000
                     })
                 ]);

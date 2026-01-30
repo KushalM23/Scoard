@@ -26,6 +26,7 @@ export default function Game() {
     const [players, setPlayers] = useState<Player[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [retryTrigger, setRetryTrigger] = useState(0);
 
     useEffect(() => {
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -35,9 +36,11 @@ export default function Game() {
             if (!gameId) return;
             
             try {
+                const bustCache = retryTrigger > 0;
+                const cacheParam = bustCache ? '?bustCache=true' : '';
                 const [boxRes, pbpRes] = await Promise.all([
-                    axios.get(`/api/games/${gameId}`),
-                    axios.get(`/api/games/${gameId}/pbp`)
+                    axios.get(`/api/games/${gameId}${cacheParam}`),
+                    axios.get(`/api/games/${gameId}/pbp${cacheParam}`)
                 ]);
                 
                 if (!isMounted) return;
@@ -143,7 +146,7 @@ export default function Game() {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [gameId]);
+    }, [gameId, retryTrigger]);
 
     if (loading && !gameData) {
         return (
@@ -175,7 +178,11 @@ export default function Game() {
                         <p className="text-text/60 max-w-md mx-auto">{error || 'We couldn\'t find the game you\'re looking for.'}</p>
                         <div className="flex gap-4 justify-center">
                             <button 
-                                onClick={() => window.location.reload()}
+                                onClick={() => {
+                                    setLoading(true);
+                                    setError(null);
+                                    setRetryTrigger(prev => prev + 1);
+                                }}
                                 className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-colors"
                             >
                                 Retry

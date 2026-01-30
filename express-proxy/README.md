@@ -31,13 +31,24 @@ node server.js
 
 ## Endpoints
 
-- `GET /` - Health check
+- `GET /` - Health check with cache statistics
 - `GET /api/standings?Season=2025-26` - League standings
 - `GET /api/boxscore/:gameId` - Game boxscore
 - `GET /api/roster/:teamId?Season=2025-26` - Team roster
 - `GET /api/gamelog/:teamId?Season=2025-26` - Team game log
 - `GET /api/stats/*` - Generic Stats API proxy (any endpoint)
-- `POST /api/cache/clear` - Clear cache (optional)
+- `POST /api/cache/clear` - Clear cache (body: `{key: "cache_key"}` or empty for all)
+
+### Cache Busting
+
+Add `?bustCache=true` to any endpoint to force a fresh fetch and clear cached data:
+
+```bash
+GET /api/standings?Season=2025-26&bustCache=true
+GET /api/boxscore/0022400123?bustCache=true
+```
+
+This is useful for retry operations when users explicitly request fresh data.
 
 ## Usage from Next.js
 
