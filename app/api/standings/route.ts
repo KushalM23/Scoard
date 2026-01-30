@@ -1,25 +1,36 @@
-import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchStatsApi } from '@/app/lib/statsApi';
 
 // Force dynamic rendering - don't try to build this at build time
 export const dynamic = 'force-dynamic';
 
-const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
-
 export async function GET(request: NextRequest) {
     try {
         const season = '2025-26';
-        const bustCache = request.nextUrl.searchParams.get('bustCache') === 'true';
         
-        const response = await axios.get(`${PROXY_URL}/api/standings`, {
-            params: {
-                Season: season,
-                bustCache: bustCache
-            },
-            timeout: 35000
-        });
+        // Check if any games are currently live
+        let hasLiveGames = false;
+        try {
+            const cdnResponse = await fetch('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json');
+            if (cdnResponse.ok) {
+                const scoreboardData = await cdnResponse.json();
+                hasLiveGames = scoreboardData.scoreboard.games.some((g: any) => g.gameStatus === 2);
+            }
+        } catch (e) {
+            console.log('Failed to check live games, defaulting to 5 min cache');
+        }
 
-        const resultSet = response.data.resultSets[0];
+        // Dynamic cache: 5 minutes if live games, 2 hours if no live games
+        const cacheTime = hasLiveGames ? 300 : 7200;
+        console.log(`Standings cache: ${hasLiveGames ? 'Live games detected' : 'No live games'} - using ${cacheTime}s cache`);
+        
+        const data = await fetchStatsApi('leaguestandingsv3', {
+            LeagueID: '00',
+            Season: season,
+            SeasonType: 'Regular Season'
+        }, 3, cacheTime);
+
+        const resultSet = data.resultSets[0];
         const headers = resultSet.headers;
         const rowSet = resultSet.rowSet;
 
@@ -47,7 +58,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(standings, {
             headers: {
-                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+                'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
             }
         });
     } catch (error) {

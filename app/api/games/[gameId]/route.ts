@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchStatsApi } from '@/app/lib/statsApi';
 
 // Force dynamic rendering to prevent build-time Stats API calls
 export const dynamic = 'force-dynamic';
-
-const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
 
 export async function GET(
     request: NextRequest,
@@ -68,12 +67,11 @@ export async function GET(
         }
 
         // 2. Fallback: BoxscoreSummaryV2 (Reliable for Scheduled Games)
-        const summaryResponse = await axios.get(`${PROXY_URL}/api/boxscore/${gameId}`, {
-            params: { bustCache },
-            timeout: 35000
+        const summaryData = await fetchStatsApi('boxscoresummaryv2', {
+            GameID: gameId
         });
 
-        const summarySets = summaryResponse.data.resultSets;
+        const summarySets = summaryData.resultSets;
         const gameSummary = summarySets[0].rowSet[0];
         const lineScore = summarySets[5].rowSet;
 
@@ -103,28 +101,30 @@ export async function GET(
         if (gameStatus === 1) {
              try {
                 const results = await Promise.allSettled([
-                    axios.get(`${PROXY_URL}/api/roster/${homeTeamId}`, {
-                        params: { Season: '2025-26', bustCache },
-                        timeout: 35000
+                    fetchStatsApi('commonteamroster', {
+                        TeamID: homeTeamId,
+                        Season: '2025-26'
                     }),
-                    axios.get(`${PROXY_URL}/api/roster/${awayTeamId}`, {
-                        params: { Season: '2025-26', bustCache },
-                        timeout: 35000
+                    fetchStatsApi('commonteamroster', {
+                        TeamID: awayTeamId,
+                        Season: '2025-26'
                     }),
-                    axios.get(`${PROXY_URL}/api/gamelog/${homeTeamId}`, {
-                        params: { Season: '2025-26', bustCache },
-                        timeout: 35000
+                    fetchStatsApi('teamgamelog', {
+                        TeamID: homeTeamId,
+                        Season: '2025-26',
+                        SeasonType: 'Regular Season'
                     }),
-                    axios.get(`${PROXY_URL}/api/standings`, {
-                        params: { Season: '2025-26', bustCache },
-                        timeout: 35000
+                    fetchStatsApi('leaguestandingsv3', {
+                        LeagueID: '00',
+                        Season: '2025-26',
+                        SeasonType: 'Regular Season'
                     })
                 ]);
 
-                const homeRosterRes = results[0].status === 'fulfilled' ? results[0].value : null;
-                const awayRosterRes = results[1].status === 'fulfilled' ? results[1].value : null;
-                const homeLogRes = results[2].status === 'fulfilled' ? results[2].value : null;
-                const standingsRes = results[3].status === 'fulfilled' ? results[3].value : null;
+                const homeRosterData = results[0].status === 'fulfilled' ? results[0].value : null;
+                const awayRosterData = results[1].status === 'fulfilled' ? results[1].value : null;
+                const homeLogData = results[2].status === 'fulfilled' ? results[2].value : null;
+                const standingsData = results[3].status === 'fulfilled' ? results[3].value : null;
 
                 const mapRosterPlayer = (p: any[], headers: string[], teamId: number) => ({
                     personId: getValue(p, headers, 'PLAYER_ID'),
@@ -142,18 +142,18 @@ export async function GET(
                     isOnCourt: false
                 });
 
-                if (homeRosterRes) {
-                    const homeHeaders = homeRosterRes.data.resultSets[0].headers;
-                    allPlayers.push(...homeRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, homeHeaders, homeTeamId)));
+                if (homeRosterData) {
+                    const homeHeaders = homeRosterData.resultSets[0].headers;
+                    allPlayers.push(...homeRosterData.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, homeHeaders, homeTeamId)));
                 }
-                if (awayRosterRes) {
-                    const awayHeaders = awayRosterRes.data.resultSets[0].headers;
-                    allPlayers.push(...awayRosterRes.data.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId)));
+                if (awayRosterData) {
+                    const awayHeaders = awayRosterData.resultSets[0].headers;
+                    allPlayers.push(...awayRosterData.resultSets[0].rowSet.map((p: any) => mapRosterPlayer(p, awayHeaders, awayTeamId)));
                 }
 
-                if (homeLogRes) {
-                    const logHeaders = homeLogRes.data.resultSets[0].headers;
-                    const logRows = homeLogRes.data.resultSets[0].rowSet;
+                if (homeLogData) {
+                    const logHeaders = homeLogData.resultSets[0].headers;
+                    const logRows = homeLogData.resultSets[0].rowSet;
                     const awayTricode = awayLineScore ? getValue(awayLineScore, lineScoreHeaders, 'TEAM_ABBREVIATION') : 'SAC';
 
                     previousMatchups = logRows
@@ -168,9 +168,9 @@ export async function GET(
                         }));
                 }
 
-                if (standingsRes) {
-                    const standingsHeaders = standingsRes.data.resultSets[0].headers;
-                    const standingsRows = standingsRes.data.resultSets[0].rowSet;
+                if (standingsData) {
+                    const standingsHeaders = standingsData.resultSets[0].headers;
+                    const standingsRows = standingsData.resultSets[0].rowSet;
                     
                     const homeRow = standingsRows.find((row: any[]) => getValue(row, standingsHeaders, 'TeamID') === homeTeamId);
                     const awayRow = standingsRows.find((row: any[]) => getValue(row, standingsHeaders, 'TeamID') === awayTeamId);
