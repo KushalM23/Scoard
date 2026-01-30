@@ -53,39 +53,24 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
     pnpm install
     ```
 
-## Proxy Server
-
-The app requires a proxy server (located in `express-proxy/`) to handle NBA Stats API requests. The proxy is essential for:
-- **League Standings** - Fetches current NBA standings
-- **Scheduled Game Details** - Provides rosters, game logs, and win probability
-- **Stats API Access** - Handles proper headers and caching for stats.nba.com
-- **Rate Limiting Protection** - Prevents API throttling with smart caching
-
 ### Running the Application
 
 **Development:**
+```bash
+pnpm dev
+# Runs on http://localhost:3000
+```
 
-1. **Start the proxy server** (in one terminal):
-    ```bash
-    cd express-proxy
-    npm install
-    npm start
-    # Proxy runs on http://localhost:3001
-    ```
-
-2. **Start the Next.js app** (in another terminal):
-    ```bash
-    pnpm dev
-    # Runs on http://localhost:3000
-    ```
-
-**Production Mode:**
+**Production:**
 ```bash
 pnpm build
 pnpm start
-# Build and start the production server
-# Ensure proxy server is also running on port 3001
 ```
+
+**Package Manager:**
+- This project uses [pnpm](https://pnpm.io/) for package management
+- Tested with Node.js v22.19.0 and pnpm v10+
+- A `pnpm-lock.yaml` file is included for reproducible installs
 
 ## API Routes
 
@@ -127,15 +112,13 @@ Scoard/
 │   │   └── WinProbability.tsx   # Win probability chart
 │   ├── game/[gameId]/           # Dynamic game detail pages
 │   │   └── page.tsx
+│   ├── lib/                     # Shared utilities
+│   │   └── statsApi.ts          # NBA Stats API client with retry logic
 │   ├── types/                   # TypeScript type definitions
 │   │   └── index.ts             # Game, team, player types
 │   ├── layout.tsx               # Root layout with metadata
 │   ├── page.tsx                 # Homepage with game listing
 │   └── globals.css              # Global styles & custom theme variables
-├── express-proxy/               # Optional Express.js proxy server
-│   ├── server.js                # Proxy server with caching
-│   ├── package.json             # Proxy dependencies
-│   └── README.md                # Proxy documentation
 ├── public/                      # Static assets (images, icons, fonts)
 ├── .gitignore                   # Git ignore rules
 ├── next.config.js               # Next.js configuration
