@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Parkinsans, Bungee, Jersey_15 } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 const parkinsans = Parkinsans({
   subsets: ["latin"],
