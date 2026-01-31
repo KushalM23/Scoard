@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchStatsApi } from '@/app/lib/statsApi';
+import { fetchWithCoalescing } from '@/app/lib/requestCoalescing';
+import { getCached, setCached } from '@/app/lib/memoryCache';
 
 // Force dynamic rendering to prevent build-time Stats API calls
 export const dynamic = 'force-dynamic';
@@ -12,7 +14,24 @@ export async function GET(
     const { gameId } = await params;
     const bustCache = request.nextUrl.searchParams.get('bustCache') === 'true';
 
-    try {
+    // Check memory cache first (unless cache bust requested)
+    if (!bustCache) {
+        const cached = getCached<any>(`game-${gameId}`);
+        if (cached) {
+            console.log(`[Cache] HIT for game ${gameId}`);
+            return NextResponse.json(cached, {
+                headers: { 
+                    'Cache-Control': `public, s-maxage=${cached.cacheTime || 5}, stale-while-revalidate=${(cached.cacheTime || 5) * 2}`,
+                    'X-Cache': 'HIT'
+                }
+            });
+        }
+        console.log(`[Cache] MISS for game ${gameId}`);
+    }
+
+    // Use request coalescing to prevent thundering herd
+    return fetchWithCoalescing(`game-${gameId}`, async () => {
+        try {
         // 1. Try CDN (Best for Live/Finished games)
         try {
             const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
@@ -59,8 +78,16 @@ export async function GET(
                 ]
             };
             const cacheTime = data.gameStatus === 3 ? 86400 : data.gameStatus === 1 ? 1800 : 5;
-            return NextResponse.json(mappedData, {
-                 headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+            
+            // Store in memory cache
+            const responseData = { ...mappedData, cacheTime };
+            setCached(`game-${gameId}`, responseData, cacheTime * 1000);
+            
+            return NextResponse.json(responseData, {
+                 headers: { 
+                     'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`,
+                     'X-Cache': 'MISS'
+                 }
             });
         } catch (e) {
             console.log(`CDN fetch failed for ${gameId}, trying Stats API...`);
@@ -243,12 +270,21 @@ export async function GET(
         };
 
         const cacheTime = gameStatus === 3 ? 86400 : gameStatus === 1 ? 1800 : 5;
-        return NextResponse.json(mappedData, {
-            headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+        
+        // Store in memory cache
+        const responseData = { ...mappedData, cacheTime };
+        setCached(`game-${gameId}`, responseData, cacheTime * 1000);
+        
+        return NextResponse.json(responseData, {
+            headers: { 
+                'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`,
+                'X-Cache': 'MISS'
+            }
         });
 
     } catch (error: any) {
         console.error('Error fetching game data:', error.message);
         return NextResponse.json({ error: 'Failed to fetch game data' }, { status: 500 });
     }
+    }); // End fetchWithCoalescing
 }

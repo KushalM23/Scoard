@@ -27,6 +27,29 @@ export default function Game() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [retryTrigger, setRetryTrigger] = useState(0);
+    const [isVisible, setIsVisible] = useState(true);
+
+    // Track tab visibility for smart polling
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            const visible = !document.hidden;
+            setIsVisible(visible);
+            
+            console.log(`[Visibility] Tab is now ${visible ? 'visible' : 'hidden'}`);
+            
+            // When tab becomes visible, fetch fresh data immediately
+            if (visible) {
+                console.log('[Visibility] Tab visible, fetching fresh data');
+                setRetryTrigger(prev => prev + 1);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
     useEffect(() => {
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -125,16 +148,25 @@ export default function Game() {
                 }
                 setError(null);
 
+                // Adaptive polling based on game status and visibility
                 if (currentGameStatus === 2) {
-                    timeoutId = setTimeout(fetchData, 5000);
+                    // Live game: 5s when visible, 30s when hidden
+                    const delay = isVisible ? 5000 : 30000;
+                    console.log(`[Polling] Live game - next fetch in ${delay}ms (${isVisible ? 'visible' : 'hidden'})`);
+                    timeoutId = setTimeout(fetchData, delay);
                 } else if (currentGameStatus === 1) {
-                    timeoutId = setTimeout(fetchData, 60000);
+                    // Scheduled game: 60s when visible, 5 minutes when hidden
+                    const delay = isVisible ? 60000 : 300000;
+                    console.log(`[Polling] Scheduled game - next fetch in ${delay}ms (${isVisible ? 'visible' : 'hidden'})`);
+                    timeoutId = setTimeout(fetchData, delay);
                 }
 
             } catch (error) {
                 console.error('Error fetching game data:', error);
                 setError('Failed to load game data. Please try again later.');
-                timeoutId = setTimeout(fetchData, 10000);
+                // Retry with longer delay when hidden
+                const retryDelay = isVisible ? 10000 : 60000;
+                timeoutId = setTimeout(fetchData, retryDelay);
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -146,7 +178,7 @@ export default function Game() {
             isMounted = false;
             clearTimeout(timeoutId);
         };
-    }, [gameId, retryTrigger]);
+    }, [gameId, retryTrigger, isVisible]);
 
     if (loading && !gameData) {
         return (

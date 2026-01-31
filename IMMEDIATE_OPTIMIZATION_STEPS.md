@@ -1,40 +1,53 @@
 # Immediate Optimization Steps
 
-This plan addresses the "Immediate Action Plan" to reduce server load and API calls.
+This plan addresses optimization to reduce server load and API calls for the Next.js App Router architecture.
+
+## Current Architecture Status
+
+- **Framework**: Next.js 15 with App Router
+- **API Route**: `app/api/games/[gameId]/route.ts`
+- **Caching Layer**: `app/lib/statsApi.ts` with Next.js `fetch` cache
+- **Frontend Polling**: `setTimeout` based (5s live, 60s scheduled)
+- **Adaptive Cache TTLs**: Already implemented (86400s finished, 1800s scheduled, 5s live)
 
 ## 1. Backend: Implement Request Coalescing
 **Goal:** Prevent multiple simultaneous requests for the same game from hitting the NBA API (Thundering Herd protection).
 
-- [ ] **Open `backend/src/server.ts`**.
-- [ ] **Define Global Map**: Add `const pendingRequests = new Map<string, Promise<any>>();` near the top of the file.
-- [ ] **Create Helper**: Implement `fetchWithCoalescing(key: string, fetchFn: () => Promise<any>)`:
-    - Check if `key` exists in `pendingRequests`. If so, return it.
-    - If not, `const promise = fetchFn();`
-    - `pendingRequests.set(key, promise);`
-    - Ensure the promise removes itself from the map upon completion (`.finally(() => pendingRequests.delete(key))`).
-- [ ] **Apply to Endpoint**: Wrap the data fetching logic in `/api/games/:gameId` with this helper.
+**Status:** ⚠️ Not implemented - Multiple concurrent requests can hit the API
 
-## 2. Backend: Adaptive Cache TTLs
-**Goal:** Cache finished games for much longer (1 hour) than live games (5 seconds).
+### Implementation Steps
 
-- [ ] **Open `backend/src/server.ts`**.
-- [ ] **Define Constants**:
-    ```typescript
-    const TTL_LIVE = 5000;      // 5 seconds
-    const TTL_SCHEDULED = 60000; // 1 minute (check for start)
-    const TTL_FINAL = 3600000;   // 1 hour
-    ```
-- [ ] **Update Cache Helper**: Modify `setCachedData` to accept an optional `ttl` parameter (store `expiry` timestamp instead of just creation timestamp).
-- [ ] **Update Retrieval**: Update `getCachedData` to check if `Date.now() > cached.expiry`.
-- [ ] **Implement Logic**: In `/api/games/:gameId`, determines the TTL based on `gameStatus` (1, 2, or 3) and pass it to `setCachedData`.
+- [ ] **Create Module**: Create `app/lib/requestCoalescing.ts`
+- [ ] **Update API Route**: Modify `app/api/games/[gameId]/route.ts` to use coalescing
+- [ ] **Benefits**: If 10 users request the same game simultaneously, only 1 NBA API call is made
+
+## 2. Backend: Enhanced Caching Strategy
+**Goal:** Optimize the existing cache implementation and add memory caching for frequently accessed data.
+
+**Status:** Partially implemented - HTTP cache headers exist, but no in-memory cache
+
+### Implementation Steps
+
+- [ ] **Create In-Memory Cache**: Create `app/lib/memoryCache.ts` with TTL-based caching
+- [ ] **Update API Route**: Add in-memory caching layer before NBA API calls
 
 ## 3. Frontend: Visibility Awareness (Smart Polling)
-**Goal:** Pause or slow down polling when the user minimizes the tab.
+**Goal:** Pause or slow down polling when the user minimizes the tab or switches away.
 
-- [ ] **Open `frontend/src/pages/Game.tsx`**.
-- [ ] **Update Polling Logic**: Inside the `fetchData` loop:
-    - Check `if (document.hidden)`.
-    - If hidden, either stop polling or increase `setTimeout` delay to 60+ seconds.
-- [ ] **Add Event Listener**:
-    - Add `document.addEventListener("visibilitychange", ...)` inside `useEffect`.
-    - When `visibilityState` becomes `'visible'`, clear existing timeouts and verify/fetch data immediately.
+**Status:** Not implemented - Polls continuously even when tab is hidden
+
+### Implementation Steps
+
+- [ ] **Update Game Page**: Modify `app/game/[gameId]/page.tsx`
+  - Add visibility state tracking
+  - Adjust polling intervals: Live 5s→30s, Scheduled 60s→5min when hidden
+  - Fetch immediately when tab becomes visible again
+
+## Expected Impact
+
+| Optimization | Current | After | Improvement |
+|-------------|---------|-------|-------------|
+| Concurrent requests (10 users, same game) | 10 API calls | 1 API call | 90% reduction |
+| Hidden tab polling (live game) | Every 5s | Every 30s | 83% reduction |
+| Hidden tab polling (scheduled) | Every 60s | Every 5min | 80% reduction |
+| Memory cache hits | 0% | ~60-80% | Faster responses |
