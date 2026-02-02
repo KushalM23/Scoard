@@ -174,6 +174,9 @@ export default function Game() {
                 };
 
                 setGameData(normalizedGame);
+                if (Array.isArray(newData.pbpActions)) {
+                    setPbpData(newData.pbpActions);
+                }
                 
                 // Update players if available
                 if (newData.players && Array.isArray(newData.players)) {
@@ -238,36 +241,7 @@ export default function Game() {
         };
     }, [gameId, gameData?.gameStatus]);
 
-    // Separate polling for play-by-play data
-    useEffect(() => {
-        if (!gameId || !gameData) return;
-        
-        // Only poll PBP for live games
-        if (gameData.gameStatus !== 2) return;
-
-        let pbpTimeoutId: ReturnType<typeof setTimeout>;
-
-        const fetchPBP = async () => {
-            try {
-                const pbpRes = await axios.get(`/api/games/${gameId}/pbp`);
-                if (pbpRes.data && pbpRes.data.game && pbpRes.data.game.actions) {
-                    setPbpData(pbpRes.data.game.actions);
-                }
-                
-                // Poll every 10 seconds for PBP
-                pbpTimeoutId = setTimeout(fetchPBP, 10000);
-            } catch (error) {
-                console.error('Error fetching play-by-play data:', error);
-                pbpTimeoutId = setTimeout(fetchPBP, 15000);
-            }
-        };
-
-        fetchPBP();
-
-        return () => {
-            clearTimeout(pbpTimeoutId);
-        };
-    }, [gameId, gameData?.gameStatus]);
+    // PBP now delivered via SSE stream; no separate polling.
 
     if (loading && !gameData) {
         return (

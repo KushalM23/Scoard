@@ -2,13 +2,13 @@
 
 A modern, multi-sport score app with data visualization to simulate the feeling of watching the game without watching it
 
-**Live:** [scoard.vercel.app]([https://scoard.onrender.com])
+**Live:** [scoard.onrender.com]([https://scoard.onrender.com])
 
 ![Scoard Preview](preview.png)
 
 ## Features
 
--   **Live Scoreboard:** Real-time updates for all NBA games with live scores, game clock, and quarter information.
+-   **Live Scoreboard:** Real-time updates for all NBA games with live scores, game clock, and quarter information (SSE-powered for live games).
 -   **Enhanced Virtual Court Visualization:** 
     -   **Sequential Playback:** Intelligent event queue system that visualizes plays one-by-one for a broadcast-like experience.
     -   **Dynamic Overlays:** Visual alerts for timeouts, substitutions, and quarter transitions.
@@ -79,9 +79,16 @@ The app includes serverless API routes:
 - `GET /api/games/date/[date]` - Fetch all games for a specific date (format: YYYY-MM-DD)
 - `GET /api/games/[gameId]` - Get detailed game data including scores, players, and stats
 - `GET /api/games/[gameId]/pbp` - Get play-by-play data for live game visualization
+- `GET /api/games/[gameId]/stream` - Server-Sent Events (SSE) stream for live game state; clients connect via `EventSource`
 - `GET /api/standings` - Fetch current NBA league standings
 
 All routes use NBA's official CDN and Stats APIs with no authentication required.
+
+### Live updates (SSE)
+- SSE endpoint: `/api/games/[gameId]/stream`
+- The server maintains a poller per game (CDN first, Stats API fallback). When data changes, it broadcasts a `data: { ...gameState }` event to all connected clients.
+- Clients connect with `new EventSource('/api/games/<gameId>/stream')`; heartbeats are sent every 30s to keep the connection alive.
+- Finished games stop polling automatically.
 
 ## Project Structure
 

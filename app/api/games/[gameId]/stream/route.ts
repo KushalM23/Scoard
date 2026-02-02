@@ -13,16 +13,49 @@ type StreamController = ReadableStreamDefaultController<Uint8Array>;
 // Map<gameId, Set<StreamController>>
 const gameClients = new Map<string, Set<StreamController>>();
 
-// Map<gameId, { interval: NodeJS.Timeout, lastData: any, lastHash: string }>
+// Map<gameId, { timer: NodeJS.Timeout, lastData: any, lastHash: string, currentDelay: number }>
 const activePollers = new Map<string, { 
-    interval: NodeJS.Timeout; 
+    timer: NodeJS.Timeout; 
     lastData: any;
     lastHash: string;
+    currentDelay: number;
 }>();
 
 // Hash data to detect changes
 function hashData(data: any): string {
     return crypto.createHash('md5').update(JSON.stringify(data)).digest('hex');
+}
+
+function computeDelay(data: any): number {
+    const DEFAULT_DELAY = 5000;   // 5s
+    const TIMEOUT_DELAY = 30000;  // 30s during timeouts
+    const BREAK_DELAY = 45000;    // 45s for period breaks
+    const HALFTIME_DELAY = 120000; // 2 minutes for halftime
+
+    const actions = Array.isArray(data?.pbpActions) ? data.pbpActions : [];
+    const last = actions[actions.length - 1];
+    if (!last) return DEFAULT_DELAY;
+
+    const actionType = (last.actionType || '').toLowerCase();
+    const subType = (last.subType || '').toLowerCase();
+
+    if (actionType === 'timeout') return TIMEOUT_DELAY;
+    if (actionType === 'period') {
+        if (subType.includes('half')) return HALFTIME_DELAY;
+        if (subType === 'end') return BREAK_DELAY;
+    }
+
+    return DEFAULT_DELAY;
+}
+
+async function fetchPbpData(gameId: string): Promise<any[]> {
+    try {
+        const pbpResp = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`);
+        return pbpResp.data?.game?.actions || [];
+    } catch (error) {
+        console.log(`PBP fetch failed for ${gameId}, returning empty actions.`);
+        return [];
+    }
 }
 
 // Broadcast data to all clients watching a specific game
@@ -58,6 +91,8 @@ async function fetchGameData(gameId: string): Promise<any> {
             
             const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;
             
+            const pbpActions = await fetchPbpData(gameId);
+
             return {
                 gameId: data.gameId,
                 gameEt: gameEt,
@@ -65,6 +100,7 @@ async function fetchGameData(gameId: string): Promise<any> {
                 gameStatusText: data.gameStatusText,
                 period: data.period,
                 clock: data.gameClock,
+                pbpActions,
                 homeTeam: {
                     teamId: data.homeTeam.teamId,
                     teamName: data.homeTeam.teamName,
@@ -127,6 +163,8 @@ async function fetchGameData(gameId: string): Promise<any> {
 
         const gameStatus = getValue(gameSummary, summaryHeaders, 'GAME_STATUS_ID');
 
+        const pbpActions = await fetchPbpData(gameId);
+
         return {
             gameId: getValue(gameSummary, summaryHeaders, 'GAME_ID'),
             gameEt: getValue(gameSummary, summaryHeaders, 'GAME_DATE_EST'),
@@ -134,6 +172,7 @@ async function fetchGameData(gameId: string): Promise<any> {
             gameStatusText: getValue(gameSummary, summaryHeaders, 'GAME_STATUS_TEXT'),
             period: getValue(gameSummary, summaryHeaders, 'LIVE_PERIOD'),
             clock: getValue(gameSummary, summaryHeaders, 'LIVE_PC_TIME'),
+            pbpActions,
             homeTeam: {
                 teamId: homeTeamId,
                 teamName: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_NAME') : 'Home',
@@ -177,7 +216,14 @@ async function startPolling(gameId: string) {
 
     console.log(`Starting poller for game ${gameId}`);
 
-    const pollInterval = async () => {
+    const scheduleNext = (delay: number) => {
+        const poller = activePollers.get(gameId);
+        if (!poller) return;
+        poller.currentDelay = delay;
+        poller.timer = setTimeout(pollTick, delay);
+    };
+
+    const pollTick = async () => {
         try {
             const data = await fetchGameData(gameId);
             const dataHash = hashData(data);
@@ -197,9 +243,16 @@ async function startPolling(gameId: string) {
             if (data.gameStatus === 3) {
                 console.log(`Game ${gameId} finished, stopping poller`);
                 stopPolling(gameId);
+                return;
             }
+
+            // Adaptive delay based on last event
+            const nextDelay = computeDelay(data);
+            scheduleNext(nextDelay);
         } catch (error) {
             console.error(`Polling error for game ${gameId}:`, error);
+            // On error, try again after default delay
+            scheduleNext(5000);
         }
     };
 
@@ -208,13 +261,13 @@ async function startPolling(gameId: string) {
         const initialData = await fetchGameData(gameId);
         const initialHash = hashData(initialData);
         
-        // Start interval based on game status
-        const interval = setInterval(pollInterval, 5000); // 5 seconds
-        
+        const initialDelay = computeDelay(initialData);
+
         activePollers.set(gameId, { 
-            interval, 
+            timer: setTimeout(() => pollTick(), initialDelay), 
             lastData: initialData, 
-            lastHash: initialHash 
+            lastHash: initialHash,
+            currentDelay: initialDelay
         });
 
         // Broadcast initial data to all connected clients
@@ -229,7 +282,7 @@ function stopPolling(gameId: string) {
     const poller = activePollers.get(gameId);
     if (poller) {
         console.log(`Stopping poller for game ${gameId}`);
-        clearInterval(poller.interval);
+        clearTimeout(poller.timer);
         activePollers.delete(gameId);
     }
 }
