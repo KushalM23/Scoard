@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import GameCard from './GameCard';
 import Standings from './Standings';
+import CalendarPicker from './CalendarPicker';
 
 interface HeroProps {
     onGameSelect: (gameId: string) => void;
@@ -164,60 +165,77 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
             {/* Date Picker (Bottom) */}
             <AnimatePresence>
                 {activeTab === 'scores' && (
-                    <motion.div
-                        key="datepicker"
-                        initial={{ y: 100, opacity: 0, x: "-50%" }}
-                        animate={{ y: 0, opacity: 1, x: "-50%" }}
-                        exit={{ y: 100, opacity: 0, x: "-50%" }}
-                        transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                        className="fixed bottom-6 left-1/2 glass rounded-2xl px-2 py-2 flex items-center gap-1 z-50 shadow-2xl shadow-black/50 overflow-x-auto max-w-[95vw]"
-                    >
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-                            className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-50 pointer-events-none w-full justify-center">
+                        <motion.div
+                            key="datepicker"
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            transition={{ type: "spring", damping: 20, stiffness: 100 }}
+                            className="glass rounded-2xl px-2 py-2 flex items-center gap-1 shadow-2xl shadow-black/50 overflow-x-auto max-w-[calc(100vw-80px)] md:max-w-[85vw] no-scrollbar pointer-events-auto"
                         >
-                            <ChevronLeft className="w-6 h-6 lg:w-8 lg:h-8 text-text/60 group-hover:text-text" />
-                        </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+                                className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                            >
+                                <ChevronLeft className="w-6 h-6 lg:w-8 lg:h-8 text-text/60 group-hover:text-text" />
+                            </motion.button>
 
-                        <div className="flex items-center gap-1">
-                            {calendarDays.map((date, index) => {
-                                const isSelected = index === 3;
-                                const isHiddenOnMobile = index === 0 || index === 6;
-                                
-                                return (
-                                    <motion.button
-                                        key={date.toISOString()}
-                                        layout
-                                        onClick={() => setSelectedDate(date)}
-                                        className={`flex flex-col items-center justify-center w-12 h-12 lg:w-20 lg:h-20 rounded-xl transition-colors duration-300 shrink-0 ${isHiddenOnMobile ? 'hidden md:flex' : 'flex'} ${isSelected
-                                            ? 'bg-accent text-text shadow-lg shadow-accent/20'
-                                            : 'hover:bg-white/5 text-text/60 hover:text-text'
-                                            }`}
-                                        animate={{
-                                            scale: isSelected ? 1.1 : 1,
-                                            opacity: isSelected ? 1 : 0.7
-                                        }}
-                                    >
-                                        <span className="text-[10px] lg:text-sm font-bold uppercase tracking-wider">{format(date, 'EEE')}</span>
-                                        <span className={`font-mono font-bold ${isSelected ? 'text-xl lg:text-4xl' : 'text-base lg:text-2xl'}`}>
-                                            {format(date, 'd')}
-                                        </span>
-                                    </motion.button>
-                                );
-                            })}
-                        </div>
+                            <div className="flex items-center gap-1">
+                                {calendarDays.map((date, index) => {
+                                    const isSelected = index === 3;
+                                    const isHiddenOnMobile = index < 2 || index > 4;
+                                    
+                                    return (
+                                        <motion.button
+                                            key={date.toISOString()}
+                                            layout
+                                            onClick={() => setSelectedDate(date)}
+                                            className={`flex flex-col items-center justify-center w-12 h-12 lg:w-20 lg:h-20 rounded-xl transition-colors duration-300 shrink-0 ${isHiddenOnMobile ? 'hidden md:flex' : 'flex'} ${isSelected
+                                                ? 'bg-accent text-text shadow-lg shadow-accent/20'
+                                                : 'hover:bg-white/5 text-text/60 hover:text-text'
+                                                }`}
+                                            animate={{
+                                                scale: isSelected ? 1.1 : 1,
+                                                opacity: isSelected ? 1 : 0.7
+                                            }}
+                                        >
+                                            <span className="text-[10px] lg:text-sm font-bold uppercase tracking-wider">{format(date, 'EEE')}</span>
+                                            <span className={`font-mono font-bold ${isSelected ? 'text-xl lg:text-4xl' : 'text-base lg:text-2xl'}`}>
+                                                {format(date, 'd')}
+                                            </span>
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
 
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                            className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                                className="p-2 rounded-xl hover:bg-white/10 transition-colors group shrink-0"
+                            >
+                                <ChevronRight className="w-6 h-6 lg:w-8 lg:h-8 text-text/60 group-hover:text-text" />
+                            </motion.button>
+                        </motion.div>
+
+                        {/* Calendar Picker */}
+                        <motion.div
+                            key="calendarpicker"
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.05 }}
+                            className="glass rounded-2xl shadow-2xl shadow-black/50 p-1 pointer-events-auto"
                         >
-                            <ChevronRight className="w-6 h-6 lg:w-8 lg:h-8 text-text/60 group-hover:text-text" />
-                        </motion.button>
-                    </motion.div>
+                            <CalendarPicker 
+                                selectedDate={selectedDate} 
+                                onDateSelect={setSelectedDate} 
+                            />
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
