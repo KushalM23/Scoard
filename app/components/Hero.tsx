@@ -218,7 +218,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                                                 opacity: isSelected ? 1 : 0.7
                                             }}
                                         >
-                                            <span className="text-[10px] lg:text-sm font-bold uppercase tracking-wider">{format(date, 'EEE')}</span>
+                                            <span className="text-[10px] lg:text-lg font-mono uppercase tracking-wider">{format(date, 'EEE')}</span>
                                             <span className={`font-mono font-bold ${isSelected ? 'text-xl lg:text-4xl' : 'text-base lg:text-2xl'}`}>
                                                 {format(date, 'd')}
                                             </span>

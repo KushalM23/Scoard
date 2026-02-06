@@ -102,7 +102,7 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateSel
                                 key={format(viewMonth, 'yyyy-MM')}
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-lg font-bold text-text font-sans tracking-wide"
+                                className="text-xl font-bold text-text font-mono tracking-wide"
                             >
                                 {format(viewMonth, 'MMMM yyyy')}
                             </motion.h3>
@@ -122,7 +122,7 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateSel
                             {weekDays.map((day) => (
                                 <div
                                     key={day}
-                                    className="text-center text-xs font-bold text-text/40 uppercase tracking-wider py-1"
+                                    className="text-center text-md font-mono text-text/40 uppercase tracking-wider py-1"
                                 >
                                     {day}
                                 </div>
@@ -155,7 +155,7 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateSel
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => handleDateClick(date)}
                                         className={`
-                                            w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-mono text-sm font-bold
+                                            w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-sans text-sm font-bold
                                             transition-colors duration-200 relative
                                             ${isSelected
                                                 ? 'bg-accent text-text shadow-lg shadow-accent/30'
@@ -184,7 +184,7 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateSel
                                 onDateSelect(today);
                                 setIsOpen(false);
                             }}
-                            className="w-full mt-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-text/60 hover:text-text font-bold text-sm uppercase tracking-wider transition-colors"
+                            className="w-full mt-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-text/60 hover:text-text font-mono text-xl uppercase tracking-wider transition-colors"
                         >
                             Today
                         </motion.button>

@@ -38,6 +38,19 @@ export interface TeamStatistics {
     fastBreakPoints: number;
     blocks: number;
     steals: number;
+    benchPoints?: number;
+    pointsFromTurnovers?: number;
+    reboundsOffensive?: number;
+    reboundsDefensive?: number;
+    reboundsTeamOffensive?: number;
+    reboundsTeamDefensive?: number;
+    pointsFastBreak?: number;
+    fieldGoalsAttempted?: number;
+    fieldGoalsMade?: number;
+    freeThrowsAttempted?: number;
+    freeThrowsMade?: number;
+    threePointersAttempted?: number;
+    threePointersMade?: number;
 }
 
 export interface Team {

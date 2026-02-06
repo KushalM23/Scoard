@@ -35,9 +35,30 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
 
     const sortPlayers = (teamPlayers: Player[]) => {
         return [...teamPlayers].sort((a, b) => {
-            // Always put active players first if sorting by default logic
-            if (sortConfig.key === 'minutes' && a.isOnCourt !== b.isOnCourt) {
-                return a.isOnCourt ? -1 : 1;
+            const getSeconds = (s: string) => {
+                if (!s || !s.startsWith('PT')) return 0;
+                const m = s.match(/PT(\d+)M/);
+                const sec = s.match(/(\d+(\.\d+)?)S/);
+                let total = 0;
+                if (m) total += parseInt(m[1]) * 60;
+                if (sec) total += parseFloat(sec[1]);
+                return total;
+            };
+
+            // Default View: On Court First
+            if (sortConfig.key === 'isOnCourt') {
+                if (a.isOnCourt !== b.isOnCourt) {
+                    return a.isOnCourt ? -1 : 1;
+                }
+                // Secondary sort by minutes desc
+                return getSeconds(b.minutes) - getSeconds(a.minutes);
+            }
+
+            // Explicit Minutes Sort
+            if (sortConfig.key === 'minutes') {
+                return sortConfig.direction === 'asc' 
+                    ? getSeconds(a.minutes) - getSeconds(b.minutes) 
+                    : getSeconds(b.minutes) - getSeconds(a.minutes);
             }
 
             const aValue = a[sortConfig.key];
@@ -182,17 +203,47 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
 
         if (!homeStats || !awayStats) return <div className="p-4 text-center text-text/40">Team stats unavailable</div>;
 
+        const formatWithAttempts = (pct: number, made: number | undefined, att: number | undefined, isAway: boolean = false) => {
+            const pctStr = formatPercentage(pct);
+            if (made !== undefined && att !== undefined) {
+                return isAway ? `(${made}/${att}) ${pctStr}` : `${pctStr} (${made}/${att})`;
+            }
+            return pctStr;
+        };
+
         const statsList = [
-            { label: 'Field Goal %', home: homeStats.fieldGoalsPercentage, away: awayStats.fieldGoalsPercentage, format: formatPercentage },
-            { label: '3PT %', home: homeStats.threePointersPercentage, away: awayStats.threePointersPercentage, format: formatPercentage },
-            { label: 'Free Throw %', home: homeStats.freeThrowsPercentage, away: awayStats.freeThrowsPercentage, format: formatPercentage },
-            { label: 'Rebounds', home: homeStats.reboundsTotal, away: awayStats.reboundsTotal },
+            { 
+                label: 'Field Goal', 
+                home: homeStats.fieldGoalsPercentage, 
+                away: awayStats.fieldGoalsPercentage, 
+                homeDisplay: formatWithAttempts(homeStats.fieldGoalsPercentage, homeStats.fieldGoalsMade, homeStats.fieldGoalsAttempted, false),
+                awayDisplay: formatWithAttempts(awayStats.fieldGoalsPercentage, awayStats.fieldGoalsMade, awayStats.fieldGoalsAttempted, true)
+            },
+            { 
+                label: '3PT', 
+                home: homeStats.threePointersPercentage, 
+                away: awayStats.threePointersPercentage,
+                homeDisplay: formatWithAttempts(homeStats.threePointersPercentage, homeStats.threePointersMade, homeStats.threePointersAttempted, false),
+                awayDisplay: formatWithAttempts(awayStats.threePointersPercentage, awayStats.threePointersMade, awayStats.threePointersAttempted, true)
+            },
+            { 
+                label: 'Free Throw', 
+                home: homeStats.freeThrowsPercentage, 
+                away: awayStats.freeThrowsPercentage,
+                homeDisplay: formatWithAttempts(homeStats.freeThrowsPercentage, homeStats.freeThrowsMade, homeStats.freeThrowsAttempted, false),
+                awayDisplay: formatWithAttempts(awayStats.freeThrowsPercentage, awayStats.freeThrowsMade, awayStats.freeThrowsAttempted, true)
+            },
+            { label: 'Rebounds (Total)', home: homeStats.reboundsTotal, away: awayStats.reboundsTotal },
+            { label: 'Offensive Rebounds', home: homeStats.reboundsTeamOffensive || homeStats.reboundsOffensive || 0, away: awayStats.reboundsTeamOffensive || awayStats.reboundsOffensive || 0 },
+            { label: 'Defensive Rebounds', home: homeStats.reboundsTeamDefensive || homeStats.reboundsDefensive || 0, away: awayStats.reboundsTeamDefensive || awayStats.reboundsDefensive || 0 },
             { label: 'Assists', home: homeStats.assists, away: awayStats.assists },
             { label: 'Steals', home: homeStats.steals, away: awayStats.steals },
             { label: 'Blocks', home: homeStats.blocks, away: awayStats.blocks },
             { label: 'Turnovers', home: homeStats.turnovers, away: awayStats.turnovers },
+            { label: 'PTS Off Turnovers', home: homeStats.pointsFromTurnovers || 0, away: awayStats.pointsFromTurnovers || 0 },
             { label: 'Points in Paint', home: homeStats.pointsInThePaint, away: awayStats.pointsInThePaint },
-            { label: 'Fast Break PTS', home: homeStats.fastBreakPoints, away: awayStats.fastBreakPoints },
+            { label: 'Fast Break PTS', home: homeStats.pointsFastBreak || homeStats.fastBreakPoints || 0, away: awayStats.pointsFastBreak || awayStats.fastBreakPoints || 0 },
+            { label: 'Bench Points', home: homeStats.benchPoints || 0, away: awayStats.benchPoints || 0 },
         ];
 
         return (
@@ -200,12 +251,12 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
                 {statsList.map((stat, i) => (
                     <div key={i}>
                         <div className="flex justify-between text-sm mb-1">
-                            <span className="font-bold text-primary w-16 text-left">
-                                {stat.format ? stat.format(stat.home) : stat.home}
+                            <span className="font-bold text-primary min-w-[3rem] text-left whitespace-nowrap">
+                                {(stat as any).homeDisplay || ((stat as any).format ? (stat as any).format(stat.home) : stat.home)}
                             </span>
-                            <span className="text-text/40 font-medium uppercase tracking-wider text-xs">{stat.label}</span>
-                            <span className="font-bold text-secondary w-16 text-right">
-                                {stat.format ? stat.format(stat.away) : stat.away}
+                            <span className="text-text/40 font-medium uppercase tracking-wider text-xs px-2 truncate">{stat.label}</span>
+                            <span className="font-bold text-secondary min-w-[3rem] text-right whitespace-nowrap">
+                                {(stat as any).awayDisplay || ((stat as any).format ? (stat as any).format(stat.away) : stat.away)}
                             </span>
                         </div>
                         <div className="flex h-2 rounded-full overflow-hidden bg-text/10">

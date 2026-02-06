@@ -2,8 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import axios from 'axios';
+import Image from 'next/image';
+
+const TEAM_CODES: Record<number, string> = {
+    1610612737: 'ATL', 1610612738: 'BOS', 1610612751: 'BKN', 1610612766: 'CHA',
+    1610612741: 'CHI', 1610612739: 'CLE', 1610612742: 'DAL', 1610612743: 'DEN',
+    1610612765: 'DET', 1610612744: 'GSW', 1610612745: 'HOU', 1610612754: 'IND',
+    1610612746: 'LAC', 1610612747: 'LAL', 1610612763: 'MEM', 1610612748: 'MIA',
+    1610612749: 'MIL', 1610612750: 'MIN', 1610612740: 'NOP', 1610612752: 'NYK',
+    1610612760: 'OKC', 1610612753: 'ORL', 1610612755: 'PHI', 1610612756: 'PHX',
+    1610612757: 'POR', 1610612758: 'SAC', 1610612759: 'SAS', 1610612761: 'TOR',
+    1610612762: 'UTA', 1610612764: 'WAS'
+};
 
 interface TeamStanding {
     teamId: number;
@@ -18,20 +30,89 @@ interface TeamStanding {
     roadRecord: string;
     l10: string;
     streak: string;
+    plusminus: string;
     pointsPg: number;
     oppPointsPg: number;
     diffPointsPg: number;
     conferenceRank: number;
     divisionRank: number;
+    divgamesback: number;
+    leagueGamesBack: number;
+    conferenceGamesBack: number;
 }
 
 const Standings: React.FC = () => {
     const [standings, setStandings] = useState<TeamStanding[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'Conference' | 'Division'>('Conference');
+    const [viewMode, setViewMode] = useState<'Conference' | 'Division' | 'League'>('Conference');
     const [activeTab, setActiveTab] = useState('East');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof TeamStanding | 'gb' | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+
+    const handleSort = (key: keyof TeamStanding | 'gb') => {
+        let direction: 'asc' | 'desc' = 'desc';
+        if (sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortedTeams = (teams: TeamStanding[]) => {
+        const filteredTeams = teams.filter(t => {
+            const tab = currentTabs.find(tab => tab.id === activeTab);
+            if (viewMode === 'League') return true;
+            if (tab?.type === 'conference') return t.conference === tab.value;
+            return t.division === tab?.value;
+        });
+
+        if (!sortConfig.key) {
+            return filteredTeams.sort((a, b) => {
+                const tab = currentTabs.find(tab => tab.id === activeTab);
+                if (viewMode === 'League') return a.winPct > b.winPct ? -1 : 1;
+                if (tab?.type === 'conference') return a.conferenceRank - b.conferenceRank;
+                return a.divisionRank - b.divisionRank;
+            });
+        }
+
+        return filteredTeams.sort((a, b) => {
+            let aValue: any = sortConfig.key === 'gb' 
+                ? (viewMode === 'Conference' ? a.conferenceGamesBack : viewMode === 'Division' ? a.divgamesback : a.leagueGamesBack)
+                : a[sortConfig.key as keyof TeamStanding];
+            
+            let bValue: any = sortConfig.key === 'gb'
+                ? (viewMode === 'Conference' ? b.conferenceGamesBack : viewMode === 'Division' ? b.divgamesback : b.leagueGamesBack)
+                : b[sortConfig.key as keyof TeamStanding];
+
+            // Handle special cases
+            if (['homeRecord', 'roadRecord', 'l10'].includes(sortConfig.key as string)) {
+                // Parse "W-L" to win percentage
+                const parseRecord = (rec: string) => {
+                    if (typeof rec !== 'string') return 0;
+                    const parts = rec.split('-');
+                    if (parts.length !== 2) return 0;
+                    const w = parseInt(parts[0]);
+                    const l = parseInt(parts[1]);
+                    return w / (w + l || 1);
+                };
+                aValue = parseRecord(aValue as string);
+                bValue = parseRecord(bValue as string);
+            } else if (sortConfig.key === 'streak') {
+                // Parse "Won 5" or "Lost 2" to number (positive for W, negative for L)
+                const parseStreak = (str: string) => {
+                    if (typeof str !== 'string') return 0;
+                    const val = parseInt(str.replace(/[^0-9]/g, ''));
+                    return str.includes('L') || str.includes('Lost') ? -val : val;
+                };
+                aValue = parseStreak(aValue as string);
+                bValue = parseStreak(bValue as string);
+            }
+
+            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    };
 
     const conferenceTabs = [
         { id: 'East', label: 'East', type: 'conference', value: 'East' },
@@ -47,13 +128,19 @@ const Standings: React.FC = () => {
         { id: 'SW', label: 'SW', type: 'division', value: 'Southwest' },
     ];
 
-    const currentTabs = viewMode === 'Conference' ? conferenceTabs : divisionTabs;
+    const leagueTabs = [
+        { id: 'All', label: 'League', type: 'league', value: 'All' }
+    ];
+
+    const currentTabs = viewMode === 'Conference' ? conferenceTabs : viewMode === 'Division' ? divisionTabs : leagueTabs;
 
     useEffect(() => {
         if (viewMode === 'Conference') {
             setActiveTab('East');
-        } else {
+        } else if (viewMode === 'Division') {
             setActiveTab('Atl');
+        } else {
+            setActiveTab('All');
         }
     }, [viewMode]);
 
@@ -81,16 +168,24 @@ const Standings: React.FC = () => {
         fetchStandings();
     }, []);
 
-    useEffect(() => {
-  fetch(process.env.NEXT_PUBLIC_API_URL + "/api/standings?Season=2024-25")
-    .then(res => res.json())
-    .then(data => {
-      console.log("FRONTEND → BACKEND OK:", data);
-    })
-    .catch(err => {
-      console.error("FRONTEND → BACKEND FAIL:", err);
-    });
-}, []);
+
+    const renderSortableHeader = (label: string, key: keyof TeamStanding | 'gb', align: 'left' | 'center' | 'right' = 'center') => (
+        <th 
+            className={`px-4 py-3 text-${align} bg-background cursor-pointer hover:bg-white/5 transition-colors group select-none`}
+            onClick={() => handleSort(key)}
+        >
+            <div className={`flex items-center gap-1 ${align === 'center' ? 'justify-center' : ''}`}>
+                {label}
+                <div className="flex flex-col text-text/40 group-hover:text-accent transition-colors">
+                    {sortConfig.key === key ? (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                    ) : (
+                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50" />
+                    )}
+                </div>
+            </div>
+        </th>
+    );
 
     const renderTable = (teams: TeamStanding[]) => (
         <div className="mb-8 glass-card overflow-hidden">
@@ -98,39 +193,60 @@ const Standings: React.FC = () => {
                 <table className="w-full text-sm text-left text-text/80 whitespace-nowrap">
                     <thead className="text-xs text-text/60 uppercase bg-white/5 font-sans tracking-wider">
                         <tr>
-                            <th className="p-0 w-16 sticky left-0 bg-background z-10">
-                                <div className="px-4 py-3">Rank</div>
-                            </th>
-                            <th className="p-0 sticky left-16 bg-background z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                            <th className="p-0 sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-[180px]">
                                 <div className="px-4 py-3">Team</div>
                             </th>
-                            <th className="px-4 py-3 text-center bg-background">W</th>
-                            <th className="px-4 py-3 text-center bg-background">L</th>
-                            <th className="px-4 py-3 text-center bg-background">Pct</th>
-                            <th className="px-4 py-3 text-center bg-background">Home</th>
-                            <th className="px-4 py-3 text-center bg-background">Road</th>
-                            <th className="px-4 py-3 text-center bg-background">L10</th>
-                            <th className="px-4 py-3 text-center bg-background">Strk</th>
-                            <th className="px-4 py-3 text-center bg-background">+/-</th>
+                            {renderSortableHeader('W', 'wins')}
+                            {renderSortableHeader('L', 'losses')}
+                            {renderSortableHeader('GB', 'gb')}
+                            {renderSortableHeader('Pct', 'winPct')}
+                            {renderSortableHeader('Home', 'homeRecord')}
+                            {renderSortableHeader('Road', 'roadRecord')}
+                            {renderSortableHeader('L10', 'l10')}
+                            {renderSortableHeader('Strk', 'streak')}
+                            {renderSortableHeader('PPG', 'pointsPg')}
+                            {renderSortableHeader('OPPG', 'oppPointsPg')}
+                            {renderSortableHeader('+/-', 'diffPointsPg')}
                         </tr>
                     </thead>
                     <tbody>
                         {teams.map((team) => (
                             <tr key={team.teamId} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200">
-                                <td className="px-4 py-3 font-medium text-text/60 sticky left-0 bg-background z-10">
-                                    {activeTab === 'East' || activeTab === 'West' ? team.conferenceRank : team.divisionRank}
-                                </td>
-                                <td className="px-4 py-3 font-medium text-text sticky left-16 bg-background z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                                    <span className="hidden sm:inline">{team.teamCity} {team.teamName}</span>
-                                    <span className="sm:hidden">{team.teamName}</span>
+                                <td className="px-4 py-3 font-medium text-text sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <span className="text-text/40 w-4 text-right font-mono text-md">
+                                            {/* Rank Logic: If sorted, show order index. If default sort, show official rank. */}
+                                            {sortConfig.key 
+                                                ? (teams.findIndex(t => t.teamId === team.teamId) + 1)
+                                                : (viewMode === 'Conference' ? team.conferenceRank : viewMode === 'Division' ? team.divisionRank : (teams.findIndex(t => t.teamId === team.teamId) + 1))
+                                            }
+                                        </span>
+                                        <div className="relative w-6 h-6 flex-shrink-0">
+                                            <Image 
+                                                src={`https://cdn.nba.com/logos/nba/${team.teamId}/primary/L/logo.svg`} 
+                                                alt={team.teamName}
+                                                fill
+                                                className="object-contain"
+                                            />
+                                        </div>
+                                        <div>
+                                            <span className="hidden sm:inline">{team.teamCity} {team.teamName}</span>
+                                            <span className="sm:hidden font-mono tracking-wider text-xs">{TEAM_CODES[team.teamId] || team.teamName}</span>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono">{team.wins}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono">{team.losses}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                                    {viewMode === 'Conference' ? team.conferenceGamesBack : viewMode === 'Division' ? team.divgamesback : team.leagueGamesBack}
+                                </td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono">{(team.winPct * 100).toFixed(1)}%</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.homeRecord}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.roadRecord}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.l10}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.streak}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.pointsPg}</td>
+                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.oppPointsPg}</td>
                                 <td className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.diffPointsPg > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                     {team.diffPointsPg > 0 ? '+' : ''}{team.diffPointsPg}
                                 </td>
@@ -192,7 +308,7 @@ const Standings: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 rounded-lg glass hover:bg-white/5 transition-all duration-300 border border-white/10 hover:border-accent/50 group"
                     >
                         <span className="font-medium text-sm font-display group-hover:text-accent transition-colors">
-                            {viewMode === 'Conference' ? 'By Conference' : 'By Division'}
+                            {viewMode}
                         </span>
                         <motion.div
                             animate={{ rotate: isDropdownOpen ? 180 : 0 }}
@@ -216,7 +332,7 @@ const Standings: React.FC = () => {
                                     className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
                                 >
                                     <span className={`font-medium text-sm font-display transition-colors ${viewMode === 'Conference' ? 'text-accent' : 'text-text/70 group-hover:text-text'}`}>
-                                        By Conference
+                                        Conference
                                     </span>
                                     {viewMode === 'Conference' && <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>}
                                 </button>
@@ -226,9 +342,19 @@ const Standings: React.FC = () => {
                                     className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
                                 >
                                     <span className={`font-medium text-sm font-display transition-colors ${viewMode === 'Division' ? 'text-accent' : 'text-text/70 group-hover:text-text'}`}>
-                                        By Division
+                                        Division
                                     </span>
                                     {viewMode === 'Division' && <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>}
+                                </button>
+
+                                <button
+                                    onClick={() => { setViewMode('League'); setIsDropdownOpen(false); }}
+                                    className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
+                                >
+                                    <span className={`font-medium text-sm font-display transition-colors ${viewMode === 'League' ? 'text-accent' : 'text-text/70 group-hover:text-text'}`}>
+                                        League
+                                    </span>
+                                    {viewMode === 'League' && <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>}
                                 </button>
                             </motion.div>
                         )}
@@ -242,6 +368,7 @@ const Standings: React.FC = () => {
                 </div>
             ) : (
                 <div className="flex flex-col gap-6">
+                    {viewMode !== 'League' && (
                     <div className="flex justify-center w-full">
                         <div className={`glass rounded-xl p-1 grid ${viewMode === 'Conference' ? 'grid-cols-2 w-full md:w-auto' : 'grid-cols-6 w-full md:w-auto'} gap-1 relative`}>
                             {currentTabs.map((tab) => (
@@ -262,6 +389,7 @@ const Standings: React.FC = () => {
                             ))}
                         </div>
                     </div>
+                    )}
 
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -271,19 +399,7 @@ const Standings: React.FC = () => {
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            {renderTable(
-                                standings
-                                    .filter(t => {
-                                        const tab = currentTabs.find(tab => tab.id === activeTab);
-                                        if (tab?.type === 'conference') return t.conference === tab.value;
-                                        return t.division === tab?.value;
-                                    })
-                                    .sort((a, b) => {
-                                        const tab = currentTabs.find(tab => tab.id === activeTab);
-                                        if (tab?.type === 'conference') return a.conferenceRank - b.conferenceRank;
-                                        return a.divisionRank - b.divisionRank;
-                                    })
-                            )}
+                            {renderTable(getSortedTeams(standings))}
                         </motion.div>
                     </AnimatePresence>
                 </div>

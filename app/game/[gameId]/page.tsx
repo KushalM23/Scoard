@@ -58,7 +58,16 @@ export default function Game() {
                         periods: Array.isArray(team.periods) 
                             ? team.periods.map((p: any) => (typeof p === 'object' && p !== null && 'score' in p) ? p.score : p) 
                             : [],
-                        statistics: team.statistics
+                        statistics: {
+                            ...team.statistics,
+                            // Ensure key metrics are available under consistent names
+                            fastBreakPoints: team.statistics?.pointsFastBreak !== undefined ? team.statistics.pointsFastBreak : team.statistics?.fastBreakPoints,
+                            benchPoints: team.statistics?.benchPoints,
+                            pointsFromTurnovers: team.statistics?.pointsFromTurnovers,
+                            reboundsOffensive: team.statistics?.reboundsOffensive,
+                            reboundsDefensive: team.statistics?.reboundsDefensive,
+                            biggestLead: team.statistics?.biggestLead,
+                        }
                     });
 
                     const normalizedGame = {

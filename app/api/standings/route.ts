@@ -51,9 +51,12 @@ export async function GET(request: NextRequest) {
             streak: getValue(row, 'strCurrentStreak'),
             pointsPg: getValue(row, 'PointsPG'),
             oppPointsPg: getValue(row, 'OppPointsPG'),
-            diffPointsPg: getValue(row, 'DiffPointsPg'),
+            diffPointsPg: getValue(row, 'DiffPointsPG'),
             conferenceRank: getValue(row, 'PlayoffRank'),
-            divisionRank: getValue(row, 'DivisionRank')
+            divisionRank: getValue(row, 'DivisionRank'),
+            divgamesback: getValue(row, 'DivisionGamesBack'),
+            leagueGamesBack: getValue(row, 'LeagueGamesBack'),
+            conferenceGamesBack: getValue(row, 'ConferenceGamesBack')
         }));
 
         return NextResponse.json(standings, {
