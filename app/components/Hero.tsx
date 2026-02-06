@@ -39,6 +39,8 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
     const [activeTab, setActiveTab] = useState<'scores' | 'standings'>('scores');
 
     useEffect(() => {
+        if (activeTab !== 'scores') return;
+
         let isMounted = true;
         let pollId: ReturnType<typeof setInterval> | null = null;
 
@@ -87,7 +89,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
             isMounted = false;
             if (pollId) clearInterval(pollId);
         };
-    }, [selectedDate]);
+    }, [selectedDate, activeTab]);
     const calendarDays = [-3, -2, -1, 0, 1, 2, 3].map(offset => addDays(selectedDate, offset));
 
     return (

@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlayByPlayEvent, Team, Player } from '../types';
+import SVGCourt from './SVGCourt';
+import { getTeamColors } from '../lib/teamColors';
 
 interface VirtualCourtProps {
     actions: PlayByPlayEvent[];
@@ -25,15 +27,13 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstLoad = useRef(true);
 
-    // Court margins (percentage) to map 0-100 coordinates to the image's court area
-    const COURT_MARGIN_X = 5; // 5% margin on left/right
-    const COURT_MARGIN_Y = 5; // 5% margin on top/bottom
-
+    // Direct coordinate mapping: API uses 0-100 for both x and y
+    // SVG court has no margins, so we map directly to percentages
     const mapCoordinates = (x: number, y: number) => {
-        // Map 0-100 to margin -> 100-margin
-        const mappedX = COURT_MARGIN_X + (x * (100 - 2 * COURT_MARGIN_X) / 100);
-        const mappedY = COURT_MARGIN_Y + (y * (100 - 2 * COURT_MARGIN_Y) / 100);
-        return { x: mappedX, y: mappedY };
+        // API coordinates are already in 0-100 range
+        // x: 0-100 represents court length (94 feet)
+        // y: 0-100 represents court width (50 feet)
+        return { x, y };
     };
 
     // 1. Ingest new actions into queue
@@ -252,8 +252,16 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
     if (gameStatus !== 2) {
         return (
-            <div className="w-full aspect-[2/1] bg-background rounded-lg flex items-center justify-center border-4 border-text/10 relative overflow-hidden">
-                <img src="/bball-court.png" alt="Basketball Court" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+            <div className="w-full aspect-[94/50] bg-background rounded-lg flex items-center justify-center border-4 border-text/10 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20">
+                    <SVGCourt
+                        className="w-full h-full"
+                        courtColor="#C4A574"
+                        lineColor="#FFFFFF"
+                        paintColor={getTeamColors(homeTeam.teamId).primary}
+                        centerLogo={getTeamColors(homeTeam.teamId).logo}
+                    />
+                </div>
                 <div className="text-center z-10">
                     <h3 className="text-2xl font-bold text-text mb-2">
                         {gameStatus === 1 ? 'Game Scheduled' : 'Game Final'}
@@ -265,8 +273,12 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     }
 
     // Helper to determine basket coordinates based on shot location
-    // Fixed orientation: Home (Left) shoots Right (94.65), Away (Right) shoots Left (5.35)
+    // Orientation: We will standardize so Home shoots Right (94.65) and Away shoots Left (5.35).
+    // API Data: x=0..100.
+    // Based on Game 0022500735: Home (ATL) shots x=10 (Left). Away (UTA) shots x=88 (Right).
+    // To achieve Home->Right, we must FLIP the actions horizontally (x = 100 - x).
     const getBasketCoordinates = (teamId: number) => {
+        // Home -> Right (94.65), Away -> Left (5.35)
         const targetX = teamId === homeTeam.teamId ? 94.65 : 5.35;
         return mapCoordinates(targetX, 50);
     };
@@ -275,23 +287,35 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const getEventCoordinates = (action: PlayByPlayEvent) => {
         let x = action.x;
         let y = action.y;
+
+        // Flip court logic:
+        // By default, NBA data has Home shooting Left (0-50) for 1st Half, and Right (50-100) for 2nd Half.
+        // We want to visuals to ALWAYS show Home shooting Right.
+        // Periods 1, 2: Home shoots Left. Flip required (x = 100 - x).
+        // Periods 3, 4: Home shoots Right. No flip required.
+        // OT Rules: OT1 (5) keeps 4th qtr basket. OT2 (6) switches.
+        const shouldFlip = action.period <= 2 || (action.period > 4 && (action.period - 4) % 2 === 0);
+
+        if (typeof x === 'number' && shouldFlip) {
+            x = 100 - x;
+        }
+
         const type = action.actionType ? action.actionType.toLowerCase() : '';
 
         // Fix Free Throw placement (Catch all variants)
         if (type.includes('free') || type.includes('throw')) {
              if (action.teamId === homeTeam.teamId) {
-                x = 75;
+                // Home shooting free throws at their offensive basket (Right)
+                x = 77;
             } else {
-                x = 25;
+                // Away shooting free throws at their offensive basket (Left)
+                x = 23;
             }
             y = 50; // Center vertically
-            return mapCoordinates(x, y);
         }
 
         // Default coordinates for events that might be missing them (0,0)
-        // If x,y are 0,0 it's likely missing data unless it's a corner 3.
-        // But corner 3s usually have specific non-zero (but small) coordinates like 3, 3.
-        // Let's assume 0,0 is ALWAYS bad data for our purpose and center it.
+        // If x,y are 0,0 it's likely missing data.
         if (!x && !y) {
              x = 50; y = 50;
         }
@@ -299,25 +323,31 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         // Force Rebounds to be near the rim
         if (type === 'rebound') {
             // Determine if it's an offensive or defensive rebound
-            // Home Team Basket (Offense) is Right (94.65). Home Team Defense is Left (5.35).
-            // Away Team Basket (Offense) is Left (5.35). Away Team Defense is Right (94.65).
+            // Based on Standardized Orientation (Home shoots Right):
+            // Home Offense -> Right. Home Defense -> Left.
+            // Away Offense -> Left. Away Defense -> Right.
             
-            // Default to defensive rebound logic if not specified
-            // If x < 50, it's Left Rim. If x > 50, it's Right Rim.
-            
-            // If we can determine it's offensive, we place it at the team's offensive basket
             const isOffensive = action.description?.toLowerCase().includes('offensive') || action.subType?.toLowerCase().includes('offensive');
             
             if (action.teamId === homeTeam.teamId) {
                 // Home Team
-                if (isOffensive) x = 94.65; // Right Rim
-                else x = 5.35; // Left Rim (Defensive)
+                if (isOffensive) x = 90.65; // Right Basket (Offensive)
+                else x = 10.35; // Left Basket (Defensive)
             } else {
                 // Away Team
-                if (isOffensive) x = 5.35; // Left Rim
-                else x = 94.65; // Right Rim (Defensive)
+                if (isOffensive) x = 10.35; // Left Basket (Offensive)
+                else x = 90.65; // Right Basket (Defensive)
             }
             y = 50;
+            
+            // Note: We set x explicitly here, so the "100-x" flip at start doesn't affect these hardcoded values.
+            // (Because we're assigning x directly, unrelated to action.x)
+        }
+        
+        // Visual adjustment: Markers appear slightly low visually due to perspective or element stacking.
+        // Nudging Y up slightly (subtracting from Y) corrects the vertical center alignment.
+        if (y === 50) {
+            y = 48; 
         }
 
         return mapCoordinates(x, y);
@@ -396,8 +426,14 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                     </div>
 
                     {/* Court Container */}
-                    <div className="relative w-full aspect-[2/1] bg-black rounded-lg overflow-hidden border-2 border-text/10">
-                        <img src="/bball-court.png" alt="Basketball Court" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="relative w-full aspect-[94/50] rounded-lg overflow-hidden border-2 border-text/10">
+                        <SVGCourt
+                            className="absolute inset-0 w-full h-full"
+                            courtColor="#C4A574"
+                            lineColor="#FFFFFF"
+                            paintColor={getTeamColors(homeTeam.teamId).primary}
+                            centerLogo={getTeamColors(homeTeam.teamId).logo}
+                        />
 
                     {/* Events */}
                     <AnimatePresence mode="wait">
