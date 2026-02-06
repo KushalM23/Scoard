@@ -39,11 +39,12 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
     const [activeTab, setActiveTab] = useState<'scores' | 'standings'>('scores');
 
     useEffect(() => {
-        let isMounted = true; 
+        let isMounted = true;
+        let pollId: ReturnType<typeof setInterval> | null = null;
 
-        const fetchGames = async () => {
+        const fetchGames = async (isPoll = false) => {
             try {
-                if (isMounted) setLoading(true);
+                if (isMounted && !isPoll) setLoading(true);
 
                 const apiDate = subDays(selectedDate, 1);
                 const formattedDate = format(apiDate, 'yyyy-MM-dd');
@@ -59,21 +60,34 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                 });
 
                 if (isMounted) setGames(sortedGames);
+
+                const hasLive = fetchedGames.some((g: any) => g.gameStatus === 2);
+                if (hasLive && !pollId) {
+                    pollId = setInterval(() => {
+                        fetchGames(true);
+                    }, 10000);
+                }
+                if (!hasLive && pollId) {
+                    clearInterval(pollId);
+                    pollId = null;
+                }
             } catch (error) {
                 if (isMounted) {
                     console.error('Failed to fetch games', error);
                     setGames([]);
                 }
             } finally {
-                if (isMounted) setLoading(false);
+                if (isMounted && !isPoll) setLoading(false);
             }
         };
 
         fetchGames();
 
-        return () => { isMounted = false; };
+        return () => {
+            isMounted = false;
+            if (pollId) clearInterval(pollId);
+        };
     }, [selectedDate]);
-
     const calendarDays = [-3, -2, -1, 0, 1, 2, 3].map(offset => addDays(selectedDate, offset));
 
     return (
@@ -243,3 +257,4 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
 };
 
 export default Hero;
+
