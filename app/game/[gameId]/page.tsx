@@ -28,8 +28,8 @@ export default function Game() {
     const [error, setError] = useState<string | null>(null);
     const [retryTrigger, setRetryTrigger] = useState(0);
 
+    // Initial data fetch
     useEffect(() => {
-        let timeoutId: ReturnType<typeof setTimeout>;
         let isMounted = true;
 
         const fetchData = async () => {
@@ -46,11 +46,9 @@ export default function Game() {
                 if (!isMounted) return;
 
                 const rawGameData = boxRes.data.game || boxRes.data;
-                let currentGameStatus = 0;
 
                 if (rawGameData && rawGameData.gameId) {
                     const game = rawGameData;
-                    currentGameStatus = game.gameStatus;
                     
                     const normalizeTeam = (team: any) => ({
                         ...team,
@@ -125,16 +123,9 @@ export default function Game() {
                 }
                 setError(null);
 
-                if (currentGameStatus === 2) {
-                    timeoutId = setTimeout(fetchData, 5000);
-                } else if (currentGameStatus === 1) {
-                    timeoutId = setTimeout(fetchData, 60000);
-                }
-
             } catch (error) {
                 console.error('Error fetching game data:', error);
                 setError('Failed to load game data. Please try again later.');
-                timeoutId = setTimeout(fetchData, 10000);
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -144,9 +135,113 @@ export default function Game() {
         
         return () => {
             isMounted = false;
-            clearTimeout(timeoutId);
         };
     }, [gameId, retryTrigger]);
+
+    // SSE for real-time updates
+    useEffect(() => {
+        if (!gameId || !gameData) return;
+        
+        // Skip SSE for finished games
+        if (gameData.gameStatus === 3) {
+            console.log('Game finished, skipping SSE');
+            return;
+        }
+
+        console.log('Connecting to SSE for game:', gameId);
+        const eventSource = new EventSource(`/api/games/${gameId}/stream`);
+        
+        eventSource.onmessage = (event) => {
+            try {
+                const newData = JSON.parse(event.data);
+                console.log('SSE update received for game:', gameId);
+                
+                const normalizeTeam = (team: any) => ({
+                    ...team,
+                    inBonus: team.inBonus === '1' || team.inBonus === 1 || team.inBonus === true,
+                    wins: team.wins || 0,
+                    losses: team.losses || 0,
+                    periods: Array.isArray(team.periods) 
+                        ? team.periods.map((p: any) => (typeof p === 'object' && p !== null && 'score' in p) ? p.score : p) 
+                        : [],
+                    statistics: team.statistics
+                });
+
+                const normalizedGame = {
+                    ...newData,
+                    homeTeam: normalizeTeam(newData.homeTeam),
+                    awayTeam: normalizeTeam(newData.awayTeam),
+                };
+
+                setGameData(normalizedGame);
+                if (Array.isArray(newData.pbpActions)) {
+                    setPbpData(newData.pbpActions);
+                }
+                
+                // Update players if available
+                if (newData.players && Array.isArray(newData.players)) {
+                    const mapPlayer = (p: any, teamId: number) => {
+                        const stats = p.statistics || p;
+                        
+                        return {
+                            personId: p.personId,
+                            firstName: p.firstName,
+                            lastName: p.familyName || p.lastName,
+                            jersey: p.jerseyNum || p.jersey,
+                            position: p.position,
+                            status: p.status,
+                            notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
+                            points: stats.points || 0,
+                            rebounds: stats.reboundsTotal || stats.rebounds || 0,
+                            assists: stats.assists || 0,
+                            fouls: stats.foulsPersonal || stats.fouls || 0,
+                            fgPercentage: stats.fieldGoalsPercentage || stats.fgPercentage || 0,
+                            threePtPercentage: stats.threePointersPercentage || stats.threePtPercentage || 0,
+                            ftPercentage: stats.freeThrowsPercentage || stats.ftPercentage || 0,
+                            plusMinus: stats.plusMinusPoints || stats.plusMinus || 0,
+                            fg: stats.fieldGoalsMade ? `${stats.fieldGoalsMade}-${stats.fieldGoalsAttempted}` : (stats.fg || '0-0'),
+                            threePt: stats.threePointersMade ? `${stats.threePointersMade}-${stats.threePointersAttempted}` : (stats.threePt || '0-0'),
+                            ft: stats.freeThrowsMade ? `${stats.freeThrowsMade}-${stats.freeThrowsAttempted}` : (stats.ft || '0-0'),
+                            minutes: stats.minutes || "0",
+                            blocks: stats.blocks || 0,
+                            steals: stats.steals || 0,
+                            turnovers: stats.turnovers || 0,
+                            reboundsOffensive: stats.reboundsOffensive || 0,
+                            reboundsDefensive: stats.reboundsDefensive || 0,
+                            isOnCourt: p.onCourt === '1' || p.onCourt === 1 || p.isOnCourt === true,
+                            teamId: teamId
+                        };
+                    };
+
+                    setPlayers(newData.players.map((p: any) => mapPlayer(p, p.teamId)));
+                }
+            } catch (error) {
+                console.error('Failed to parse SSE data:', error);
+            }
+        };
+        
+        eventSource.onerror = (error) => {
+            console.error('SSE error:', error);
+            eventSource.close();
+            
+            // Fallback to manual retry after SSE failure
+            setTimeout(() => {
+                console.log('SSE failed, triggering retry');
+                setRetryTrigger(prev => prev + 1);
+            }, 5000);
+        };
+
+        eventSource.onopen = () => {
+            console.log('SSE connection opened for game:', gameId);
+        };
+        
+        return () => {
+            console.log('Closing SSE connection for game:', gameId);
+            eventSource.close();
+        };
+    }, [gameId, gameData?.gameStatus]);
+
+    // PBP now delivered via SSE stream; no separate polling.
 
     if (loading && !gameData) {
         return (
