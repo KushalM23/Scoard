@@ -92,13 +92,20 @@ export interface PlayByPlayEvent {
     personId: number;
     playerName: string;
     playerNameI: string; // Initial. Lastname
-    actionType: 'shot' | 'rebound' | 'turnover' | 'foul' | 'substitution' | 'timeout' | 'free-throw' | 'period';
+    actionType: string;
     subType?: string; // e.g., 'Layup', '3PT'
     shotResult?: 'Made' | 'Missed';
     x: number; // 0-100
     y: number; // 0-50
     description: string;
     qualifiers?: string[];
+    descriptor?: string; // Add descriptor
+    stealPersonId?: number;
+    blockPersonId?: number;
+    assistPersonId?: number;
+    shotDistance?: number;
+    pointsTotal?: number;
+    side?: string;
 }
 
 export interface GameData {

@@ -55,14 +55,14 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 // Check if the latest action is a special event (Timeout/Period) and show overlay immediately
                 // This ensures that if the user loads the page during a timeout, they see the overlay
                 const type = latest.actionType ? latest.actionType.toLowerCase() : '';
-                const desc = latest.description ? latest.description.toLowerCase() : '';
                 
-                if (type === 'timeout' || desc.includes('timeout')) {
+                if (type === 'timeout') {
                      setOverlayEvent({ title: 'TIMEOUT', description: latest.description });
                      // No timeout here, wait for next event
-                } else if (type === 'period' || desc.includes('end of') || desc.includes('start of')) {
-                     const isEnd = desc.includes('end');
-                     const isStart = desc.includes('start');
+                } else if (type === 'period') {
+                     const subType = latest.subType ? latest.subType.toLowerCase() : '';
+                     const isEnd = subType === 'end';
+                     const isStart = subType === 'start';
                      const periodName = latest.period <= 4 ? `Q${latest.period}` : `OT${latest.period - 4}`;
                      
                      let title = 'PERIOD UPDATE';
@@ -102,77 +102,81 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             // --- Side Notification Logic ---
             // 1. Identify the primary actor (usually personId)
             let notificationPlayer = players.find(p => p.personId === currentEvent.personId);
-            let message = currentEvent.playerNameI;
+            let message = currentEvent.playerNameI || 'Unknown';
             let subMessage = '';
             let showNotification = false;
             let notificationPersonId = currentEvent.personId;
             let notificationTeamId = currentEvent.teamId;
 
             const type = currentEvent.actionType ? currentEvent.actionType.toLowerCase() : '';
-            const desc = currentEvent.description ? currentEvent.description.toLowerCase() : '';
-            const isMade = currentEvent.shotResult === 'Made' || desc.includes('made') || desc.includes('makes');
+            const isMade = currentEvent.shotResult === 'Made';
 
-            // 2. Check for Secondary Actors (Assist, Block, Steal) in description
-            // If the description mentions another player, they might be the one getting the stat
-            if (desc.includes('assist') || desc.includes('block') || desc.includes('steal')) {
-                const otherPlayers = players.filter(p => p.personId !== currentEvent.personId);
-                const secondaryActor = otherPlayers.find(p => desc.includes(p.lastName.toLowerCase()));
-                
-                if (secondaryActor) {
-                    if (desc.includes('assist')) {
-                        notificationPlayer = secondaryActor;
-                        message = `${secondaryActor.firstName.charAt(0)}. ${secondaryActor.lastName}`;
-                        subMessage = `${secondaryActor.assists} AST`;
-                        notificationPersonId = secondaryActor.personId;
-                        notificationTeamId = secondaryActor.teamId;
-                        showNotification = true;
-                    } else if (desc.includes('block')) {
-                        notificationPlayer = secondaryActor;
-                        message = `${secondaryActor.firstName.charAt(0)}. ${secondaryActor.lastName}`;
-                        subMessage = `${secondaryActor.blocks} BLK`;
-                        notificationPersonId = secondaryActor.personId;
-                        notificationTeamId = secondaryActor.teamId;
-                        showNotification = true;
-                    } else if (desc.includes('steal')) {
-                        notificationPlayer = secondaryActor;
-                        message = `${secondaryActor.firstName.charAt(0)}. ${secondaryActor.lastName}`;
-                        subMessage = `${secondaryActor.steals} STL`;
-                        notificationPersonId = secondaryActor.personId;
-                        notificationTeamId = secondaryActor.teamId;
-                        showNotification = true;
-                    }
-                }
+            // 2. Check for Secondary Actors (Assist, Block, Steal) via specific keys
+            if (currentEvent.actionType === 'foul' && currentEvent.subType === 'offensive') {
+                // Skip offensive fouls (usually followed by turnover which handles display)
+                 setEventQueue(prev => prev.slice(1));
+                 setIsProcessing(false);
+                 return;
+            }
+
+            if (currentEvent.stealPersonId) {
+                 const stealer = players.find(p => p.personId === currentEvent.stealPersonId);
+                 if (stealer) {
+                    notificationPlayer = stealer;
+                    message = `${stealer.firstName.charAt(0)}. ${stealer.lastName}`;
+                    subMessage = `${stealer.steals} STL`;
+                    notificationPersonId = stealer.personId;
+                    notificationTeamId = stealer.teamId;
+                    showNotification = true;
+                 }
+            } else if (currentEvent.blockPersonId) {
+                 const blocker = players.find(p => p.personId === currentEvent.blockPersonId);
+                 if (blocker) {
+                    notificationPlayer = blocker;
+                    message = `${blocker.firstName.charAt(0)}. ${blocker.lastName}`;
+                    subMessage = `${blocker.blocks} BLK`;
+                    notificationPersonId = blocker.personId;
+                    notificationTeamId = blocker.teamId;
+                    showNotification = true;
+                 }
+            } else if (currentEvent.assistPersonId) {
+                 const assister = players.find(p => p.personId === currentEvent.assistPersonId);
+                 if (assister) {
+                    notificationPlayer = assister;
+                    message = `${assister.firstName.charAt(0)}. ${assister.lastName}`;
+                    subMessage = `${assister.assists} AST`;
+                    notificationPersonId = assister.personId;
+                    notificationTeamId = assister.teamId;
+                    showNotification = true;
+                 }
             }
 
             // 3. If no secondary notification triggered, check primary actor stats
             if (!showNotification && notificationPlayer) {
                 // Points
-                if ((type === 'shot' || type.includes('free') || type.includes('throw') || desc.includes('shot') || desc.includes('layup') || desc.includes('dunk')) && isMade) {
+                if ((type === '2pt' || type === '3pt' || type === 'freethrow') && isMade) {
                     let points = 2;
-                    if (desc.includes('3pt') || currentEvent.subType?.includes('3PT')) points = 3;
-                    else if (type.includes('free') || type.includes('throw')) points = 1;
+                    if (type === '3pt') points = 3;
+                    else if (type === 'freethrow') points = 1;
                     
-                    // Update local player stats for display
-                    // Note: This is a visual estimation based on the event, as the full player object might not be updated yet
                     const updatedPoints = (notificationPlayer.points || 0) + points;
-                    
                     subMessage = `${updatedPoints} PTS (+${points})`;
                     showNotification = true;
                 } 
                 // Rebounds
-                else if (type === 'rebound' || desc.includes('rebound')) {
+                else if (type === 'rebound') {
                     const updatedRebs = (notificationPlayer.rebounds || 0) + 1;
                     subMessage = `${updatedRebs} REB (+1)`;
                     showNotification = true;
                 } 
                 // Fouls
-                else if (type === 'foul' || desc.includes('foul')) {
+                else if (type === 'foul') {
                     const updatedFouls = (notificationPlayer.fouls || 0) + 1;
                     subMessage = `${updatedFouls} PF (+1)`; 
                     showNotification = true;
                 }
-                // Turnovers (only if not a steal by someone else, which we checked above)
-                else if (type === 'turnover' || desc.includes('turnover')) {
+                // Turnovers (Steals handled above, so this is non-steal turnover)
+                else if (type === 'turnover' && !currentEvent.stealPersonId) {
                      const updatedTO = (notificationPlayer.turnovers || 0) + 1;
                      subMessage = `${updatedTO} TO (+1)`;
                      showNotification = true;
@@ -191,50 +195,33 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             }
 
             // --- Overlay Logic (Timeouts, Subs, Quarter End) ---
-            const actionType = currentEvent.actionType ? currentEvent.actionType.toLowerCase() : '';
-            const description = currentEvent.description ? currentEvent.description : '';
-            const descLower = description.toLowerCase();
-
-            // Clear previous overlay if this is a new event and NOT an overlay event
-            // This ensures overlays persist until the next event
-            const isOverlayEvent = actionType === 'timeout' || descLower.includes('timeout') || 
-                                   actionType === 'substitution' || 
-                                   actionType === 'period' || descLower.includes('end of') || descLower.includes('start of');
+            const isOverlayEvent = type === 'timeout' || type === 'substitution' || type === 'period';
             
             if (!isOverlayEvent) {
                 setOverlayEvent(null);
             }
 
-            if (actionType === 'timeout' || descLower.includes('timeout')) {
-                setOverlayEvent({ title: 'TIMEOUT', description: description });
-            } else if (actionType === 'substitution') {
-                // Try to find the pair in recent events (or just use description)
-                let displayDesc = description;
-                if (displayDesc.includes('enters')) {
-                     displayDesc = `IN: ${currentEvent.playerNameI}`;
-                } else if (displayDesc.includes('leaves')) {
-                     displayDesc = `OUT: ${currentEvent.playerNameI}`;
-                }
-                setOverlayEvent({ title: 'SUBSTITUTION', description: displayDesc });
-            } else if (actionType === 'period' || descLower.includes('end of') || descLower.includes('start of')) {
-                 const isEnd = descLower.includes('end');
-                 const isStart = descLower.includes('start');
+            if (type === 'timeout') {
+                setOverlayEvent({ title: 'TIMEOUT', description: currentEvent.description || 'Timeout' });
+            } else if (type === 'substitution') {
+                setOverlayEvent({ title: 'SUBSTITUTION', description: currentEvent.description || `Sub: ${currentEvent.playerNameI}` });
+            } else if (type === 'period') {
+                 const subType = currentEvent.subType ? currentEvent.subType.toLowerCase() : '';
+                 const isEnd = subType === 'end';
+                 const isStart = subType === 'start';
                  const periodName = currentEvent.period <= 4 ? `Q${currentEvent.period}` : `OT${currentEvent.period - 4}`;
                  
                  let title = 'PERIOD UPDATE';
                  if (isEnd) title = `END OF ${periodName}`;
                  else if (isStart) title = `START OF ${periodName}`;
 
-                 setOverlayEvent({ title, description: description });
+                 setOverlayEvent({ title, description: currentEvent.description || '' });
             }
 
             // Remove from queue after delay
-            // Increase delay for readability
-            const delay = (actionType === 'timeout' || actionType === 'period') ? 4000 : 2500; 
+            const delay = (type === 'timeout' || type === 'period') ? 4000 : 2500; 
             timerRef.current = setTimeout(() => {
-                // Only clear overlay if it's a substitution (short lived)
-                // Timeouts and Periods stay until next event (handled at start of this block)
-                if (actionType === 'substitution') {
+                if (type === 'substitution') {
                     setOverlayEvent(null);
                 }
                 setEventQueue(prev => prev.slice(1));
@@ -272,6 +259,40 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         );
     }
 
+    // Detect which side Home starts on based on the first period data.
+    // This handles cases where Home starts on the Left OR Right.
+    const homeStartsLeft = React.useMemo(() => {
+        // Find the first meaningful shot by the home team in Period 1
+        const firstHomeShot = actions.find(a => 
+            a.teamId === homeTeam.teamId && 
+            Number(a.period) === 1 && 
+            (a.actionType === '2pt' || a.actionType === '3pt') &&
+            typeof a.x === 'number'
+        );
+
+        if (firstHomeShot) {
+            return firstHomeShot.x < 50;
+        }
+
+        // Fallback: Check Away team shot in Period 1 (Should be opposite)
+        const firstAwayShot = actions.find(a => 
+            a.teamId === awayTeam.teamId && 
+            Number(a.period) === 1 && 
+            (a.actionType === '2pt' || a.actionType === '3pt') &&
+            typeof a.x === 'number'
+        );
+
+        if (firstAwayShot) {
+             return firstAwayShot.x > 50; // If Away is Right (>50), Home is Left.
+        }
+
+        // If no data yet, default to false (No flip is safer if we assume "What we see is what we get")
+        // But traditionally Home often starts Left. Let's see.
+        // In the user's case, Home started Right. The Default Code flipped it to Left (Wrong).
+        // So defaulting to FALSE (Assume Home=Right) means we do NOTHING to the coordinates initially.
+        return false; 
+    }, [actions, homeTeam.teamId, awayTeam.teamId]);
+
     // Helper to determine basket coordinates based on shot location
     // Orientation: We will standardize so Home shoots Right (94.65) and Away shoots Left (5.35).
     // API Data: x=0..100.
@@ -287,23 +308,75 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const getEventCoordinates = (action: PlayByPlayEvent) => {
         let x = action.x;
         let y = action.y;
-
-        // Flip court logic:
-        // By default, NBA data has Home shooting Left (0-50) for 1st Half, and Right (50-100) for 2nd Half.
-        // We want to visuals to ALWAYS show Home shooting Right.
-        // Periods 1, 2: Home shoots Left. Flip required (x = 100 - x).
-        // Periods 3, 4: Home shoots Right. No flip required.
-        // OT Rules: OT1 (5) keeps 4th qtr basket. OT2 (6) switches.
-        const shouldFlip = action.period <= 2 || (action.period > 4 && (action.period - 4) % 2 === 0);
+        
+        // --- 1. COORDINATE FLIPPING LOGIC ---
+        // We want Home to ALWAYS shoot Right (High X) and Away to ALWAYS shoot Left (Low X).
+        // The API returns the "actual" coordinate on the court.
+        // We need to determine if the "actual" coordinate matches our desired display orientation.
+        
+        let shouldFlip = false;
+        
+        // If the action has a 'side' property (e.g. "left" or "right"), use it.
+        // "side" usually generally refers to the side of the court from the perspective of... main camera? 
+        // Let's assume:
+        // side="left" means x is 0-50.
+        // side="right" means x is 50-100.
+        // If Home is shooting, we want them on Right.
+        // So if Home shoots and side="left", we MUST FLIP.
+        // If Away shoots and side="right", we MUST FLIP.
+        
+        if (action.side) {
+             const side = action.side.toLowerCase();
+             if (action.teamId === homeTeam.teamId && side === 'left') {
+                 shouldFlip = true;
+             } else if (action.teamId === awayTeam.teamId && side === 'right') {
+                 shouldFlip = true;
+             }
+        } else {
+            // Fallback to time-based logic if 'side' is missing (e.g. for some event types)
+            // Default: Periods 1,2 -> Home starts ? (We detected homeStartsLeft earlier)
+             let isHomeShootingLeftInRawData = false;
+        
+            if (action.period <= 2) {
+                isHomeShootingLeftInRawData = homeStartsLeft;
+            } else {
+                isHomeShootingLeftInRawData = !homeStartsLeft;
+                if (action.period > 4) {
+                     const otPeriod = action.period - 4;
+                     if (otPeriod % 2 !== 0) {
+                         isHomeShootingLeftInRawData = homeStartsLeft;
+                     } else {
+                         isHomeShootingLeftInRawData = !homeStartsLeft;
+                     }
+                }
+            }
+            shouldFlip = isHomeShootingLeftInRawData;
+        }
 
         if (typeof x === 'number' && shouldFlip) {
             x = 100 - x;
+             // Also flip Y to maintain court side perspective if needed?
+             // Usually just X flip is enough for half-court logic unless Y is specific to bench side.
+             // For purely visual "left basket vs right basket", X is key.
+             // Standard mathematical flip: x = 100 - x; y = 50 + (50 - y) = 100 - y.
+             // But usually Y is "top to bottom" (0-50) or "sideline to sideline" (0-50).
+             // Let's stick to X flip for now as that controls "Basket Side".
+             // Actually, if we flip the court board 180 degrees, we flip both.
+             // But here we are just mirroring horizontally?
+             // If a player is on "Top" sideline (Y=0), mirroring X keeps them on Top.
+             // If we rotate 180, they go to Bottom (Y=50).
+             // Usually "Right" basket means rotating the view.
+             // Let's try flipping Y too to see if `y = 50 - y` makes more sense for "Rotation".
+             y = 50 - y; 
         }
 
         const type = action.actionType ? action.actionType.toLowerCase() : '';
 
         // Fix Free Throw placement (Catch all variants)
-        if (type.includes('free') || type.includes('throw')) {
+        if (type === 'freethrow') {
+             // Reset Y for free throws (Center)
+             y = 50; 
+             
              if (action.teamId === homeTeam.teamId) {
                 // Home shooting free throws at their offensive basket (Right)
                 x = 77;
@@ -311,7 +384,6 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 // Away shooting free throws at their offensive basket (Left)
                 x = 23;
             }
-            y = 50; // Center vertically
         }
 
         // Default coordinates for events that might be missing them (0,0)
@@ -327,7 +399,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             // Home Offense -> Right. Home Defense -> Left.
             // Away Offense -> Left. Away Defense -> Right.
             
-            const isOffensive = action.description?.toLowerCase().includes('offensive') || action.subType?.toLowerCase().includes('offensive');
+            const isOffensive = action.subType?.toLowerCase() === 'offensive';
             
             if (action.teamId === homeTeam.teamId) {
                 // Home Team
@@ -339,9 +411,6 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 else x = 90.65; // Right Basket (Defensive)
             }
             y = 50;
-            
-            // Note: We set x explicitly here, so the "100-x" flip at start doesn't affect these hardcoded values.
-            // (Because we're assigning x directly, unrelated to action.x)
         }
         
         // Visual adjustment: Markers appear slightly low visually due to perspective or element stacking.
@@ -440,16 +509,24 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         {recentAction && (
                             <React.Fragment key={recentAction.actionNumber}>
                                 {/* Shot Line Animation */}
-                                {recentAction.actionType === 'shot' && (
-                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-                                        <motion.line
-                                            x1={`${mapCoordinates(recentAction.x, recentAction.y).x}%`}
-                                            y1={`${mapCoordinates(recentAction.x, recentAction.y).y}%`}
-                                            x2={`${getBasketCoordinates(recentAction.teamId).x}%`}
-                                            y2={`${getBasketCoordinates(recentAction.teamId).y}%`}
+                                {['2pt', '3pt', 'heave', 'freethrow'].includes(recentAction.actionType) && (
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-100">
+                                        <motion.path
+                                            d={(() => {
+                                                const start = getEventCoordinates(recentAction);
+                                                const end = getBasketCoordinates(recentAction.teamId);
+                                                // Calculate control point for quadratic curve to create arc
+                                                const midX = (start.x + end.x) / 2;
+                                                const distance = Math.abs(end.x - start.x);
+                                                const arcHeight = Math.max(8, Math.min(18, distance * 0.15));
+                                                const midY = Math.max(5, Math.min(start.y, end.y) - arcHeight);
+                                                return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
+                                            })()}
                                             stroke={recentAction.shotResult === 'Made' ? '#00ff00' : '#ff0000'} 
                                             strokeWidth="2"
+                                            fill="none"
                                             strokeDasharray="4 4"
+                                            vectorEffect="non-scaling-stroke"
                                             initial={{ pathLength: 0, opacity: 0.8 }}
                                             animate={{ pathLength: 1, opacity: 0 }}
                                             transition={{ duration: 1.5, ease: "easeOut" }}
@@ -476,25 +553,31 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                                     >
                                         {/* Marker */}
                                         <div className={`w-4 h-4 rounded-full border-2 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                                            recentAction.shotResult === 'Made' ? 'bg-green-500 border-white' :
-                                            recentAction.shotResult === 'Missed' ? 'bg-red-500 border-white' :
-                                            'bg-blue-500 border-white'
+                                            recentAction.shotResult === 'Made' ? 'bg-green-600 border-white' :
+                                            recentAction.shotResult === 'Missed' ? 'bg-red-600 border-white' :
+                                            'bg-secondary border-white'
                                         }`} />
 
                                         {/* Popup */}
                                         <div 
-                                            className={`absolute whitespace-nowrap bg-black/80 backdrop-blur text-white text-xs px-3 py-2 rounded-md border border-white/20 shadow-xl flex flex-col gap-1
+                                            className={`absolute whitespace-nowrap bg-background text-text text-xs px-3 py-2 rounded-md border border-white/40 shadow-xl flex flex-col gap-1
                                                 ${getEventCoordinates(recentAction).y < 20 ? 'top-full mt-3' : 'bottom-full mb-3'}
                                                 ${getEventCoordinates(recentAction).x < 20 ? 'left-0 translate-x-0 items-start' : 
                                                   getEventCoordinates(recentAction).x > 80 ? 'right-0 translate-x-0 items-end' : 
                                                   'left-1/2 -translate-x-1/2 items-center'}`}
                                         >
-                                            <span className="font-bold">{recentAction.playerNameI} <span className="text-white/60 font-normal">({recentAction.teamTricode})</span></span>
+                                            <span className="font-bold">{recentAction.playerNameI} <span className="text-text font-normal">({recentAction.teamTricode})</span></span>
                                             <span className="text-[10px] opacity-80 uppercase tracking-wider">
-                                                {recentAction.subType || recentAction.actionType} {recentAction.shotResult}
+                                                {(recentAction.actionType === 'foul') ? (
+                                                    (recentAction.descriptor === 'shooting') ? (
+                                                        <>SHOOTING FOUL{recentAction.qualifiers?.find(q => q.includes('freethrow')) ? ` (${recentAction.qualifiers.find(q => q.includes('freethrow'))?.replace('freethrow', 'FT')})` : ''}</>
+                                                    ) : `${recentAction.subType || 'PERSONAL'} FOUL`
+                                                ) : (
+                                                    `${recentAction.subType?.replace('defensive', 'Defensive').replace('offensive', 'Offensive') || recentAction.actionType} ${(recentAction.actionType === 'rebound') ? 'Reb' : (recentAction.shotResult || '')}`
+                                                )}
                                             </span>
                                             {/* Triangle pointer */}
-                                            <div className={`absolute w-2 h-2 bg-black/80 rotate-45 border-r border-b border-white/20
+                                            <div className={`absolute w-2 h-2 bg-background rotate-45 border-r border-b border-white/20
                                                 ${getEventCoordinates(recentAction).y < 20 ? '-top-1 border-t border-l border-r-0 border-b-0' : '-bottom-1 border-r border-b'}
                                                 ${getEventCoordinates(recentAction).x < 20 ? 'left-2' : 
                                                   getEventCoordinates(recentAction).x > 80 ? 'right-2' : 

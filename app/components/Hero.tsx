@@ -18,16 +18,21 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [games, setGames] = useState<any[]>([]);
+    const pollIdRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
     
-    // Initialize date from URL or default to today
-    const selectedDate = React.useMemo(() => {
+    // Initialize date from URL or default to today (as string to avoid Date reference issues)
+    const selectedDateString = React.useMemo(() => {
         const dateParam = searchParams.get('date');
         if (dateParam) {
-            const [year, month, day] = dateParam.split('-').map(Number);
-            return new Date(year, month - 1, day);
+            return dateParam;
         }
-        return new Date();
+        return format(new Date(), 'yyyy-MM-dd');
     }, [searchParams]);
+
+    const selectedDate = React.useMemo(() => {
+        const [year, month, day] = selectedDateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }, [selectedDateString]);
 
     const setSelectedDate = (date: Date) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -42,13 +47,16 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
         if (activeTab !== 'scores') return;
 
         let isMounted = true;
-        let pollId: ReturnType<typeof setInterval> | null = null;
+        console.log('[Hero] useEffect triggered - selectedDateString:', selectedDateString, 'activeTab:', activeTab);
 
         const fetchGames = async (isPoll = false) => {
+            console.log('[Hero] fetchGames called - isPoll:', isPoll, 'date:', selectedDateString);
             try {
                 if (isMounted && !isPoll) setLoading(true);
 
-                const apiDate = subDays(selectedDate, 1);
+                const [year, month, day] = selectedDateString.split('-').map(Number);
+                const dateForApi = new Date(year, month - 1, day);
+                const apiDate = subDays(dateForApi, 1);
                 const formattedDate = format(apiDate, 'yyyy-MM-dd');
 
                 const endpoint = `/api/games/date/${formattedDate}`;
@@ -64,14 +72,14 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                 if (isMounted) setGames(sortedGames);
 
                 const hasLive = fetchedGames.some((g: any) => g.gameStatus === 2);
-                if (hasLive && !pollId) {
-                    pollId = setInterval(() => {
+                if (hasLive && !pollIdRef.current) {
+                    pollIdRef.current = setInterval(() => {
                         fetchGames(true);
                     }, 10000);
                 }
-                if (!hasLive && pollId) {
-                    clearInterval(pollId);
-                    pollId = null;
+                if (!hasLive && pollIdRef.current) {
+                    clearInterval(pollIdRef.current);
+                    pollIdRef.current = null;
                 }
             } catch (error) {
                 if (isMounted) {
@@ -87,9 +95,12 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
 
         return () => {
             isMounted = false;
-            if (pollId) clearInterval(pollId);
+            if (pollIdRef.current) {
+                clearInterval(pollIdRef.current);
+                pollIdRef.current = null;
+            }
         };
-    }, [selectedDate, activeTab]);
+    }, [selectedDateString, activeTab]);
     const calendarDays = [-3, -2, -1, 0, 1, 2, 3].map(offset => addDays(selectedDate, offset));
 
     return (
