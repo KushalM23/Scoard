@@ -105,6 +105,8 @@ export interface PlayByPlayEvent {
     assistPersonId?: number;
     shotDistance?: number;
     pointsTotal?: number;
+    scoreHome?: string;
+    scoreAway?: string;
     side?: string;
 }
 

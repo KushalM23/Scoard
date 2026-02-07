@@ -19,6 +19,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const [sideNotification, setSideNotification] = useState<{ teamId: number; message: string; subMessage: string; personId: number } | null>(null);
     const [possessionTeamId, setPossessionTeamId] = useState<number | null>(null);
     const [overlayEvent, setOverlayEvent] = useState<{ title: string; description: string } | null>(null);
+    const [currentScore, setCurrentScore] = useState({ home: homeTeam.score, away: awayTeam.score });
 
     // Queue System State
     const [eventQueue, setEventQueue] = useState<PlayByPlayEvent[]>([]);
@@ -26,6 +27,11 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const [isProcessing, setIsProcessing] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstLoad = useRef(true);
+
+    // Replay Mode State
+    const [isReplaying, setIsReplaying] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const [replayProgress, setReplayProgress] = useState(0);
 
     // Direct coordinate mapping: API uses 0-100 for both x and y
     // SVG court has no margins, so we map directly to percentages
@@ -36,9 +42,55 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         return { x, y };
     };
 
+    // Handle replay start
+    const startReplay = () => {
+        // Clear any existing timers first
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        
+        setIsReplaying(true);
+        setIsPaused(false);
+        setRecentAction(null);
+        setCurrentScore({ home: 0, away: 0 });
+        setSideNotification(null);
+        setOverlayEvent(null);
+        setEventQueue([]);
+        setIsProcessing(false);
+        lastProcessedIdRef.current = 0;
+        setReplayProgress(0);
+        
+        // Use setTimeout to ensure state is cleared before adding new events
+        setTimeout(() => {
+            const sortedActions = [...actions].sort((a, b) => Number(a.actionNumber) - Number(b.actionNumber));
+            setEventQueue(sortedActions);
+        }, 0);
+    };
+
+    const stopReplay = () => {
+        setIsReplaying(false);
+        setIsPaused(false);
+        setEventQueue([]);
+        setIsProcessing(false);
+        setRecentAction(null);
+        setCurrentScore({ home: homeTeam.score, away: awayTeam.score });
+        setSideNotification(null);
+        setOverlayEvent(null);
+        setReplayProgress(0);
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+    const togglePause = () => {
+        setIsPaused(prev => !prev);
+    };
+
     // 1. Ingest new actions into queue
     useEffect(() => {
-        if (actions.length > 0) {
+        if (actions.length > 0 && !isReplaying) {
             // On first load, skip queuing history and just show the latest state
             if (isFirstLoad.current) {
                 // Find the latest action by number, regardless of array order
@@ -90,14 +142,28 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             // Always update possession based on absolute latest known state
             setPossessionTeamId(actions[actions.length - 1].teamId);
         }
-    }, [actions]);
+    }, [actions, isReplaying]);
+
+    // Sync score with props when not replaying
+    useEffect(() => {
+        if (!isReplaying) {
+            setCurrentScore({ home: homeTeam.score, away: awayTeam.score });
+        }
+    }, [homeTeam.score, awayTeam.score, isReplaying]);
 
     // 2. Process queue sequentially
     useEffect(() => {
-        if (eventQueue.length > 0 && !isProcessing) {
+        if (eventQueue.length > 0 && !isProcessing && !isPaused) {
             setIsProcessing(true);
             const currentEvent = eventQueue[0];
             setRecentAction(currentEvent);
+
+            if (currentEvent.scoreHome && currentEvent.scoreAway) {
+                setCurrentScore({
+                    home: parseInt(currentEvent.scoreHome),
+                    away: parseInt(currentEvent.scoreAway)
+                });
+            }
 
             // --- Side Notification Logic ---
             // 1. Identify the primary actor (usually personId)
@@ -183,7 +249,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 }
             }
 
-            if (showNotification) {
+            if (showNotification && !isReplaying) {
                 setSideNotification({
                     teamId: notificationTeamId,
                     message: message,
@@ -219,16 +285,28 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             }
 
             // Remove from queue after delay
-            const delay = (type === 'timeout' || type === 'period') ? 4000 : 2500; 
+            const delay = isReplaying ? 2000 : ((type === 'timeout' || type === 'period') ? 4000 : 2500); 
             timerRef.current = setTimeout(() => {
                 if (type === 'substitution') {
                     setOverlayEvent(null);
                 }
                 setEventQueue(prev => prev.slice(1));
                 setIsProcessing(false);
+                
+                // Update replay progress
+                if (isReplaying && actions.length > 0) {
+                    const processed = Number(currentEvent.actionNumber);
+                    const total = actions.length;
+                    setReplayProgress((processed / total) * 100);
+                    
+                    // End replay when finished
+                    if (eventQueue.length === 1) {
+                        setTimeout(() => stopReplay(), 1000);
+                    }
+                }
             }, delay);
         }
-    }, [eventQueue, isProcessing, players]);
+    }, [eventQueue, isProcessing, players, isReplaying, isPaused, actions.length]);
 
     // Cleanup timer on unmount
     useEffect(() => {
@@ -237,30 +315,9 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         };
     }, []);
 
-    if (gameStatus !== 2) {
-        return (
-            <div className="w-full aspect-[94/50] bg-background rounded-lg flex items-center justify-center border-4 border-text/10 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20">
-                    <SVGCourt
-                        className="w-full h-full"
-                        courtColor="#C4A574"
-                        lineColor="#FFFFFF"
-                        paintColor={getTeamColors(homeTeam.teamId).primary}
-                        centerLogo={getTeamColors(homeTeam.teamId).logo}
-                    />
-                </div>
-                <div className="text-center z-10">
-                    <h3 className="text-2xl font-bold text-text mb-2">
-                        {gameStatus === 1 ? 'Game Scheduled' : 'Game Final'}
-                    </h3>
-                    <p className="text-text/60">Virtual Court is only available during live games.</p>
-                </div>
-            </div>
-        );
-    }
-
     // Detect which side Home starts on based on the first period data.
     // This handles cases where Home starts on the Left OR Right.
+    // This MUST be before any conditional returns to follow Rules of Hooks
     const homeStartsLeft = React.useMemo(() => {
         // Find the first meaningful shot by the home team in Period 1
         const firstHomeShot = actions.find(a => 
@@ -288,10 +345,40 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
         // If no data yet, default to false (No flip is safer if we assume "What we see is what we get")
         // But traditionally Home often starts Left. Let's see.
+        // w-full aspect-[94/50] bg-background rounded-lg flex items-center justify-center relative overflow-hidden
         // In the user's case, Home started Right. The Default Code flipped it to Left (Wrong).
         // So defaulting to FALSE (Assume Home=Right) means we do NOTHING to the coordinates initially.
         return false; 
     }, [actions, homeTeam.teamId, awayTeam.teamId]);
+
+    if (gameStatus !== 2 && !isReplaying) {
+        return (
+            <div className="relative w-full aspect-[94/50] rounded-lg overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 opacity-10">
+                    <SVGCourt
+                        className="w-full h-full"
+                        courtColor="#C4A574"
+                        lineColor="#FFFFFF"
+                        paintColor={getTeamColors(homeTeam.teamId).primary}
+                        centerLogo={getTeamColors(homeTeam.teamId).logo}
+                    />
+                </div>
+                <div className="text-center z-10">
+                    <h3 className="text-2xl font-bold text-text mb-2">
+                        {gameStatus === 1 ? 'Game Scheduled' : 'Game Final'}
+                    </h3>
+                    {gameStatus === 3 && actions.length > 0 && (
+                        <button
+                            onClick={startReplay}
+                            className="bg-primary hover:shadow-2xl hover:text-text text-text/80 font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-lg"
+                        >   
+                        Replay Game
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     // Helper to determine basket coordinates based on shot location
     // Orientation: We will standardize so Home shoots Right (94.65) and Away shoots Left (5.35).
@@ -355,19 +442,9 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
         if (typeof x === 'number' && shouldFlip) {
             x = 100 - x;
-             // Also flip Y to maintain court side perspective if needed?
-             // Usually just X flip is enough for half-court logic unless Y is specific to bench side.
-             // For purely visual "left basket vs right basket", X is key.
-             // Standard mathematical flip: x = 100 - x; y = 50 + (50 - y) = 100 - y.
-             // But usually Y is "top to bottom" (0-50) or "sideline to sideline" (0-50).
-             // Let's stick to X flip for now as that controls "Basket Side".
-             // Actually, if we flip the court board 180 degrees, we flip both.
-             // But here we are just mirroring horizontally?
-             // If a player is on "Top" sideline (Y=0), mirroring X keeps them on Top.
-             // If we rotate 180, they go to Bottom (Y=50).
-             // Usually "Right" basket means rotating the view.
-             // Let's try flipping Y too to see if `y = 50 - y` makes more sense for "Rotation".
-             y = 50 - y; 
+            // For a 180-degree rotation, both x and y need to be flipped within the 0-100 range
+            // This ensures coordinates stay within bounds and maintain proper court perspective
+            y = 100 - y; 
         }
 
         const type = action.actionType ? action.actionType.toLowerCase() : '';
@@ -424,6 +501,38 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
     return (
         <div className="relative w-full">
+            {/* Replay Controls */}
+            {isReplaying && (
+                <div className="mb-2 md:mb-4 bg-background/90 backdrop-blur-md p-2 md:p-4 rounded-lg border border-text/20">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-text text-lg md:text-base font-mono">Replaying Game</span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={togglePause}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
+                            >
+                                {isPaused ? '▶' : '⏸'}
+                            </button>
+                            <button
+                                onClick={stopReplay}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
+                            >
+                                ⏹
+                            </button>
+                        </div>
+                    </div>
+                    <div className="w-full bg-text/10 rounded-full h-1.5 md:h-2 overflow-hidden">
+                        <motion.div
+                            className="bg-primary h-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${replayProgress}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
+                    <p className="text-text/60 text-[8px] md:text-sm mt-1 md:mt-2">{Math.round(replayProgress)}% complete {isPaused && '(Paused)'}</p>
+                </div>
+            )}
+
             {/* Side Notifications - Moved OUTSIDE the court container */}
             <AnimatePresence>
                 {sideNotification && (
@@ -431,7 +540,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         initial={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
-                        className={`absolute bottom-0 scale-90 ${sideNotification.teamId === homeTeam.teamId ? '-left-4 md:-left-12' : '-right-4 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
+                        className={`absolute bottom-0 scale-50 md:scale-90 ${sideNotification.teamId === homeTeam.teamId ? 'left-2 md:-left-12' : 'right-2 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
                     >
                         <div className={`bg-background/90 backdrop-blur-md p-3 rounded-lg border border-text/20 shadow-lg min-w-[120px] flex items-center gap-3 ${sideNotification.teamId === homeTeam.teamId ? 'flex-row' : 'flex-row-reverse'}`}>
                             {/* Player Image */}
@@ -509,27 +618,50 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                         {recentAction && (
                             <React.Fragment key={recentAction.actionNumber}>
                                 {/* Shot Line Animation */}
-                                {['2pt', '3pt', 'heave', 'freethrow'].includes(recentAction.actionType) && (
-                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-100">
+                                {['2pt', '3pt', 'heave', 'freethrow'].includes(recentAction.actionType) && 
+                                 !recentAction.subType?.toLowerCase().includes('dunk') && 
+                                 !recentAction.subType?.toLowerCase().includes('layup') && (
+                                    <svg 
+                                        className="absolute inset-0 w-full h-full pointer-events-none z-10" 
+                                        viewBox="0 0 94 50"
+                                        preserveAspectRatio="none"
+                                        style={{ overflow: 'visible' }}
+                                    >
                                         <motion.path
                                             d={(() => {
                                                 const start = getEventCoordinates(recentAction);
                                                 const end = getBasketCoordinates(recentAction.teamId);
+                                                // Convert from 0-100 percentage to viewBox coordinates (0-94 for x, 0-50 for y)
+                                                // Original points
+                                                const rawStartX = (start.x / 100) * 94;
+                                                const rawStartY = (start.y / 100) * 50;
+                                                const endX = (end.x / 100) * 94;
+                                                const endY = (end.y / 100) * 50;
+
+                                                // Start arc exactly at marker center (no gap)
+                                                const startX = rawStartX;
+                                                const startY = rawStartY;
+
+                                                
                                                 // Calculate control point for quadratic curve to create arc
-                                                const midX = (start.x + end.x) / 2;
-                                                const distance = Math.abs(end.x - start.x);
-                                                const arcHeight = Math.max(8, Math.min(18, distance * 0.15));
-                                                const midY = Math.max(5, Math.min(start.y, end.y) - arcHeight);
-                                                return `M ${start.x} ${start.y} Q ${midX} ${midY} ${end.x} ${end.y}`;
+                                                const midX = (startX + endX) / 2;
+                                                const distance = Math.abs(endX - startX);
+                                                const arcHeight = Math.max(8, Math.min(12, distance * 0.5));
+                                                // Arc peak should be HIGHER than the midpoint visually (lower y value)
+                                                // Use rawStartY for arc height calculation to keep the peak oriented correctly relative to the true distance
+                                                const midY = (rawStartY + endY) / 2 - arcHeight;
+                                                
+                                                return `M ${startX} ${startY} Q ${midX} ${midY} ${endX} ${endY}`;
                                             })()}
                                             stroke={recentAction.shotResult === 'Made' ? '#00ff00' : '#ff0000'} 
-                                            strokeWidth="2"
+                                            strokeWidth="1" 
                                             fill="none"
-                                            strokeDasharray="4 4"
-                                            vectorEffect="non-scaling-stroke"
-                                            initial={{ pathLength: 0, opacity: 0.8 }}
-                                            animate={{ pathLength: 1, opacity: 0 }}
-                                            transition={{ duration: 1.5, ease: "easeOut" }}
+                                            strokeDasharray="3 3" 
+                                            strokeLinecap="round"
+                                            initial={{ pathLength: 0, opacity: 0 }}
+                                            animate={{ pathLength: 1, opacity: 1 }}
+                                            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                                            transition={{ duration: 1.2, ease: "easeInOut", delay: 0.2 }}
                                         />
                                     </svg>
                                 )}
@@ -552,7 +684,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                                         className="z-20"
                                     >
                                         {/* Marker */}
-                                        <div className={`w-4 h-4 rounded-full border-2 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
+                                        <div className={`w-2 h-2 md:w-4 md:h-4 rounded-full border-2 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
                                             recentAction.shotResult === 'Made' ? 'bg-green-600 border-white' :
                                             recentAction.shotResult === 'Missed' ? 'bg-red-600 border-white' :
                                             'bg-secondary border-white'
@@ -560,14 +692,14 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
                                         {/* Popup */}
                                         <div 
-                                            className={`absolute whitespace-nowrap bg-background text-text text-xs px-3 py-2 rounded-md border border-white/40 shadow-xl flex flex-col gap-1
+                                            className={`absolute whitespace-nowrap bg-background text-text text-[8px] md:text-xs px-2 py-1 md:px-3 md:py-2 rounded-md border border-white/40 shadow-xl flex flex-col gap-1
                                                 ${getEventCoordinates(recentAction).y < 20 ? 'top-full mt-3' : 'bottom-full mb-3'}
                                                 ${getEventCoordinates(recentAction).x < 20 ? 'left-0 translate-x-0 items-start' : 
                                                   getEventCoordinates(recentAction).x > 80 ? 'right-0 translate-x-0 items-end' : 
                                                   'left-1/2 -translate-x-1/2 items-center'}`}
                                         >
                                             <span className="font-bold">{recentAction.playerNameI} <span className="text-text font-normal">({recentAction.teamTricode})</span></span>
-                                            <span className="text-[10px] opacity-80 uppercase tracking-wider">
+                                            <span className="text-[6px] md:text-xs opacity-80 uppercase tracking-wider">
                                                 {(recentAction.actionType === 'foul') ? (
                                                     (recentAction.descriptor === 'shooting') ? (
                                                         <>SHOOTING FOUL{recentAction.qualifiers?.find(q => q.includes('freethrow')) ? ` (${recentAction.qualifiers.find(q => q.includes('freethrow'))?.replace('freethrow', 'FT')})` : ''}</>
@@ -577,7 +709,7 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                                                 )}
                                             </span>
                                             {/* Triangle pointer */}
-                                            <div className={`absolute w-2 h-2 bg-background rotate-45 border-r border-b border-white/20
+                                            <div className={`absolute w-1.5 h-1.5 md:w-2 md:h-2 bg-background rotate-45 border-r border-b border-white/20
                                                 ${getEventCoordinates(recentAction).y < 20 ? '-top-1 border-t border-l border-r-0 border-b-0' : '-bottom-1 border-r border-b'}
                                                 ${getEventCoordinates(recentAction).x < 20 ? 'left-2' : 
                                                   getEventCoordinates(recentAction).x > 80 ? 'right-2' : 
@@ -589,6 +721,91 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                             </React.Fragment>
                         )}
                     </AnimatePresence>
+
+                    {/* Miniature Scoreboard */}
+                    <div className="absolute mb-1 md:mb-2 bottom-1 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-auto shadow-2xl rounded-lg overflow-hidden border border-white/20 select-none scale-50 md:scale-100 origin-bottom">
+                         <div className="bg-background flex items-center p-2 gap-4 rounded-lg border border-white/10 shadow-lg">
+                              {/* Home Team */}
+                              <div className="flex flex-col items-center relative gap-1 min-w-[60px]">
+                                   <div className="relative">
+                                       <img 
+                                           src={`https://cdn.nba.com/logos/nba/${homeTeam.teamId}/primary/L/logo.svg`} 
+                                           alt={homeTeam.teamTricode} 
+                                           className="w-8 h-8 object-contain"
+                                       />
+                                       {homeTeam.inBonus && (
+                                           <div className="absolute -top-1 -right-2 bg-primary text-text text-[6px] font-bold px-1 py-0.5 rounded-full shadow-sm border border-background leading-none">
+                                               BONUS
+                                           </div>
+                                       )}
+                                   </div>
+                                   <div className="flex flex-col items-center">
+                                       <span className={`text-sm font-bold leading-none ${currentScore.home > currentScore.away ? 'text-primary' : 'text-text'}`}>
+                                           {homeTeam.teamTricode}
+                                       </span>
+                                       <div className="flex gap-0.5 mt-0.5">
+                                           {[...Array(7)].map((_, i) => (
+                                               <div key={i} className={`w-0.5 h-0.5 rounded-full ${i < homeTeam.timeoutsRemaining ? 'bg-primary' : 'bg-text/20'}`} />
+                                           ))}
+                                       </div>
+                                   </div>
+                              </div>
+                              
+                              {/* Center Info */}
+                              <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                                  <div className="text-md font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap leading-none mb-0.5">
+                                      {recentAction?.clock ? 
+                                          recentAction.clock.replace('PT', '').replace('M', ':').replace('S', '').split('.')[0] 
+                                          : '12:00'}
+                                      <span className="opacity-60 ml-1">
+                                         {recentAction ? (recentAction.period <= 4 ? `Q${recentAction.period}` : `OT${recentAction.period-4}`) : ((gameStatus === 3) ? 'FINAL' : (gameStatus === 1 ? 'PRE' : 'Q1'))}
+                                      </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                      <span className={`text-2xl font-mono leading-none ${currentScore.home > currentScore.away ? 'text-primary' : 'text-text'}`}>
+                                          {currentScore.home}
+                                      </span>
+                                      <span className="text-text/20 text-sm">-</span>
+                                      <span className={`text-2xl font-mono leading-none ${currentScore.away > currentScore.home ? 'text-secondary' : 'text-text'}`}>
+                                          {currentScore.away}
+                                      </span>
+                                  </div>
+                              </div>
+
+                              {/* Away Team */}
+                              <div className="flex flex-col items-center relative gap-1 min-w-[60px]">
+                                   <div className="relative">
+                                       <img 
+                                           src={`https://cdn.nba.com/logos/nba/${awayTeam.teamId}/primary/L/logo.svg`} 
+                                           alt={awayTeam.teamTricode} 
+                                           className="w-8 h-8 object-contain"
+                                       />
+                                       {awayTeam.inBonus && (
+                                           <div className="absolute -top-1 -right-2 bg-secondary text-text text-[6px] font-bold px-1 py-0.5 rounded-full shadow-sm border border-background leading-none">
+                                               BONUS
+                                           </div>
+                                       )}
+                                   </div>
+                                    <div className="flex flex-col items-center">
+                                       <span className={`text-sm font-bold leading-none ${currentScore.away > currentScore.home ? 'text-secondary' : 'text-text'}`}>
+                                           {awayTeam.teamTricode}
+                                       </span>
+                                       <div className="flex gap-0.5 mt-0.5">
+                                           {[...Array(7)].map((_, i) => (
+                                               <div key={i} className={`w-0.5 h-0.5 rounded-full ${i < awayTeam.timeoutsRemaining ? 'bg-secondary' : 'bg-text/20'}`} />
+                                           ))}
+                                       </div>
+                                   </div>
+                              </div>
+
+                              {/* Possession Indicator Border */}
+                              {possessionTeamId && (
+                                  <div 
+                                    className={`absolute bottom-0 h-[2px] transition-all duration-300 ${possessionTeamId === homeTeam.teamId ? 'left-4 w-12 bg-primary' : 'right-4 w-12 bg-secondary'}`} 
+                                  />
+                              )}
+                         </div>
+                    </div>
                 </div>
 
                 {/* Timeout / Substitution / Period Overlay - Moved outside overflow-hidden container */}

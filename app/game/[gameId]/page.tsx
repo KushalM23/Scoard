@@ -333,7 +333,7 @@ export default function Game() {
 
                 <div className="flex flex-col gap-8 md:gap-6">
                     <div className="w-full">
-                        {gameData.gameStatus === 2 ? (
+                        {(gameData.gameStatus === 2 || gameData.gameStatus === 3) ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -347,13 +347,6 @@ export default function Game() {
                                     players={players}
                                 />
                             </motion.div>
-                        ) : gameData.gameStatus === 3 ? (
-                            <TopPerformers 
-                                homeTeamName={gameData.homeTeam.teamTricode}
-                                awayTeamName={gameData.awayTeam.teamTricode}
-                                homePlayers={players.filter(p => p.teamId === gameData.homeTeam.teamId)}
-                                awayPlayers={players.filter(p => p.teamId === gameData.awayTeam.teamId)}
-                            />
                         ) : (
                             <div className="space-y-6">
                                 {gameData.winProbability && (
@@ -372,6 +365,23 @@ export default function Game() {
                             </div>
                         )}
                     </div>
+
+                    {/* Top Performers for Finished Games */}
+                    {gameData.gameStatus === 3 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="w-full"
+                        >
+                            <TopPerformers 
+                                homeTeamName={gameData.homeTeam.teamTricode}
+                                awayTeamName={gameData.awayTeam.teamTricode}
+                                homePlayers={players.filter(p => p.teamId === gameData.homeTeam.teamId)}
+                                awayPlayers={players.filter(p => p.teamId === gameData.awayTeam.teamId)}
+                            />
+                        </motion.div>
+                    )}
 
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
