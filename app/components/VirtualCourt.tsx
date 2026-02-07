@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, Square, Maximize, Minimize } from 'lucide-react';
 import type { PlayByPlayEvent, Team, Player } from '../types';
 import SVGCourt from './SVGCourt';
 import { getTeamColors } from '../lib/teamColors';
@@ -32,6 +33,30 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     const [isReplaying, setIsReplaying] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [replayProgress, setReplayProgress] = useState(0);
+
+    const courtContainerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Toggle fullscreen mode
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            courtContainerRef.current?.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    // Listen for fullscreen change events (e.g. user pressing Escape)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     // Direct coordinate mapping: API uses 0-100 for both x and y
     // SVG court has no margins, so we map directly to percentages
@@ -500,38 +525,8 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     };
 
     return (
-        <div className="relative w-full">
-            {/* Replay Controls */}
-            {isReplaying && (
-                <div className="mb-2 md:mb-4 bg-background/90 backdrop-blur-md p-2 md:p-4 rounded-lg border border-text/20">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-text text-lg md:text-base font-mono">Replaying Game</span>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={togglePause}
-                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
-                            >
-                                {isPaused ? '▶' : '⏸'}
-                            </button>
-                            <button
-                                onClick={stopReplay}
-                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
-                            >
-                                ⏹
-                            </button>
-                        </div>
-                    </div>
-                    <div className="w-full bg-text/10 rounded-full h-1.5 md:h-2 overflow-hidden">
-                        <motion.div
-                            className="bg-primary h-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${replayProgress}%` }}
-                            transition={{ duration: 0.3 }}
-                        />
-                    </div>
-                    <p className="text-text/60 text-[8px] md:text-sm mt-1 md:mt-2">{Math.round(replayProgress)}% complete {isPaused && '(Paused)'}</p>
-                </div>
-            )}
+        <div ref={courtContainerRef} className={`mt-2 relative w-full ${isFullscreen ? 'bg-background p-0 md:p-12 flex flex-col justify-center md:scale-100 h-screen overflow-hidden' : ''}`}>
+            
 
             {/* Side Notifications - Moved OUTSIDE the court container */}
             <AnimatePresence>
@@ -595,16 +590,16 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 {/* Court Container Wrapper */}
                 <div className="relative w-full">
                     {/* Defense Indicators - Outside Court */}
-                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 -rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden md:block">
+                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 -rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden lg:block">
                         {homeTeam.teamTricode}
                     </div>
                     
-                    <div className="absolute -right-16 top-1/2 -translate-y-1/2 rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden md:block">
+                    <div className="absolute -right-16 top-1/2 -translate-y-1/2 rotate-90 text-text font-mono text-2xl md:text-4xl uppercase tracking-widest whitespace-nowrap pointer-events-none select-none hidden lg:block">
                         {awayTeam.teamTricode}
                     </div>
 
                     {/* Court Container */}
-                    <div className="relative w-full aspect-[94/50] rounded-lg overflow-hidden border-2 border-text/10">
+                    <div className={`relative w-full aspect-[94/50] rounded-lg overflow-hidden border-2 border-text/10`}>
                         <SVGCourt
                             className="absolute inset-0 w-full h-full"
                             courtColor="#C4A574"
@@ -826,6 +821,76 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                     )}
                 </AnimatePresence>
             </div>
+
+            {!isReplaying && (
+                <div className="flex justify-center mt-2">
+                            <button
+                                onClick={toggleFullscreen}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
+                            >
+                                {isFullscreen ? (
+                                    <>
+                                        <Minimize className="w-4 h-4 md:w-5 md:h-5" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+            )}
+
+            {/* Replay Controls */}
+            {isReplaying && (
+                <div className="p-2 md:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={togglePause}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base flex items-center justify-center"
+                            >
+                                {isPaused ? <Play className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" /> : <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />}
+                            </button>
+                            <button
+                                onClick={stopReplay}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
+                            >
+                                <Square className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                            </button>
+                        </div>
+                        <div className="flex justify-center mt-2">
+                            <button
+                                onClick={toggleFullscreen}
+                                className="bg-primary hover:text-text text-text/80 font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg transition-colors duration-200 text-xs md:text-base"
+                            >
+                                {isFullscreen ? (
+                                    <>
+                                        <Minimize className="w-4 h-4 md:w-5 md:h-5" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="w-full bg-text/10 rounded-full h-1.5 md:h-2 overflow-hidden">
+                        <motion.div
+                            className="bg-primary h-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${replayProgress}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
+                    <p className="text-text/60 text-center text-[8px] md:text-sm mt-1 md:mt-2">{Math.round(replayProgress)}% complete</p>
+                </div>
+            )}
+            
+            {/* Fullscreen Toggle Button */}
+            
+
             </div>
         </div>
     );

@@ -9,6 +9,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import GameCard from './GameCard';
 import Standings from './Standings';
 import CalendarPicker from './CalendarPicker';
+import Loading from './Loading';
 
 interface HeroProps {
     onGameSelect: (gameId: string) => void;
@@ -137,15 +138,8 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                         transition={{ duration: 0.3 }}
                     >
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                <motion.div
-                                    animate={{ y: [0, -20, 0] }}
-                                    transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
-                                    className="text-4xl"
-                                >
-                                    🏀
-                                </motion.div>
-                                <p className="text-text/40 font-mono animate-pulse">LOADING GAMES...</p>
+                            <div className="py-20">
+                                <Loading />
                             </div>
                         ) : games.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">

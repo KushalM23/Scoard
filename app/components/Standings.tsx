@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import axios from 'axios';
 import Image from 'next/image';
+import Loading from './Loading';
 
 const TEAM_CODES: Record<number, string> = {
     1610612737: 'ATL', 1610612738: 'BOS', 1610612751: 'BKN', 1610612766: 'CHA',
@@ -260,15 +261,8 @@ const Standings: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <motion.div
-                    animate={{ y: [0, -20, 0] }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
-                    className="text-4xl"
-                >
-                    🏀
-                </motion.div>
-                <p className="text-text/40 font-mono animate-pulse">LOADING STANDINGS...</p>
+            <div className="py-20">
+                <Loading text="LOADING STANDINGS..." />
             </div>
         );
     }

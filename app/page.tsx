@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Layout from './components/Layout';
 import Header from './components/Header';
 import Hero from './components/Hero';
+import Loading from './components/Loading';
 
 function HomeContent() {
     const router = useRouter();
@@ -32,7 +33,7 @@ export default function Home() {
     return (
         <Suspense fallback={
             <div className="flex justify-center items-center min-h-screen">
-                <div className="text-text/60 font-mono animate-pulse">LOADING...</div>
+                <Loading />
             </div>
         }>
             <HomeContent />

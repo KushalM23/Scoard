@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import Loading from './Loading';
 import type { Matchup } from '../types';
 
 interface PreviousMatchupsProps {
@@ -36,15 +37,8 @@ const MatchupItem: React.FC<{ matchup: Matchup }> = ({ matchup }) => {
 
     if (loading) {
         return (
-             <div className="flex items-center justify-between p-3 bg-background/30 rounded-lg animate-pulse h-[72px]">
-                 <div className="flex flex-col w-full gap-2">
-                     <div className="w-20 h-3 bg-white/5 rounded mx-auto"></div>
-                     <div className="flex justify-between w-full px-4">
-                        <div className="w-10 h-5 bg-white/5 rounded"></div>
-                        <div className="w-16 h-6 bg-white/5 rounded"></div>
-                        <div className="w-10 h-5 bg-white/5 rounded"></div>
-                     </div>
-                 </div>
+             <div className="flex items-center justify-center p-3 bg-background/30 rounded-lg h-[72px]">
+                 <Loading size={24} className="p-0" showText={false} />
              </div>
         );
     }

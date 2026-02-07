@@ -13,6 +13,7 @@ import StatsSection from '../../components/StatsSection';
 import TopPerformers from '../../components/TopPerformers';
 import PreviousMatchups from '../../components/PreviousMatchups';
 import WinProbability from '../../components/WinProbability';
+import Loading from '../../components/Loading';
 import type { GameData, PlayByPlayEvent, Player } from '../../types';
 
 export default function Game() {
@@ -257,16 +258,7 @@ export default function Game() {
             <Layout>
                 <Header />
                 <div className="flex justify-center items-center h-[calc(100vh-80px)]">
-                    <div className="flex flex-col items-center gap-4">
-                        <motion.div
-                            animate={{ y: [0, -20, 0] }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
-                            className="text-4xl"
-                        >
-                            🏀
-                        </motion.div>
-                        <p className="text-text/60 font-mono animate-pulse">LOADING GAME DATA...</p>
-                    </div>
+                    <Loading />
                 </div>
             </Layout>
         );
