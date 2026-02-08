@@ -47,11 +47,11 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
 
     return (
         <div className="glass-card p-4 mb-4 max-w-2xl mx-auto">
-            <h3 className="text-lg font-bold mb-4 text-center">Top Performers</h3>
+            <h3 className="text-lg font-display mb-4 text-center">Top Performers</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Home Team */}
                 <div>
-                    <h4 className="text-sm font-bold text-primary mb-2 uppercase tracking-wider text-center">{homeTeamName}</h4>
+                    <h4 className="text-sm font-display text-primary mb-2 uppercase tracking-wider text-center">{homeTeamName}</h4>
                     <div className="flex flex-col gap-2">
                         {homeTop.map((p, i) => renderPerformerCard(p, i + 1, true))}
                     </div>
@@ -59,7 +59,7 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
 
                 {/* Away Team */}
                 <div>
-                    <h4 className="text-sm font-bold text-secondary mb-2 uppercase tracking-wider text-center">{awayTeamName}</h4>
+                    <h4 className="text-sm font-display text-secondary mb-2 uppercase tracking-wider text-center">{awayTeamName}</h4>
                     <div className="flex flex-col gap-2">
                         {awayTop.map((p, i) => renderPerformerCard(p, i + 1, false))}
                     </div>

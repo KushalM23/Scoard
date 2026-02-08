@@ -12,7 +12,7 @@ interface LoadingProps {
 
 const Loading: React.FC<LoadingProps> = ({ size = 48, className, text = "LOADING...", showText = true }) => {
     return (
-        <div className={twMerge("flex flex-col items-center justify-center p-8 gap-4 text-text/60", className)}>
+        <div className={twMerge("flex flex-col items-center justify-center p-8 gap-4 text-primary", className)}>
             <motion.div
                 animate={{ y: [0, -30] }}
                 transition={{ 
@@ -24,7 +24,7 @@ const Loading: React.FC<LoadingProps> = ({ size = 48, className, text = "LOADING
             >
                 <SportsBasketballIcon size={size} color="currentColor" />
             </motion.div>
-            {showText && <p className="font-mono text-sm animate-pulse tracking-widest">{text}</p>}
+            {showText && <p className="font-mono text-text/60 text-sm animate-pulse tracking-widest">{text}</p>}
         </div>
     );
 };

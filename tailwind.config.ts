@@ -8,7 +8,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#271D1D',
+        background: '#1a1616',
         text: '#faf0d5',
         primary: '#EB5E28',
         accent: '#EB5E28',
@@ -28,3 +28,4 @@ const config: Config = {
   plugins: [],
 };
 export default config;
+

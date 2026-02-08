@@ -79,7 +79,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
                             </div>
                         )}
                     </div>
-                    <h2 className={`text-xl md:text-2xl font-bold ${isHomeLeading ? 'text-primary' : 'text-text'}`}>
+                    <h2 className={`text-xl md:text-2xl font-display ${isHomeLeading ? 'text-primary' : 'text-text'}`}>
                         {homeTeam.teamTricode}
                     </h2>
                     {isScheduled ? (
@@ -144,7 +144,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
                             </div>
                         )}
                     </div>
-                    <h2 className={`text-xl md:text-2xl font-bold ${isAwayLeading ? 'text-secondary' : 'text-text'}`}>
+                    <h2 className={`text-xl md:text-2xl font-display ${isAwayLeading ? 'text-secondary' : 'text-text'}`}>
                         {awayTeam.teamTricode}
                     </h2>
                     {isScheduled ? (

@@ -58,7 +58,7 @@ const MatchupItem: React.FC<{ matchup: Matchup }> = ({ matchup }) => {
             <div className="flex flex-col w-full">
                 <span className="text-xs text-text/40 mb-1 text-center">{new Date(matchup.gameDate).toLocaleDateString()}</span>
                 <div className='flex justify-between items-center w-full px-4'> 
-                    <span className={`font-bold w-1/3 text-2xl text-left ${isHomeWinner ? 'text-text' : 'text-text/40'}`}>
+                    <span className={`font-display w-1/3 text-2xl text-left ${isHomeWinner ? 'text-text' : 'text-text/40'}`}>
                         {homeTeam.teamTricode}
                     </span>
                     
@@ -74,7 +74,7 @@ const MatchupItem: React.FC<{ matchup: Matchup }> = ({ matchup }) => {
                         {awayTeam.score} 
                     </span>
 
-                    <span className={`font-bold w-1/3  text-2xl text-right ${!isHomeWinner ? 'text-text' : 'text-text/40'}`}>
+                    <span className={`font-display w-1/3  text-2xl text-right ${!isHomeWinner ? 'text-text' : 'text-text/40'}`}>
                         {awayTeam.teamTricode}
                     </span>
                 </div>

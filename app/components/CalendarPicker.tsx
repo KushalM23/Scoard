@@ -102,7 +102,7 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateSel
                                 key={format(viewMonth, 'yyyy-MM')}
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-xl font-bold text-text font-mono tracking-wide"
+                                className="text-xl font-bold text-text font-display tracking-wide"
                             >
                                 {format(viewMonth, 'MMMM yyyy')}
                             </motion.h3>

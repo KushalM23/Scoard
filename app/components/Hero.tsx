@@ -113,7 +113,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as 'scores' | 'standings')}
-                            className={`relative px-6 py-2 md:px-8 md:py-2.5 rounded-lg font-bold text-sm md:text-base transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                            className={`relative px-6 py-2 md:px-8 md:py-2.5 rounded-lg font-display text-sm md:text-base transition-colors duration-300 tracking-wide z-10 ${activeTab === tab ? 'text-text' : 'text-text/60 hover:text-text'}`}
                         >
                             {activeTab === tab && (
                                 <motion.div

@@ -290,7 +290,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({ gameData, players, actions 
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative flex-1 md:flex-none px-2 md:px-6 py-2 rounded-lg font-bold text-xs md:text-sm transition-colors duration-300 font-sans tracking-wide z-10 whitespace-nowrap ${activeTab === tab.id ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                            className={`relative flex-1 md:flex-none px-2 md:px-6 py-2 rounded-lg font-display text-xs md:text-sm transition-colors duration-300 tracking-wide z-10 whitespace-nowrap ${activeTab === tab.id ? 'text-text' : 'text-text/60 hover:text-text'}`}
                         >
                             {activeTab === tab.id && (
                                 <motion.div

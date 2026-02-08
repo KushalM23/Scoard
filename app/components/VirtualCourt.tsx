@@ -190,100 +190,8 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 });
             }
 
-            // --- Side Notification Logic ---
-            // 1. Identify the primary actor (usually personId)
-            let notificationPlayer = players.find(p => p.personId === currentEvent.personId);
-            let message = currentEvent.playerNameI || 'Unknown';
-            let subMessage = '';
-            let showNotification = false;
-            let notificationPersonId = currentEvent.personId;
-            let notificationTeamId = currentEvent.teamId;
 
             const type = currentEvent.actionType ? currentEvent.actionType.toLowerCase() : '';
-            const isMade = currentEvent.shotResult === 'Made';
-
-            // 2. Check for Secondary Actors (Assist, Block, Steal) via specific keys
-            if (currentEvent.actionType === 'foul' && currentEvent.subType === 'offensive') {
-                // Skip offensive fouls (usually followed by turnover which handles display)
-                 setEventQueue(prev => prev.slice(1));
-                 setIsProcessing(false);
-                 return;
-            }
-
-            if (currentEvent.stealPersonId) {
-                 const stealer = players.find(p => p.personId === currentEvent.stealPersonId);
-                 if (stealer) {
-                    notificationPlayer = stealer;
-                    message = `${stealer.firstName.charAt(0)}. ${stealer.lastName}`;
-                    subMessage = `${stealer.steals} STL`;
-                    notificationPersonId = stealer.personId;
-                    notificationTeamId = stealer.teamId;
-                    showNotification = true;
-                 }
-            } else if (currentEvent.blockPersonId) {
-                 const blocker = players.find(p => p.personId === currentEvent.blockPersonId);
-                 if (blocker) {
-                    notificationPlayer = blocker;
-                    message = `${blocker.firstName.charAt(0)}. ${blocker.lastName}`;
-                    subMessage = `${blocker.blocks} BLK`;
-                    notificationPersonId = blocker.personId;
-                    notificationTeamId = blocker.teamId;
-                    showNotification = true;
-                 }
-            } else if (currentEvent.assistPersonId) {
-                 const assister = players.find(p => p.personId === currentEvent.assistPersonId);
-                 if (assister) {
-                    notificationPlayer = assister;
-                    message = `${assister.firstName.charAt(0)}. ${assister.lastName}`;
-                    subMessage = `${assister.assists} AST`;
-                    notificationPersonId = assister.personId;
-                    notificationTeamId = assister.teamId;
-                    showNotification = true;
-                 }
-            }
-
-            // 3. If no secondary notification triggered, check primary actor stats
-            if (!showNotification && notificationPlayer) {
-                // Points
-                if ((type === '2pt' || type === '3pt' || type === 'freethrow') && isMade) {
-                    let points = 2;
-                    if (type === '3pt') points = 3;
-                    else if (type === 'freethrow') points = 1;
-                    
-                    const updatedPoints = (notificationPlayer.points || 0) + points;
-                    subMessage = `${updatedPoints} PTS (+${points})`;
-                    showNotification = true;
-                } 
-                // Rebounds
-                else if (type === 'rebound') {
-                    const updatedRebs = (notificationPlayer.rebounds || 0) + 1;
-                    subMessage = `${updatedRebs} REB (+1)`;
-                    showNotification = true;
-                } 
-                // Fouls
-                else if (type === 'foul') {
-                    const updatedFouls = (notificationPlayer.fouls || 0) + 1;
-                    subMessage = `${updatedFouls} PF (+1)`; 
-                    showNotification = true;
-                }
-                // Turnovers (Steals handled above, so this is non-steal turnover)
-                else if (type === 'turnover' && !currentEvent.stealPersonId) {
-                     const updatedTO = (notificationPlayer.turnovers || 0) + 1;
-                     subMessage = `${updatedTO} TO (+1)`;
-                     showNotification = true;
-                }
-            }
-
-            if (showNotification && !isReplaying) {
-                setSideNotification({
-                    teamId: notificationTeamId,
-                    message: message,
-                    subMessage: subMessage,
-                    personId: notificationPersonId
-                });
-                // Hide notification slightly before the next event
-                setTimeout(() => setSideNotification(null), 3000);
-            }
 
             // --- Overlay Logic (Timeouts, Subs, Quarter End) ---
             const isOverlayEvent = type === 'timeout' || type === 'substitution' || type === 'period';
@@ -526,36 +434,6 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
     return (
         <div ref={courtContainerRef} className={`mt-2 relative w-full ${isFullscreen ? 'bg-background p-0 md:p-12 flex flex-col justify-center md:scale-100 h-screen overflow-hidden' : ''}`}>
-            
-
-            {/* Side Notifications - Moved OUTSIDE the court container */}
-            <AnimatePresence>
-                {sideNotification && (
-                    <motion.div
-                        initial={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: sideNotification.teamId === homeTeam.teamId ? -20 : 20 }}
-                        className={`absolute bottom-0 scale-50 md:scale-90 ${sideNotification.teamId === homeTeam.teamId ? 'left-2 md:-left-12' : 'right-2 md:-right-12'} z-30 flex flex-col items-center gap-2 pointer-events-none`}
-                    >
-                        <div className={`bg-background/90 backdrop-blur-md p-3 rounded-lg border border-text/20 shadow-lg min-w-[120px] flex items-center gap-3 ${sideNotification.teamId === homeTeam.teamId ? 'flex-row' : 'flex-row-reverse'}`}>
-                            {/* Player Image */}
-                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-text/10 bg-text/5 shrink-0">
-                                <img 
-                                    src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${sideNotification.personId}.png`} 
-                                    alt="Player"
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=NBA'; }}
-                                />
-                            </div>
-                            <div className="text-center">
-                                <p className="text-text font-bold text-sm whitespace-nowrap">{sideNotification.message}</p>
-                                <p className="text-primary font-bold text-lg whitespace-nowrap">{sideNotification.subMessage}</p>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             <div className="bg-background p-2 md:p-3 rounded-lg relative z-10">
                 {/* Possession Indicator */}
                 <div className="flex justify-between mb-2 px-4">
@@ -813,9 +691,9 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                             exit={{ opacity: 0, scale: 0.8 }}
                             className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                         >
-                            <div className="bg-background/95 backdrop-blur-md text-text p-6 rounded-xl shadow-2xl text-center max-w-md border border-text/10 pointer-events-auto">
-                                <h3 className="text-2xl font-bold mb-2 uppercase text-primary font-display tracking-wider">{overlayEvent.title}</h3>
-                                <p className="text-lg font-semibold font-mono">{overlayEvent.description}</p>
+                            <div className="bg-background/95 backdrop-blur-md text-text px-16 py-12 rounded-xl shadow-2xl text-center max-w-2xl border border-text/10 pointer-events-auto">
+                                <h3 className="text-4xl font-bold mb-2 uppercase text-primary font-display tracking-wider">{overlayEvent.title}</h3>
+                                <p className="text-6xl font-semibold font-mono">{overlayEvent.description}</p>
                             </div>
                         </motion.div>
                     )}

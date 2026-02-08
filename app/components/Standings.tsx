@@ -192,7 +192,7 @@ const Standings: React.FC = () => {
         <div className="mb-8 glass-card overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-text/80 whitespace-nowrap">
-                    <thead className="text-xs text-text/60 uppercase bg-white/5 font-sans tracking-wider">
+                    <thead className="text-xs text-text/60 uppercase bg-white/5 font-display tracking-wider">
                         <tr>
                             <th className="p-0 sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-[180px]">
                                 <div className="px-4 py-3">Team</div>
@@ -276,7 +276,7 @@ const Standings: React.FC = () => {
                     </p>
                     <button 
                         onClick={() => fetchStandings(true)} 
-                        className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                        className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-display transition-all hover:scale-105"
                     >
                         RETRY CONNECTION
                     </button>
@@ -369,7 +369,7 @@ const Standings: React.FC = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`relative px-1 md:px-6 py-2 rounded-lg font-bold text-[10px] md:text-sm transition-colors duration-300 font-sans tracking-wide z-10 ${activeTab === tab.id ? 'text-text' : 'text-text/60 hover:text-text'}`}
+                                    className={`relative px-1 md:px-6 py-2 rounded-lg font-bold text-[10px] md:text-sm transition-colors duration-300 font-display tracking-wide z-10 ${activeTab === tab.id ? 'text-text' : 'text-text/60 hover:text-text'}`}
                                 >
                                     {activeTab === tab.id && (
                                         <motion.div
