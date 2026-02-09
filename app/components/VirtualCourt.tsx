@@ -691,9 +691,9 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                             exit={{ opacity: 0, scale: 0.8 }}
                             className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                         >
-                            <div className="bg-background/95 backdrop-blur-md text-text px-16 py-12 rounded-xl shadow-2xl text-center max-w-2xl border border-text/10 pointer-events-auto">
-                                <h3 className="text-4xl font-bold mb-2 uppercase text-primary font-display tracking-wider">{overlayEvent.title}</h3>
-                                <p className="text-6xl font-semibold font-mono">{overlayEvent.description}</p>
+                            <div className="bg-background/95 backdrop-blur-md text-text px-8 py-6 md:px-16 md:py-12 rounded-xl shadow-2xl text-center max-w-2xl border border-text/10 pointer-events-auto">
+                                <h3 className="text-lg md:text-4xl font-bold mb-2 uppercase text-primary font-display tracking-wider">{overlayEvent.title}</h3>
+                                <p className="text-xl md:text-2xl font-semibold font-mono">{overlayEvent.description}</p>
                             </div>
                         </motion.div>
                     )}

@@ -245,7 +245,8 @@ const Standings: React.FC = () => {
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.homeRecord}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.roadRecord}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.l10}</td>
-                                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.streak}</td>
+                                <td className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.streak.startsWith('W')? 'text-green-400' : 'text-red-400'}`}>
+                                    {team.streak}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.pointsPg}</td>
                                 <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">{team.oppPointsPg}</td>
                                 <td className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.diffPointsPg > 0 ? 'text-green-400' : 'text-red-400'}`}>
