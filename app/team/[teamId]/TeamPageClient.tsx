@@ -10,6 +10,8 @@ import {
 import axios from "axios";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { ArrowUpDown } from "lucide-react";
 import Loading from "@/app/components/Loading";
 import TeamLink from "@/app/components/TeamLink";
 import { trackEvent } from "@/app/lib/analytics";
@@ -19,6 +21,7 @@ import type {
   TeamRosterData,
   TeamScheduleData,
   TeamStatsData,
+  TeamStatsPlayerRow,
   TeamStatsStandardRow,
   TeamStatsAdvancedRow,
   TeamResultsData,
@@ -76,7 +79,7 @@ function SectionError({
 }) {
   return (
     <div className="glass-card p-5 flex flex-col gap-3">
-      <p className="text-red-300 font-display text-sm tracking-wider uppercase">
+      <p className="text-red-400 font-display text-sm tracking-wider uppercase">
         {title}
       </p>
       <p className="text-text/70 text-sm">
@@ -114,22 +117,103 @@ function TeamOverviewInline({
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
 }) {
+  const panelHeightClass = "h-[372px]";
+
+  const formatGameDate = (rawDate: string, display?: string) => {
+    if (display) return display;
+
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) {
+      return rawDate;
+    }
+
+    return parsed.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const streakClass = /^W/i.test(data.streak)
+    ? "text-green-300"
+    : /^L/i.test(data.streak)
+      ? "text-red-400"
+      : "text-text/80";
+
+  const formatScoreLine = (game: TeamResultsData["games"][number]) => {
+    if (
+      typeof game.homeTeamScore === "number" &&
+      typeof game.awayTeamScore === "number"
+    ) {
+      return `${game.homeTeamScore} - ${game.awayTeamScore}`;
+    }
+
+    return game.finalScore ?? "--";
+  };
+
+  const getSelectedTeamPresentation = (
+    game: TeamResultsData["games"][number],
+  ) => {
+    const isSelectedHome =
+      game.homeAway === "Home" || Number(game.homeTeamId) === data.teamId;
+    const didSelectedWin = game.result === "W";
+    const selectedTone = didSelectedWin ? "text-green-300" : "text-red-400";
+
+    return {
+      isSelectedHome,
+      selectedTone,
+      homeTeamTone: isSelectedHome ? selectedTone : "text-text/95",
+      awayTeamTone: isSelectedHome ? "text-text/95" : selectedTone,
+      homeScoreTone: isSelectedHome ? selectedTone : "text-text",
+      awayScoreTone: isSelectedHome ? "text-text" : selectedTone,
+    };
+  };
+
+  const getScoreParts = (game: TeamResultsData["games"][number]) => {
+    if (
+      typeof game.homeTeamScore === "number" &&
+      typeof game.awayTeamScore === "number"
+    ) {
+      return {
+        home: String(game.homeTeamScore),
+        away: String(game.awayTeamScore),
+      };
+    }
+
+    const fallback = formatScoreLine(game)
+      .split("-")
+      .map((part) => part.trim());
+    if (fallback.length === 2) {
+      return {
+        home: fallback[0],
+        away: fallback[1],
+      };
+    }
+
+    return {
+      home: "--",
+      away: "--",
+    };
+  };
+
   const renderSnapshot = (
     title: string,
     rows: TeamOverviewData["standingsSnapshot"]["conference"],
   ) => (
-    <div className="glass-card p-4 h-[360px] flex flex-col">
-      <h3 className="text-xs uppercase tracking-wider text-text/70 mb-3">
+    <div
+      className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
+    >
+      <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
         {title}
       </h3>
-      <div className="flex flex-col gap-2 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-2 h-full">
         {rows.map((row) => (
           <div
             key={`${title}-${row.teamId}`}
-            className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${
+            className={`flex-1 min-h-0 flex items-center justify-between rounded-lg px-2.5 py-1.5 ${
               row.teamId === data.teamId
                 ? "bg-accent/20 border border-accent/30"
-                : "bg-white/5"
+                : ""
             }`}
           >
             <div className="flex items-center gap-2">
@@ -157,7 +241,7 @@ function TeamOverviewInline({
     }
 
     if (schedule.error && !schedule.data) {
-      return <p className="text-red-300 text-sm">{schedule.error}</p>;
+      return <p className="text-red-400 text-sm">{schedule.error}</p>;
     }
 
     if (!schedule.data?.games.length) {
@@ -169,32 +253,28 @@ function TeamOverviewInline({
     }
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {schedule.data.games.map((game) => (
           <Link
             key={game.gameId}
             href={`/game/${game.gameId}`}
-            className="rounded-xl border border-white/10 bg-white/[0.02] p-3 hover:bg-white/5 transition-colors block"
+            className="rounded-xl border border-white/10 bg-background/35 p-4 hover:bg-background/50 transition-colors block"
           >
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold">
-                  {game.awayTeamTricode ?? game.awayTeamName ?? "Away"} @{" "}
-                  {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
-                </p>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-text/70 uppercase tracking-wide">
-                  {game.status}
-                </span>
-              </div>
-              <p className="text-[11px] text-text/50 mt-1">
-                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
-                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
-              </p>
-              <p className="text-xs text-text/65 mt-1">
-                {game.gameDateDisplay ?? game.gameDate} ·{" "}
-                {game.gameTimeDisplay ?? game.gameTime ?? "TBD"}
-              </p>
-            </>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-text/95 w-1/3 text-base md:text-xl font-display">
+                {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
+              </span>
+              <span className="text-text/60 text-sm uppercase tracking-wide w-1/3 text-center">
+                vs
+              </span>
+              <span className="text-text/95 text-right w-1/3 text-base md:text-xl font-display">
+                {game.awayTeamTricode ?? game.awayTeamName ?? "Away"}
+              </span>
+            </div>
+            <p className="text-sm text-text/70 mt-2 text-center">
+              {formatGameDate(game.gameDate, game.gameDateDisplay)} ·{" "}
+              {game.gameTimeDisplay ?? game.gameTime ?? "TBD"}
+            </p>
           </Link>
         ))}
       </div>
@@ -207,7 +287,7 @@ function TeamOverviewInline({
     }
 
     if (results.error && !results.data) {
-      return <p className="text-red-300 text-sm">{results.error}</p>;
+      return <p className="text-red-400 text-sm">{results.error}</p>;
     }
 
     if (!results.data?.games.length) {
@@ -219,44 +299,42 @@ function TeamOverviewInline({
     }
 
     return (
-      <div className="space-y-2">
-        {results.data.games.map((game) => (
-          <Link
-            key={game.gameId}
-            href={`/game/${game.gameId}`}
-            className="rounded-xl border border-white/10 bg-white/[0.02] p-3 hover:bg-white/5 transition-colors block"
-          >
-            <>
-              <p className="text-sm font-semibold">
-                {game.awayTeamTricode ?? game.awayTeamName ?? "Away"} @{" "}
-                {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
-              </p>
-              <p className="text-[11px] text-text/50 mt-1">
-                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
-                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
-              </p>
-              <p className="text-xs text-text/65 mt-1">
-                {game.gameDateDisplay ?? game.gameDate}
-              </p>
-            </>
-            <div className="mt-1 flex items-center justify-between">
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  game.result === "W" ? "text-green-300" : "text-red-300"
-                }`}
-              >
-                {game.result}
-              </span>
-              <span className="text-sm text-text/75 font-mono">
-                {game.finalScore ??
-                  (game.homeTeamScore !== undefined &&
-                  game.awayTeamScore !== undefined
-                    ? `${game.homeTeamScore}-${game.awayTeamScore}`
-                    : "--")}
-              </span>
-            </div>
-          </Link>
-        ))}
+      <div className="space-y-3">
+        {results.data.games.map((game) => {
+          const tone = getSelectedTeamPresentation(game);
+          const scores = getScoreParts(game);
+
+          return (
+            <Link
+              key={game.gameId}
+              href={`/game/${game.gameId}`}
+              className="rounded-xl border border-white/10 bg-background/35 p-4 hover:bg-background/50 transition-colors block"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className={`${tone.homeTeamTone} w-1/3 text-base md:text-xl font-display`}
+                >
+                  {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
+                </span>
+                <div className="w-1/3 flex items-center justify-center gap-2 md:gap-3 leading-none font-mono text-2xl md:text-3xl font-bold">
+                  <span className={tone.homeScoreTone}>{scores.home}</span>
+                  <span className="text-text/50">-</span>
+                  <span className={tone.awayScoreTone}>{scores.away}</span>
+                </div>
+                <span
+                  className={`${tone.awayTeamTone} text-right w-1/3 text-base md:text-xl font-display`}
+                >
+                  {game.awayTeamTricode ?? game.awayTeamName ?? "Away"}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <span className="text-sm text-text/70">
+                  {formatGameDate(game.gameDate, game.gameDateDisplay)}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     );
   };
@@ -264,8 +342,8 @@ function TeamOverviewInline({
   return (
     <section className="mb-6">
       <div className="glass-card p-5 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
+          <div className="flex items-center gap-4 min-w-0">
             <img
               src={
                 data.logoUrl ??
@@ -274,65 +352,55 @@ function TeamOverviewInline({
               alt={`${data.city} ${data.name}`}
               className="w-16 h-16 md:w-20 md:h-20 object-contain"
             />
-            <div>
-              <h1 className="text-2xl md:text-3xl font-display">
-                {data.city} {data.name}
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-display leading-tight truncate">
+                {data.city}
               </h1>
-              <p className="text-text/70 text-sm md:text-base">
-                {data.record.wins}-{data.record.losses} (
-                {(data.record.winPct * 100).toFixed(1)}%)
-              </p>
-              <p className="text-text/60 text-xs mt-1">
-                Conf #{data.ranks.conferenceRank} | Div #
-                {data.ranks.divisionRank} | {data.streak}
-              </p>
+              <h2 className="text-2xl md:text-3xl font-display leading-tight truncate">
+                {data.name}
+              </h2>
+            </div>
+          </div>
+
+          <div className="w-full md:w-auto md:min-w-[320px] lg:min-w-[360px]">
+            <div className="flex items-center justify-center md:justify-end gap-2 font-bold text-xs md:text-lg text-text/80">
+              <span>
+                {data.record.wins}-{data.record.losses}
+              </span>
+              <span className="text-text/30">|</span>
+              <span className={streakClass}>{data.streak}</span>
+            </div>
+            <div className="flex items-center justify-center md:justify-end gap-2 font-bold text-xs md:text-lg text-text/80 mt-1">
+              <span>Conf #{data.ranks.conferenceRank}</span>
+              <span className="text-text/30">|</span>
+              <span>Div #{data.ranks.divisionRank}</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-4">
-          <p className="text-xs uppercase tracking-wider text-text/60 mb-2">
-            Recent Form
-          </p>
-          {!data.recentForm.length ? (
-            <p className="text-text/50 text-xs">No recent form available</p>
-          ) : (
-            <div className="flex gap-1.5 flex-wrap">
-              {data.recentForm.map((value, idx) => (
-                <span
-                  key={`${value}-${idx}`}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    value === "W"
-                      ? "bg-green-500/20 text-green-300"
-                      : "bg-red-500/20 text-red-300"
-                  }`}
-                >
-                  {value}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          {renderSnapshot(
-            "Conference Snapshot",
-            data.standingsSnapshot.conference,
-          )}
-          <div className="glass-card p-4 h-[360px] flex flex-col">
-            <h3 className="text-xs uppercase tracking-wider text-text/70 mb-3">
+          <div
+            className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
+          >
+            <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
               Results
             </h3>
             <div className="overflow-y-auto pr-1">{renderResultsContent()}</div>
           </div>
-          <div className="glass-card p-4 h-[360px] flex flex-col">
-            <h3 className="text-xs uppercase tracking-wider text-text/70 mb-3">
+          <div
+            className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
+          >
+            <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
               Schedule
             </h3>
             <div className="overflow-y-auto pr-1">
               {renderScheduleContent()}
             </div>
           </div>
+          {renderSnapshot(
+            "Conference Snapshot",
+            data.standingsSnapshot.conference,
+          )}
         </div>
       </div>
     </section>
@@ -391,31 +459,42 @@ function TeamStatsTable({
   columns: Array<{ key: string; label: string }>;
   row: Record<string, string | number>;
 }) {
+  const tableMinWidthClass =
+    columns.length <= 10 ? "min-w-[760px]" : "min-w-[1160px]";
+
   return (
-    <div className="glass-card overflow-auto">
-      <h3 className="text-xs uppercase tracking-wider text-text/70 px-4 py-3 border-b border-white/10">
+    <div className="space-y-2">
+      <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
         {title}
       </h3>
-      <table className="w-full min-w-[1040px] text-left">
-        <thead className="text-xs uppercase text-text/60 bg-white/[0.03]">
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key} className="px-3 py-2 font-medium">
-                {column.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-t border-white/10 hover:bg-white/5">
-            {columns.map((column) => (
-              <td key={column.key} className="px-3 py-2 font-mono text-sm">
-                {row[column.key] ?? "--"}
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+      <div className="glass-card overflow-auto rounded-2xl">
+        <table className={`w-full ${tableMinWidthClass} text-center`}>
+          <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className="px-5 py-4 font-semibold whitespace-nowrap text-center"
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-white/10 hover:bg-white/5">
+              {columns.map((column) => (
+                <td
+                  key={column.key}
+                  className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center"
+                >
+                  {row[column.key] ?? "--"}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -423,7 +502,7 @@ function TeamStatsTable({
 function TeamStatsInline({ data }: { data: TeamStatsData }) {
   if (data.tables) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <TeamStatsTable
           title="Team Stats - Per Game"
           columns={STAT_COLUMNS}
@@ -463,10 +542,13 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {metricLabels.map((metric) => (
-          <div key={metric.label} className="glass-card p-3 text-center">
+          <div
+            key={metric.label}
+            className="glass-card p-4 text-center rounded-xl"
+          >
             <p className="text-[11px] text-text/60 tracking-wider uppercase">
               {metric.label}
             </p>
@@ -475,8 +557,8 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="glass-card p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="glass-card p-5 rounded-xl">
           <h3 className="text-xs uppercase tracking-wider text-text/70 mb-2">
             Team Record
           </h3>
@@ -487,7 +569,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
             Games Played: {data.teamMetrics.gamesPlayed}
           </p>
         </div>
-        <div className="glass-card p-4">
+        <div className="glass-card p-5 rounded-xl">
           <h3 className="text-xs uppercase tracking-wider text-text/70 mb-2">
             Home / Away
           </h3>
@@ -509,6 +591,37 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
   const [sortBy, setSortBy] = useState<SortKey>("points");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  const statColumns: Array<{
+    key: SortKey;
+    label: string;
+    format?: (value: number) => string;
+  }> = [
+    { key: "points", label: "PTS" },
+    { key: "rebounds", label: "REB" },
+    { key: "assists", label: "AST" },
+    { key: "steals", label: "STL" },
+    { key: "blocks", label: "BLK" },
+    {
+      key: "fgPct",
+      label: "FG%",
+      format: (value) => `${(value * 100).toFixed(1)}%`,
+    },
+    {
+      key: "threePtPct",
+      label: "3P%",
+      format: (value) => `${(value * 100).toFixed(1)}%`,
+    },
+    {
+      key: "ftPct",
+      label: "FT%",
+      format: (value) => `${(value * 100).toFixed(1)}%`,
+    },
+    { key: "turnovers", label: "TOV" },
+    { key: "fouls", label: "PF" },
+    { key: "oReb", label: "OREB" },
+    { key: "dReb", label: "DREB" },
+  ];
+
   const sortedRows = useMemo(() => {
     const cloned = [...data.playerStats];
     return cloned.sort((a, b) => {
@@ -527,6 +640,41 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
     setSortDirection("desc");
   };
 
+  const leaderboardOrder: Array<string> = [
+    "points",
+    "rebounds",
+    "assists",
+    "steals",
+    "blocks",
+    "fgPct",
+    "threePtPct",
+    "ftPct",
+    "turnovers",
+    "fouls",
+    "oReb",
+    "dReb",
+  ];
+
+  const leaderboardLabelMap: Record<string, string> = {
+    points: "PTS",
+    rebounds: "REB",
+    assists: "AST",
+    steals: "STL",
+    blocks: "BLK",
+    fgPct: "FG%",
+    threePtPct: "3P%",
+    ftPct: "FT%",
+    turnovers: "TOV",
+    fouls: "PF",
+    oReb: "OREB",
+    dReb: "DREB",
+  };
+
+  const orderedLeaders = [...(data.leagueLeaders ?? [])].sort(
+    (a, b) =>
+      leaderboardOrder.indexOf(a.statKey) - leaderboardOrder.indexOf(b.statKey),
+  );
+
   if (!data.playerStats.length) {
     return (
       <EmptyState
@@ -537,71 +685,111 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
   }
 
   return (
-    <div className="glass-card overflow-auto">
-      <table className="w-full text-left min-w-[780px]">
-        <thead className="text-xs uppercase text-text/60 border-b border-white/10">
-          <tr>
-            <th className="px-3 py-2">Player</th>
-            <th
-              className="px-3 py-2 cursor-pointer"
-              onClick={() => handleSort("points")}
-            >
-              PTS
-            </th>
-            <th
-              className="px-3 py-2 cursor-pointer"
-              onClick={() => handleSort("rebounds")}
-            >
-              REB
-            </th>
-            <th
-              className="px-3 py-2 cursor-pointer"
-              onClick={() => handleSort("assists")}
-            >
-              AST
-            </th>
-            <th
-              className="px-3 py-2 cursor-pointer"
-              onClick={() => handleSort("steals")}
-            >
-              STL
-            </th>
-            <th
-              className="px-3 py-2 cursor-pointer"
-              onClick={() => handleSort("blocks")}
-            >
-              BLK
-            </th>
-            <th className="px-3 py-2">FG%</th>
-            <th className="px-3 py-2">3P%</th>
-            <th className="px-3 py-2">FT%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedRows.map((row) => (
-            <tr
-              key={row.playerId}
-              className="border-b border-white/5 hover:bg-white/5"
-            >
-              <td className="px-3 py-2">{row.playerName}</td>
-              <td className="px-3 py-2 font-mono">{row.points.toFixed(1)}</td>
-              <td className="px-3 py-2 font-mono">{row.rebounds.toFixed(1)}</td>
-              <td className="px-3 py-2 font-mono">{row.assists.toFixed(1)}</td>
-              <td className="px-3 py-2 font-mono">{row.steals.toFixed(1)}</td>
-              <td className="px-3 py-2 font-mono">{row.blocks.toFixed(1)}</td>
-              <td className="px-3 py-2 font-mono">
-                {(row.fgPct * 100).toFixed(1)}%
-              </td>
-              <td className="px-3 py-2 font-mono">
-                {(row.threePtPct * 100).toFixed(1)}%
-              </td>
-              <td className="px-3 py-2 font-mono">
-                {(row.ftPct * 100).toFixed(1)}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
+          Player Stats - Per Game
+        </h3>
+        <div className="glass-card overflow-auto rounded-2xl">
+          <table className="w-full min-w-[1160px] text-center">
+            <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+              <tr>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap text-left">
+                  Player
+                </th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap text-center">
+                  GP
+                </th>
+                <th className="px-5 py-4 font-semibold whitespace-nowrap text-center">
+                  MIN
+                </th>
+                {statColumns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-5 py-4 font-semibold whitespace-nowrap text-center cursor-pointer"
+                    onClick={() => handleSort(column.key)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {column.label}
+                      <ArrowUpDown
+                        className={`w-3.5 h-3.5 ${sortBy === column.key ? "text-accent" : "text-text/35"}`}
+                      />
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((row: TeamStatsPlayerRow) => (
+                <tr
+                  key={row.playerId}
+                  className="border-t border-white/10 hover:bg-white/5"
+                >
+                  <td className="px-5 py-4 text-left text-base md:text-lg font-semibold whitespace-nowrap">
+                    {row.playerName}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center">
+                    {row.gamesPlayed}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center">
+                    {row.minutes.toFixed(1)}
+                  </td>
+                  {statColumns.map((column) => {
+                    const raw = Number(row[column.key] ?? 0);
+                    const value = column.format
+                      ? column.format(raw)
+                      : raw.toFixed(1);
+
+                    return (
+                      <td
+                        key={`${row.playerId}-${column.key}`}
+                        className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center"
+                      >
+                        {value}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
+          League leaders
+        </h3>
+        {!orderedLeaders.length ? (
+          <div className="glass-card rounded-2xl p-4 text-sm text-text/65">
+            League leaderboard is unavailable right now.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {orderedLeaders.map((leader) => (
+              <div
+                key={leader.statKey}
+                className="glass-card rounded-2xl p-4 space-y-1"
+              >
+                <p className="text-xs uppercase tracking-wider text-text/55 font-semibold">
+                  {leaderboardLabelMap[leader.statKey] ?? leader.label}
+                </p>
+                <p className="text-lg font-display mt-1 truncate">
+                  {leader.playerName}
+                </p>
+                <p className="text-sm text-text/75 mt-1 font-mono">
+                  {leader.value.toFixed(1)} per game
+                </p>
+                <p className="text-sm mt-2 text-accent font-semibold">
+                  {leader.leagueRank
+                    ? `#${leader.leagueRank} in NBA`
+                    : "NBA rank unavailable"}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -636,7 +824,7 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
             <p className="font-semibold truncate">{player.playerName}</p>
             <p className="text-xs text-text/60">
               #{player.jersey || "--"} | {player.position || "N/A"} |{" "}
-              {player.status || "Unknown"}
+              {player.age ?? "N/A"}
             </p>
             <p className="text-xs text-text/50 mt-1">
               {player.height || "N/A"} | {player.weight || "N/A"} | EXP{" "}
@@ -692,68 +880,6 @@ function TeamScheduleInline({
               </p>
             </div>
             <span className="text-xs text-text/60">{game.status}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TeamResultsInline({
-  data,
-  onGameClick,
-}: {
-  data: TeamResultsData;
-  onGameClick?: (gameId: string) => void;
-}) {
-  if (!data.games.length) {
-    return (
-      <EmptyState
-        title="No recent results"
-        subtitle="No completed games for this range."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        {data.games.map((game) => (
-          <Link
-            key={game.gameId}
-            href={`/game/${game.gameId}`}
-            onClick={() => onGameClick?.(game.gameId)}
-            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors rounded-xl"
-          >
-            <div>
-              <p className="text-sm font-semibold">
-                {game.awayTeamTricode ??
-                  game.awayTeamName ??
-                  game.opponentTricode}{" "}
-                @ {game.homeTeamTricode ?? game.homeTeamName ?? "TBD"}
-              </p>
-              <p className="text-[11px] text-text/50 mt-0.5">
-                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
-                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
-              </p>
-              <p className="text-xs text-text/60">
-                {game.gameDateDisplay ?? game.gameDate}
-              </p>
-            </div>
-            <div className="text-right">
-              <p
-                className={`text-sm font-bold px-2 py-0.5 rounded-full ${game.result === "W" ? "text-green-300" : "text-red-300"}`}
-              >
-                {game.result}
-              </p>
-              <p className="text-sm text-text/75 font-mono">
-                {game.finalScore ??
-                  (game.homeTeamScore !== undefined &&
-                  game.awayTeamScore !== undefined
-                    ? `${game.homeTeamScore}-${game.awayTeamScore}`
-                    : "--")}
-              </p>
-            </div>
           </Link>
         ))}
       </div>
@@ -990,19 +1116,26 @@ export default function TeamPageClient({
         />
       )}
 
-      <div className="flex justify-start">
-        <div className="glass rounded-xl p-1 flex flex-wrap gap-1 w-full md:w-auto">
+      <div className="flex justify-center">
+        <div className="bg-transparent rounded-xl p-1 flex gap-1 md:gap-2 relative w-full md:w-auto justify-between md:justify-center">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm transition-colors ${
+              className={`relative flex-1 md:flex-none px-3 md:px-6 py-2 rounded-lg font-display text-xs md:text-sm transition-colors duration-300 tracking-wide z-10 whitespace-nowrap ${
                 tab.id === activeTab
-                  ? "bg-accent text-text"
-                  : "text-text/70 hover:text-text hover:bg-white/5"
+                  ? "text-text"
+                  : "text-text/60 hover:text-text"
               }`}
             >
-              {tab.label}
+              {tab.id === activeTab && (
+                <motion.div
+                  layoutId="activeTeamTab"
+                  className="absolute inset-0 bg-accent rounded-lg shadow-lg"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10 uppercase">{tab.label}</span>
             </button>
           ))}
         </div>

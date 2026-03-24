@@ -132,9 +132,39 @@ export interface TeamStatsPlayerRow {
   steals: number;
   blocks: number;
   turnovers: number;
+  fouls: number;
+  oReb: number;
+  dReb: number;
+  fga: number;
+  fgm: number;
+  fta: number;
+  ftm: number;
+  threePtA: number;
+  threePtM: number;
   fgPct: number;
   threePtPct: number;
   ftPct: number;
+}
+
+export interface TeamLeagueLeaderEntry {
+  statKey:
+    | "points"
+    | "rebounds"
+    | "assists"
+    | "steals"
+    | "blocks"
+    | "fgPct"
+    | "threePtPct"
+    | "ftPct"
+    | "turnovers"
+    | "fouls"
+    | "oReb"
+    | "dReb";
+  label: string;
+  playerId: number;
+  playerName: string;
+  value: number;
+  leagueRank: number | null;
 }
 
 export interface TeamStatsData {
@@ -155,6 +185,7 @@ export interface TeamStatsData {
     away: { wins: number; losses: number };
   };
   playerStats: TeamStatsPlayerRow[];
+  leagueLeaders?: TeamLeagueLeaderEntry[];
   tables?: TeamStatsTables;
 }
 
@@ -163,6 +194,7 @@ export interface TeamRosterPlayer {
   playerName: string;
   jersey?: string;
   position?: string;
+  age?: number;
   status?: string;
   height?: string;
   weight?: string;

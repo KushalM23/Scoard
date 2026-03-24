@@ -473,25 +473,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   ].filter(Boolean) as { id: string; label: string; shortLabel: string }[];
 
   return (
-    <div className="glass rounded-2xl shadow-2xl shadow-black/50 p-4 md:p-6 h-full">
-      <div className="flex justify-center items-center gap-3 mb-4 text-xs uppercase tracking-wider text-text/60">
-        <TeamLink
-          teamId={gameData.homeTeam.teamId}
-          sourceComponent="stats_section"
-          className="hover:text-accent transition-colors"
-        >
-          {gameData.homeTeam.teamTricode}
-        </TeamLink>
-        <span>|</span>
-        <TeamLink
-          teamId={gameData.awayTeam.teamId}
-          sourceComponent="stats_section"
-          className="hover:text-accent transition-colors"
-        >
-          {gameData.awayTeam.teamTricode}
-        </TeamLink>
-      </div>
-
+    <div className="rounded-2xl p-4 md:p-6 h-full">
       <div className="flex justify-center mb-6">
         <div className="bg-transparent rounded-xl p-1 flex gap-1 md:gap-2 relative w-full md:w-auto justify-between md:justify-center">
           {tabs.map((tab) => (
@@ -550,7 +532,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                 return (
                   <div
                     key={action.actionNumber}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-text/5"
+                    className="flex items-start gap-3 p-3"
                   >
                     <div className="text-xl font-mono text-text/40 mt-1 min-w-[60px] font-bold">
                       Q{action.period} {formattedClock}

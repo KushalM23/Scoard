@@ -140,7 +140,7 @@ export default async function TeamPage({
   return (
     <Layout>
       <Header />
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 py-6">
         <TeamPageClient
           teamId={parsedTeamId}
           initialTab={initialTab}

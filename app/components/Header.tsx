@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { User, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,14 +24,16 @@ const Header: React.FC = () => {
 
                 {/* Center: App Name */}
                 <div className="flex justify-center absolute left-1/2 transform -translate-x-1/2">
-                    <motion.h1
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, type: "spring" }}
-                        className="text-4xl md:text-6xl font-mono tracking-wider text-primary drop-shadow-sm cursor-default"
-                    >
-                        SCOARD!
-                    </motion.h1>
+                    <Link href="/" aria-label="Go to home page">
+                        <motion.h1
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, type: "spring" }}
+                            className="text-4xl md:text-6xl font-mono tracking-wider text-primary drop-shadow-sm cursor-pointer"
+                        >
+                            SCOARD!
+                        </motion.h1>
+                    </Link>
                 </div>
 
                 {/* Right: Sport Selector */}

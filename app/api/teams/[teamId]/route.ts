@@ -139,7 +139,6 @@ function formatDateTimeShort(value: string): { date: string; time: string } {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZoneName: "short",
     }),
   };
 }
@@ -426,6 +425,45 @@ async function buildStats(teamId: number) {
 }
 
 async function buildStatsFromPrimary(teamId: number) {
+  const leaderboardConfig: Array<{
+    statKey:
+      | "points"
+      | "rebounds"
+      | "assists"
+      | "steals"
+      | "blocks"
+      | "fgPct"
+      | "threePtPct"
+      | "ftPct"
+      | "turnovers"
+      | "fouls"
+      | "oReb"
+      | "dReb";
+    label: string;
+    playerHeader: string;
+  }> = [
+    { statKey: "points", label: "Points", playerHeader: "PTS" },
+    { statKey: "rebounds", label: "Rebounds", playerHeader: "REB" },
+    { statKey: "assists", label: "Assists", playerHeader: "AST" },
+    { statKey: "steals", label: "Steals", playerHeader: "STL" },
+    { statKey: "blocks", label: "Blocks", playerHeader: "BLK" },
+    { statKey: "fgPct", label: "Field Goal %", playerHeader: "FG_PCT" },
+    { statKey: "threePtPct", label: "3PT %", playerHeader: "FG3_PCT" },
+    { statKey: "ftPct", label: "Free Throw %", playerHeader: "FT_PCT" },
+    { statKey: "turnovers", label: "Turnovers", playerHeader: "TOV" },
+    { statKey: "fouls", label: "Personal Fouls", playerHeader: "PF" },
+    {
+      statKey: "oReb",
+      label: "Offensive Rebounds",
+      playerHeader: "OREB",
+    },
+    {
+      statKey: "dReb",
+      label: "Defensive Rebounds",
+      playerHeader: "DREB",
+    },
+  ];
+
   const requests: Promise<any>[] = [
     fetchStatsApi(
       "leaguedashteamstats",
@@ -451,6 +489,25 @@ async function buildStatsFromPrimary(teamId: number) {
       "leaguedashplayerstats",
       {
         TeamID: teamId,
+        Season: CURRENT_SEASON,
+        SeasonType: "Regular Season",
+        PerMode: "PerGame",
+        MeasureType: "Base",
+        PlusMinus: "N",
+        PaceAdjust: "N",
+        Rank: "N",
+        LastNGames: 0,
+        Month: 0,
+        OpponentTeamID: 0,
+        DateFrom: "",
+        DateTo: "",
+      },
+      DASH_STATS_RETRIES,
+      900,
+    ),
+    fetchStatsApi(
+      "leaguedashplayerstats",
+      {
         Season: CURRENT_SEASON,
         SeasonType: "Regular Season",
         PerMode: "PerGame",
@@ -535,6 +592,7 @@ async function buildStatsFromPrimary(teamId: number) {
   const [
     teamStatsRaw,
     playerStatsRaw,
+    leaguePlayerStatsRaw,
     teamTotalsRaw,
     opponentPerGameRaw,
     advancedRaw,
@@ -542,6 +600,7 @@ async function buildStatsFromPrimary(teamId: number) {
 
   const teamSet = pickResultSet(teamStatsRaw, 0);
   const playerSet = pickResultSet(playerStatsRaw, 0);
+  const leaguePlayerSet = pickResultSet(leaguePlayerStatsRaw, 0);
   const teamRow = teamSet.rowSet[0] ?? [];
 
   const players = playerSet.rowSet
@@ -558,11 +617,65 @@ async function buildStatsFromPrimary(teamId: number) {
       steals: num(getValueFromRow(row, playerSet.headers, "STL")),
       blocks: num(getValueFromRow(row, playerSet.headers, "BLK")),
       turnovers: num(getValueFromRow(row, playerSet.headers, "TOV")),
+      fouls: num(getValueFromRow(row, playerSet.headers, "PF")),
+      oReb: num(getValueFromRow(row, playerSet.headers, "OREB")),
+      dReb: num(getValueFromRow(row, playerSet.headers, "DREB")),
+      fga: num(getValueFromRow(row, playerSet.headers, "FGA")),
+      fgm: num(getValueFromRow(row, playerSet.headers, "FGM")),
+      fta: num(getValueFromRow(row, playerSet.headers, "FTA")),
+      ftm: num(getValueFromRow(row, playerSet.headers, "FTM")),
+      threePtA: num(getValueFromRow(row, playerSet.headers, "FG3A")),
+      threePtM: num(getValueFromRow(row, playerSet.headers, "FG3M")),
       fgPct: num(getValueFromRow(row, playerSet.headers, "FG_PCT")),
       threePtPct: num(getValueFromRow(row, playerSet.headers, "FG3_PCT")),
       ftPct: num(getValueFromRow(row, playerSet.headers, "FT_PCT")),
     }))
     .sort((a: any, b: any) => b.points - a.points);
+
+  const leagueRows = leaguePlayerSet.rowSet.map((row: any[]) => ({
+    playerId: num(getValueFromRow(row, leaguePlayerSet.headers, "PLAYER_ID")),
+    points: num(getValueFromRow(row, leaguePlayerSet.headers, "PTS")),
+    rebounds: num(getValueFromRow(row, leaguePlayerSet.headers, "REB")),
+    assists: num(getValueFromRow(row, leaguePlayerSet.headers, "AST")),
+    steals: num(getValueFromRow(row, leaguePlayerSet.headers, "STL")),
+    blocks: num(getValueFromRow(row, leaguePlayerSet.headers, "BLK")),
+    fgPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FG_PCT")),
+    threePtPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FG3_PCT")),
+    ftPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FT_PCT")),
+    turnovers: num(getValueFromRow(row, leaguePlayerSet.headers, "TOV")),
+    fouls: num(getValueFromRow(row, leaguePlayerSet.headers, "PF")),
+    oReb: num(getValueFromRow(row, leaguePlayerSet.headers, "OREB")),
+    dReb: num(getValueFromRow(row, leaguePlayerSet.headers, "DREB")),
+  }));
+
+  const leagueLeaders = leaderboardConfig
+    .map((config) => {
+      const teamLeader = [...players].sort(
+        (a, b) =>
+          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
+      )[0];
+
+      if (!teamLeader) return null;
+
+      const sortedLeague = [...leagueRows].sort(
+        (a, b) =>
+          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
+      );
+
+      const leagueRankIndex = sortedLeague.findIndex(
+        (row) => row.playerId === teamLeader.playerId,
+      );
+
+      return {
+        statKey: config.statKey,
+        label: config.label,
+        playerId: teamLeader.playerId,
+        playerName: teamLeader.playerName,
+        value: Number(teamLeader[config.statKey] ?? 0),
+        leagueRank: leagueRankIndex >= 0 ? leagueRankIndex + 1 : null,
+      };
+    })
+    .filter(Boolean);
 
   const totalsSet = pickResultSet(teamTotalsRaw, 0);
   const opponentSet = pickResultSet(opponentPerGameRaw, 0);
@@ -660,6 +773,7 @@ async function buildStatsFromPrimary(teamId: number) {
       },
     },
     playerStats: players,
+    leagueLeaders,
     tables,
   };
 }
@@ -696,6 +810,36 @@ function toPercent(value: unknown): number {
 }
 
 async function buildStatsFromCdn(teamId: number) {
+  const leaderboardConfig: Array<{
+    statKey:
+      | "points"
+      | "rebounds"
+      | "assists"
+      | "steals"
+      | "blocks"
+      | "fgPct"
+      | "threePtPct"
+      | "ftPct"
+      | "turnovers"
+      | "fouls"
+      | "oReb"
+      | "dReb";
+    label: string;
+  }> = [
+    { statKey: "points", label: "Points" },
+    { statKey: "rebounds", label: "Rebounds" },
+    { statKey: "assists", label: "Assists" },
+    { statKey: "steals", label: "Steals" },
+    { statKey: "blocks", label: "Blocks" },
+    { statKey: "fgPct", label: "Field Goal %" },
+    { statKey: "threePtPct", label: "3PT %" },
+    { statKey: "ftPct", label: "Free Throw %" },
+    { statKey: "turnovers", label: "Turnovers" },
+    { statKey: "fouls", label: "Personal Fouls" },
+    { statKey: "oReb", label: "Offensive Rebounds" },
+    { statKey: "dReb", label: "Defensive Rebounds" },
+  ];
+
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
     { cache: "no-store" },
@@ -779,8 +923,15 @@ async function buildStatsFromCdn(teamId: number) {
       steals: number;
       blocks: number;
       turnovers: number;
+      fouls: number;
+      oReb: number;
+      dReb: number;
       fgMade: number;
       fgAttempted: number;
+      ftMadeRaw: number;
+      ftAttemptedRaw: number;
+      threeMadeRaw: number;
+      threeAttemptedRaw: number;
       threeMade: number;
       threeAttempted: number;
       ftMade: number;
@@ -947,8 +1098,15 @@ async function buildStatsFromCdn(teamId: number) {
         steals: 0,
         blocks: 0,
         turnovers: 0,
+        fouls: 0,
+        oReb: 0,
+        dReb: 0,
         fgMade: 0,
         fgAttempted: 0,
+        ftMadeRaw: 0,
+        ftAttemptedRaw: 0,
+        threeMadeRaw: 0,
+        threeAttemptedRaw: 0,
         threeMade: 0,
         threeAttempted: 0,
         ftMade: 0,
@@ -969,9 +1127,16 @@ async function buildStatsFromCdn(teamId: number) {
       existing.steals += num(playerStats.steals, 0);
       existing.blocks += num(playerStats.blocks, 0);
       existing.turnovers += num(playerStats.turnovers, 0);
+      existing.fouls += num(playerStats.foulsPersonal, 0);
+      existing.oReb += num(playerStats.reboundsOffensive, 0);
+      existing.dReb += num(playerStats.reboundsDefensive, 0);
 
       existing.fgMade += num(playerStats.fieldGoalsMade, 0);
       existing.fgAttempted += num(playerStats.fieldGoalsAttempted, 0);
+      existing.ftMadeRaw += num(playerStats.freeThrowsMade, 0);
+      existing.ftAttemptedRaw += num(playerStats.freeThrowsAttempted, 0);
+      existing.threeMadeRaw += num(playerStats.threePointersMade, 0);
+      existing.threeAttemptedRaw += num(playerStats.threePointersAttempted, 0);
       existing.threeMade += num(playerStats.threePointersMade, 0);
       existing.threeAttempted += num(playerStats.threePointersAttempted, 0);
       existing.ftMade += num(playerStats.freeThrowsMade, 0);
@@ -1016,12 +1181,41 @@ async function buildStatsFromCdn(teamId: number) {
         steals: player.steals / gp,
         blocks: player.blocks / gp,
         turnovers: player.turnovers / gp,
+        fouls: player.fouls / gp,
+        oReb: player.oReb / gp,
+        dReb: player.dReb / gp,
+        fga: player.fgAttempted / gp,
+        fgm: player.fgMade / gp,
+        fta: player.ftAttemptedRaw / gp,
+        ftm: player.ftMadeRaw / gp,
+        threePtA: player.threeAttemptedRaw / gp,
+        threePtM: player.threeMadeRaw / gp,
         fgPct,
         threePtPct,
         ftPct,
       };
     })
     .sort((a, b) => b.points - a.points);
+
+  const leagueLeaders = leaderboardConfig
+    .map((config) => {
+      const teamLeader = [...playerStats].sort(
+        (a, b) =>
+          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
+      )[0];
+
+      if (!teamLeader) return null;
+
+      return {
+        statKey: config.statKey,
+        label: config.label,
+        playerId: teamLeader.playerId,
+        playerName: teamLeader.playerName,
+        value: Number(teamLeader[config.statKey] ?? 0),
+        leagueRank: null,
+      };
+    })
+    .filter(Boolean);
 
   const safeDiv = (a: number, b: number) => (b > 0 ? a / b : 0);
   const perGame = (value: number) => value / gamesPlayed;
@@ -1216,6 +1410,7 @@ async function buildStatsFromCdn(teamId: number) {
       },
     },
     playerStats,
+    leagueLeaders,
     tables: fallbackTables,
   };
 }
