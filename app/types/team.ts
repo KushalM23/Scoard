@@ -17,6 +17,7 @@ export interface TeamInjuryData {
 
 export interface TeamOverviewData {
   teamId: number;
+  logoUrl?: string;
   city: string;
   name: string;
   tricode: string;
@@ -50,6 +51,73 @@ export interface TeamOverviewData {
   injuries: {
     list: TeamInjuryData[];
     reason?: string;
+  };
+  fieldAudit?: {
+    inspectedEndpoints: string[];
+    fields: Array<{
+      field: string;
+      sourceEndpoint: string | null;
+      sourceKey: string | null;
+      available: boolean;
+      previousFormat: string;
+      formattedAs: string;
+      note?: string;
+    }>;
+    missingRequiredFields: string[];
+  };
+}
+
+export interface TeamStatsStandardRow {
+  GP: number;
+  PPG: number;
+  RPG: number;
+  APG: number;
+  BPG: number;
+  SPG: number;
+  TOV: number;
+  ORPG: number;
+  DRPG: number;
+  FG_PCT: string;
+  FG3_PCT: string;
+  FT_PCT: string;
+  FG3A: number;
+  FG3M: number;
+  FGA: number;
+  FGM: number;
+  FTA: number;
+  FTM: number;
+  PF: number;
+}
+
+export interface TeamStatsAdvancedRow {
+  ORtg: number;
+  DRtg: number;
+  Pace: number;
+  eFG_PCT: string;
+  Opp_eFG_PCT: string;
+  DRB_PCT: string;
+  ORB_PCT: string;
+  TOV_PCT: string;
+  Opp_TOV_PCT: string;
+}
+
+export interface TeamStatsTables {
+  teamPerGame: TeamStatsStandardRow;
+  teamTotals: TeamStatsStandardRow;
+  opponentPerGame: TeamStatsStandardRow;
+  advanced: TeamStatsAdvancedRow;
+  fieldAudit: {
+    inspectedEndpoints: string[];
+    fields: Array<{
+      field: string;
+      sourceEndpoint: string | null;
+      sourceKey: string | null;
+      available: boolean;
+      previousFormat: string;
+      formattedAs: string;
+      note?: string;
+    }>;
+    missingRequiredFields: string[];
   };
 }
 
@@ -87,6 +155,7 @@ export interface TeamStatsData {
     away: { wins: number; losses: number };
   };
   playerStats: TeamStatsPlayerRow[];
+  tables?: TeamStatsTables;
 }
 
 export interface TeamRosterPlayer {
@@ -108,7 +177,17 @@ export interface TeamRosterData {
 export interface TeamGameListItem {
   gameId: string;
   gameDate: string;
+  gameDateDisplay?: string;
   gameTime?: string;
+  gameTimeDisplay?: string;
+  homeTeamId?: number;
+  awayTeamId?: number;
+  homeTeamName?: string;
+  awayTeamName?: string;
+  homeTeamTricode?: string;
+  awayTeamTricode?: string;
+  homeTeamScore?: number;
+  awayTeamScore?: number;
   opponentTeamId: number;
   opponentTricode: string;
   opponentName: string;
@@ -121,20 +200,47 @@ export interface TeamGameListItem {
 export interface TeamScheduleData {
   teamId: number;
   games: TeamGameListItem[];
+  fieldAudit?: {
+    inspectedEndpoints: string[];
+    fields: Array<{
+      field: string;
+      sourceEndpoint: string | null;
+      sourceKey: string | null;
+      available: boolean;
+      previousFormat: string;
+      formattedAs: string;
+      note?: string;
+    }>;
+    missingRequiredFields: string[];
+  };
 }
 
 export interface TeamResultsData {
   teamId: number;
   games: TeamGameListItem[];
+  fieldAudit?: {
+    inspectedEndpoints: string[];
+    fields: Array<{
+      field: string;
+      sourceEndpoint: string | null;
+      sourceKey: string | null;
+      available: boolean;
+      previousFormat: string;
+      formattedAs: string;
+      note?: string;
+    }>;
+    missingRequiredFields: string[];
+  };
 }
 
 export interface TeamPagePayload {
   teamId: number;
   tab: TeamTab;
   seasonType: SeasonType;
-  overview: TeamOverviewData | TeamApiError;
-  stats: TeamStatsData | TeamApiError;
-  roster: TeamRosterData | TeamApiError;
-  schedule: TeamScheduleData | TeamApiError;
-  results: TeamResultsData | TeamApiError;
+  include?: Array<"overview" | "stats" | "roster" | "schedule" | "results">;
+  overview?: TeamOverviewData | TeamApiError;
+  stats?: TeamStatsData | TeamApiError;
+  roster?: TeamRosterData | TeamApiError;
+  schedule?: TeamScheduleData | TeamApiError;
+  results?: TeamResultsData | TeamApiError;
 }

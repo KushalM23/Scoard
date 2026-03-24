@@ -19,6 +19,8 @@ import type {
   TeamRosterData,
   TeamScheduleData,
   TeamStatsData,
+  TeamStatsStandardRow,
+  TeamStatsAdvancedRow,
   TeamResultsData,
   TeamTab,
   TeamApiError,
@@ -60,6 +62,8 @@ const metricLabels: Array<{
 ];
 
 type SortKey = keyof TeamStatsData["playerStats"][number];
+
+type TeamSection = "overview" | "stats" | "roster" | "schedule" | "results";
 
 function SectionError({
   title,
@@ -170,15 +174,27 @@ function TeamOverviewInline({
           <Link
             key={game.gameId}
             href={`/game/${game.gameId}`}
-            className="rounded-lg border border-white/10 p-2.5 hover:bg-white/5 transition-colors block"
+            className="rounded-xl border border-white/10 bg-white/[0.02] p-3 hover:bg-white/5 transition-colors block"
           >
-            <p className="text-sm font-semibold">
-              {game.homeAway} vs {game.opponentTricode}
-            </p>
-            <p className="text-xs text-text/60 mt-0.5">
-              {new Date(game.gameDate).toLocaleString()}
-            </p>
-            <p className="text-xs text-text/50 mt-1">{game.status}</p>
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold">
+                  {game.awayTeamTricode ?? game.awayTeamName ?? "Away"} @{" "}
+                  {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
+                </p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-text/70 uppercase tracking-wide">
+                  {game.status}
+                </span>
+              </div>
+              <p className="text-[11px] text-text/50 mt-1">
+                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
+                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
+              </p>
+              <p className="text-xs text-text/65 mt-1">
+                {game.gameDateDisplay ?? game.gameDate} ·{" "}
+                {game.gameTimeDisplay ?? game.gameTime ?? "TBD"}
+              </p>
+            </>
           </Link>
         ))}
       </div>
@@ -208,23 +224,36 @@ function TeamOverviewInline({
           <Link
             key={game.gameId}
             href={`/game/${game.gameId}`}
-            className="rounded-lg border border-white/10 p-2.5 hover:bg-white/5 transition-colors block"
+            className="rounded-xl border border-white/10 bg-white/[0.02] p-3 hover:bg-white/5 transition-colors block"
           >
-            <p className="text-sm font-semibold">
-              {game.homeAway} vs {game.opponentTricode}
-            </p>
-            <p className="text-xs text-text/60 mt-0.5">
-              {new Date(game.gameDate).toLocaleDateString()}
-            </p>
+            <>
+              <p className="text-sm font-semibold">
+                {game.awayTeamTricode ?? game.awayTeamName ?? "Away"} @{" "}
+                {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
+              </p>
+              <p className="text-[11px] text-text/50 mt-1">
+                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
+                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
+              </p>
+              <p className="text-xs text-text/65 mt-1">
+                {game.gameDateDisplay ?? game.gameDate}
+              </p>
+            </>
             <div className="mt-1 flex items-center justify-between">
               <span
-                className={`text-xs font-bold ${
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   game.result === "W" ? "text-green-300" : "text-red-300"
                 }`}
               >
                 {game.result}
               </span>
-              <span className="text-xs text-text/60">{game.finalScore}</span>
+              <span className="text-sm text-text/75 font-mono">
+                {game.finalScore ??
+                  (game.homeTeamScore !== undefined &&
+                  game.awayTeamScore !== undefined
+                    ? `${game.homeTeamScore}-${game.awayTeamScore}`
+                    : "--")}
+              </span>
             </div>
           </Link>
         ))}
@@ -233,12 +262,15 @@ function TeamOverviewInline({
   };
 
   return (
-    <section className="sticky top-[72px] z-40 mb-6">
-      <div className="glass-card p-4 md:p-6">
+    <section className="mb-6">
+      <div className="glass-card p-5 md:p-6">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex items-center gap-4">
             <img
-              src={`https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`}
+              src={
+                data.logoUrl ??
+                `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
+              }
               alt={`${data.city} ${data.name}`}
               className="w-16 h-16 md:w-20 md:h-20 object-contain"
             />
@@ -307,7 +339,129 @@ function TeamOverviewInline({
   );
 }
 
+const STAT_COLUMNS: Array<{ key: keyof TeamStatsStandardRow; label: string }> =
+  [
+    { key: "GP", label: "GP" },
+    { key: "PPG", label: "PPG" },
+    { key: "RPG", label: "RPG" },
+    { key: "APG", label: "APG" },
+    { key: "BPG", label: "BPG" },
+    { key: "SPG", label: "SPG" },
+    { key: "TOV", label: "TOV" },
+    { key: "ORPG", label: "ORPG" },
+    { key: "DRPG", label: "DRPG" },
+    { key: "FG_PCT", label: "FG%" },
+    { key: "FG3_PCT", label: "3P%" },
+    { key: "FT_PCT", label: "FT%" },
+    { key: "FG3A", label: "3PA" },
+    { key: "FG3M", label: "3PM" },
+    { key: "FGA", label: "FGA" },
+    { key: "FGM", label: "FGM" },
+    { key: "FTA", label: "FTA" },
+    { key: "FTM", label: "FTM" },
+    { key: "PF", label: "PF" },
+  ];
+
+const OPP_STAT_COLUMNS: Array<{
+  key: keyof TeamStatsStandardRow;
+  label: string;
+}> = STAT_COLUMNS.map((column) => ({
+  key: column.key,
+  label: `Opp ${column.label}`,
+}));
+
+const ADV_COLUMNS: Array<{ key: keyof TeamStatsAdvancedRow; label: string }> = [
+  { key: "ORtg", label: "ORtg" },
+  { key: "DRtg", label: "DRtg" },
+  { key: "Pace", label: "Pace" },
+  { key: "eFG_PCT", label: "eFG%" },
+  { key: "Opp_eFG_PCT", label: "Opp eFG%" },
+  { key: "DRB_PCT", label: "DRB%" },
+  { key: "ORB_PCT", label: "ORB%" },
+  { key: "TOV_PCT", label: "TOV%" },
+  { key: "Opp_TOV_PCT", label: "Opp TOV%" },
+];
+
+function TeamStatsTable({
+  title,
+  columns,
+  row,
+}: {
+  title: string;
+  columns: Array<{ key: string; label: string }>;
+  row: Record<string, string | number>;
+}) {
+  return (
+    <div className="glass-card overflow-auto">
+      <h3 className="text-xs uppercase tracking-wider text-text/70 px-4 py-3 border-b border-white/10">
+        {title}
+      </h3>
+      <table className="w-full min-w-[1040px] text-left">
+        <thead className="text-xs uppercase text-text/60 bg-white/[0.03]">
+          <tr>
+            {columns.map((column) => (
+              <th key={column.key} className="px-3 py-2 font-medium">
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-t border-white/10 hover:bg-white/5">
+            {columns.map((column) => (
+              <td key={column.key} className="px-3 py-2 font-mono text-sm">
+                {row[column.key] ?? "--"}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function TeamStatsInline({ data }: { data: TeamStatsData }) {
+  if (data.tables) {
+    return (
+      <div className="space-y-4">
+        <TeamStatsTable
+          title="Team Stats - Per Game"
+          columns={STAT_COLUMNS}
+          row={
+            data.tables.teamPerGame as unknown as Record<
+              string,
+              string | number
+            >
+          }
+        />
+        <TeamStatsTable
+          title="Team Stats - Totals"
+          columns={STAT_COLUMNS}
+          row={
+            data.tables.teamTotals as unknown as Record<string, string | number>
+          }
+        />
+        <TeamStatsTable
+          title="Opponent Team Stats - Per Game"
+          columns={OPP_STAT_COLUMNS}
+          row={
+            data.tables.opponentPerGame as unknown as Record<
+              string,
+              string | number
+            >
+          }
+        />
+        <TeamStatsTable
+          title="Advanced Stats"
+          columns={ADV_COLUMNS}
+          row={
+            data.tables.advanced as unknown as Record<string, string | number>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -519,14 +673,22 @@ function TeamScheduleInline({
             key={game.gameId}
             href={`/game/${game.gameId}`}
             onClick={() => onGameClick?.(game.gameId)}
-            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors"
+            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors rounded-xl"
           >
             <div>
               <p className="text-sm font-semibold">
-                {game.homeAway} vs {game.opponentTricode}
+                {game.awayTeamTricode ??
+                  game.awayTeamName ??
+                  game.opponentTricode}{" "}
+                @ {game.homeTeamTricode ?? game.homeTeamName ?? "TBD"}
+              </p>
+              <p className="text-[11px] text-text/50 mt-0.5">
+                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
+                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
               </p>
               <p className="text-xs text-text/60">
-                {new Date(game.gameDate).toLocaleString()}
+                {(game.gameDateDisplay ?? game.gameDate) + " · "}
+                {game.gameTimeDisplay ?? game.gameTime ?? "TBD"}
               </p>
             </div>
             <span className="text-xs text-text/60">{game.status}</span>
@@ -561,23 +723,36 @@ function TeamResultsInline({
             key={game.gameId}
             href={`/game/${game.gameId}`}
             onClick={() => onGameClick?.(game.gameId)}
-            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors"
+            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors rounded-xl"
           >
             <div>
               <p className="text-sm font-semibold">
-                {game.homeAway} vs {game.opponentTricode}
+                {game.awayTeamTricode ??
+                  game.awayTeamName ??
+                  game.opponentTricode}{" "}
+                @ {game.homeTeamTricode ?? game.homeTeamName ?? "TBD"}
+              </p>
+              <p className="text-[11px] text-text/50 mt-0.5">
+                {game.awayTeamName ?? game.awayTeamTricode ?? "Away Team"} at{" "}
+                {game.homeTeamName ?? game.homeTeamTricode ?? "Home Team"}
               </p>
               <p className="text-xs text-text/60">
-                {new Date(game.gameDate).toLocaleDateString()}
+                {game.gameDateDisplay ?? game.gameDate}
               </p>
             </div>
             <div className="text-right">
               <p
-                className={`text-sm font-bold ${game.result === "W" ? "text-green-300" : "text-red-300"}`}
+                className={`text-sm font-bold px-2 py-0.5 rounded-full ${game.result === "W" ? "text-green-300" : "text-red-300"}`}
               >
                 {game.result}
               </p>
-              <p className="text-xs text-text/60">{game.finalScore}</p>
+              <p className="text-sm text-text/75 font-mono">
+                {game.finalScore ??
+                  (game.homeTeamScore !== undefined &&
+                  game.awayTeamScore !== undefined
+                    ? `${game.homeTeamScore}-${game.awayTeamScore}`
+                    : "--")}
+              </p>
             </div>
           </Link>
         ))}
@@ -679,32 +854,79 @@ export default function TeamPageClient({
   };
 
   const fetchTeamPagePayload = async (preserveOverview = true) => {
+    const include: TeamSection[] = ["overview", "schedule", "results"];
+    if (activeTab === "roster") {
+      include.push("roster");
+    } else {
+      include.push("stats");
+    }
+
+    const includeSet = new Set<TeamSection>(include);
+
     setOverview((prev) => ({
       data: preserveOverview ? prev.data : null,
-      loading: true,
+      loading: includeSet.has("overview"),
       error: null,
     }));
-    setStats((prev) => ({ data: prev.data, loading: true, error: null }));
-    setRoster((prev) => ({ data: prev.data, loading: true, error: null }));
-    setSchedule((prev) => ({ data: prev.data, loading: true, error: null }));
-    setResults((prev) => ({ data: prev.data, loading: true, error: null }));
+    setStats((prev) => ({
+      data: prev.data,
+      loading: includeSet.has("stats"),
+      error: null,
+    }));
+    setRoster((prev) => ({
+      data: prev.data,
+      loading: includeSet.has("roster"),
+      error: null,
+    }));
+    setSchedule((prev) => ({
+      data: prev.data,
+      loading: includeSet.has("schedule"),
+      error: null,
+    }));
+    setResults((prev) => ({
+      data: prev.data,
+      loading: includeSet.has("results"),
+      error: null,
+    }));
 
     try {
       const response = await axios.get<TeamPagePayload>(
-        `/api/teams/${teamId}?tab=${activeTab}`,
+        `/api/teams/${teamId}?tab=${activeTab}&include=${include.join(",")}`,
       );
       const payload = response.data;
 
-      setSectionFromPayload(setOverview, payload.overview, true);
-      setSectionFromPayload(setStats, payload.stats);
-      setSectionFromPayload(setRoster, payload.roster);
-      setSectionFromPayload(setSchedule, payload.schedule);
-      setSectionFromPayload(setResults, payload.results);
+      if (payload.overview) {
+        setSectionFromPayload(setOverview, payload.overview, true);
+      } else {
+        setOverview((prev) => ({ ...prev, loading: false }));
+      }
+
+      if (payload.stats) {
+        setSectionFromPayload(setStats, payload.stats);
+      } else {
+        setStats((prev) => ({ ...prev, loading: false }));
+      }
+
+      if (payload.roster) {
+        setSectionFromPayload(setRoster, payload.roster);
+      } else {
+        setRoster((prev) => ({ ...prev, loading: false }));
+      }
+
+      if (payload.schedule) {
+        setSectionFromPayload(setSchedule, payload.schedule);
+      } else {
+        setSchedule((prev) => ({ ...prev, loading: false }));
+      }
+
+      if (payload.results) {
+        setSectionFromPayload(setResults, payload.results);
+      } else {
+        setResults((prev) => ({ ...prev, loading: false }));
+      }
     } catch (error: any) {
       const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to load team page data";
+        "We could not load this team page right now. Please try again in a moment.";
 
       setOverview((prev) => ({
         data: prev.data,
