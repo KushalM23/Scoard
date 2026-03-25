@@ -10,17 +10,34 @@ import {
   parseTab,
   parseTeamId,
 } from "@/app/lib/teams";
-import {
-  getValueFromRow,
-  num,
-  pickResultSet,
-  toRecentForm,
-} from "@/app/lib/teamData";
+import { getValueFromRow, num, pickResultSet } from "@/app/lib/teamData";
 import type { TeamOverviewData } from "@/app/types/team";
 
 interface TeamPageProps {
   params: Promise<{ teamId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function resolveStandingsTricode(
+  row: any[],
+  headers: string[],
+  teamId: number,
+): string {
+  const candidates = [
+    "TeamAbbreviation",
+    "TEAM_ABBREVIATION",
+    "TeamTricode",
+    "TEAM_TRICODE",
+  ];
+
+  for (const key of candidates) {
+    const value = getValueFromRow(row, headers, key);
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value);
+    }
+  }
+
+  return TEAM_META[teamId].tricode;
 }
 
 async function getInitialOverview(
@@ -53,10 +70,7 @@ async function getInitialOverview(
       name: String(
         getValueFromRow(teamRow, headers, "TeamName") ?? TEAM_META[teamId].name,
       ),
-      tricode: String(
-        getValueFromRow(teamRow, headers, "TeamAbbreviation") ??
-          TEAM_META[teamId].tricode,
-      ),
+      tricode: resolveStandingsTricode(teamRow, headers, teamId),
       record: {
         wins: num(getValueFromRow(teamRow, headers, "WINS")),
         losses: num(getValueFromRow(teamRow, headers, "LOSSES")),
@@ -69,16 +83,9 @@ async function getInitialOverview(
       streak: String(
         getValueFromRow(teamRow, headers, "strCurrentStreak") ?? "N/A",
       ),
-      recentForm: toRecentForm(
-        String(getValueFromRow(teamRow, headers, "L10") ?? "0-0"),
-      ),
       standingsSnapshot: {
         conference: [],
         division: [],
-      },
-      injuries: {
-        list: [],
-        reason: "Loading injury report",
       },
     };
   } catch (error) {

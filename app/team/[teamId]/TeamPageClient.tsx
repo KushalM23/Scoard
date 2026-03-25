@@ -23,6 +23,7 @@ import type {
   TeamStatsData,
   TeamStatsPlayerRow,
   TeamStatsStandardRow,
+  TeamStatsOpponentRow,
   TeamStatsAdvancedRow,
   TeamResultsData,
   TeamTab,
@@ -237,7 +238,11 @@ function TeamOverviewInline({
 
   const renderScheduleContent = () => {
     if (schedule.loading && !schedule.data) {
-      return <p className="text-text/60 text-sm">Loading schedule...</p>;
+      return (
+        <div className="flex items-center justify-center py-6">
+          <Loading size={24} className="p-0" showText={false} />
+        </div>
+      );
     }
 
     if (schedule.error && !schedule.data) {
@@ -283,7 +288,11 @@ function TeamOverviewInline({
 
   const renderResultsContent = () => {
     if (results.loading && !results.data) {
-      return <p className="text-text/60 text-sm">Loading results...</p>;
+      return (
+        <div className="flex items-center justify-center py-6">
+          <Loading size={24} className="p-0" showText={false} />
+        </div>
+      );
     }
 
     if (results.error && !results.data) {
@@ -430,13 +439,63 @@ const STAT_COLUMNS: Array<{ key: keyof TeamStatsStandardRow; label: string }> =
     { key: "PF", label: "PF" },
   ];
 
-const OPP_STAT_COLUMNS: Array<{
+const TOTAL_STAT_COLUMNS: Array<{
   key: keyof TeamStatsStandardRow;
   label: string;
-}> = STAT_COLUMNS.map((column) => ({
-  key: column.key,
-  label: `Opp ${column.label}`,
-}));
+}> = [
+  { key: "GP", label: "GP" },
+  { key: "PPG", label: "PTS" },
+  { key: "RPG", label: "REB" },
+  { key: "APG", label: "AST" },
+  { key: "BPG", label: "BLK" },
+  { key: "SPG", label: "STL" },
+  { key: "TOV", label: "TOV" },
+  { key: "ORPG", label: "OREB" },
+  { key: "DRPG", label: "DREB" },
+  { key: "FG_PCT", label: "FG%" },
+  { key: "FG3_PCT", label: "3P%" },
+  { key: "FT_PCT", label: "FT%" },
+  { key: "FG3A", label: "3PA" },
+  { key: "FG3M", label: "3PM" },
+  { key: "FGA", label: "FGA" },
+  { key: "FGM", label: "FGM" },
+  { key: "FTA", label: "FTA" },
+  { key: "FTM", label: "FTM" },
+  { key: "PF", label: "PF" },
+];
+
+const OPP_STAT_KEYS: Array<keyof TeamStatsOpponentRow> = [
+  "PPG",
+  "RPG",
+  "APG",
+  "BPG",
+  "SPG",
+  "TOV",
+  "ORPG",
+  "DRPG",
+  "FG_PCT",
+  "FG3_PCT",
+  "FT_PCT",
+  "FG3A",
+  "FG3M",
+  "FGA",
+  "FGM",
+  "FTA",
+  "FTM",
+  "PF",
+];
+
+const OPP_STAT_COLUMNS: Array<{
+  key: keyof TeamStatsOpponentRow;
+  label: string;
+}> = OPP_STAT_KEYS.map((key) => {
+  const baseLabel =
+    STAT_COLUMNS.find((column) => column.key === key)?.label ?? key;
+  return {
+    key,
+    label: `Opp ${baseLabel}`,
+  };
+});
 
 const ADV_COLUMNS: Array<{ key: keyof TeamStatsAdvancedRow; label: string }> = [
   { key: "ORtg", label: "ORtg" },
@@ -504,7 +563,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
     return (
       <div className="space-y-6">
         <TeamStatsTable
-          title="Team Stats - Per Game"
+          title="Per Game"
           columns={STAT_COLUMNS}
           row={
             data.tables.teamPerGame as unknown as Record<
@@ -514,14 +573,14 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
           }
         />
         <TeamStatsTable
-          title="Team Stats - Totals"
-          columns={STAT_COLUMNS}
+          title="Totals"
+          columns={TOTAL_STAT_COLUMNS}
           row={
             data.tables.teamTotals as unknown as Record<string, string | number>
           }
         />
         <TeamStatsTable
-          title="Opponent Team Stats - Per Game"
+          title="Opponent Team Stats"
           columns={OPP_STAT_COLUMNS}
           row={
             data.tables.opponentPerGame as unknown as Record<
@@ -616,6 +675,12 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
       label: "FT%",
       format: (value) => `${(value * 100).toFixed(1)}%`,
     },
+    { key: "fgm", label: "FGM" },
+    { key: "fga", label: "FGA" },
+    { key: "threePtM", label: "3PM" },
+    { key: "threePtA", label: "3PA" },
+    { key: "ftm", label: "FTM" },
+    { key: "fta", label: "FTA" },
     { key: "turnovers", label: "TOV" },
     { key: "fouls", label: "PF" },
     { key: "oReb", label: "OREB" },
@@ -639,41 +704,6 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
     setSortBy(key);
     setSortDirection("desc");
   };
-
-  const leaderboardOrder: Array<string> = [
-    "points",
-    "rebounds",
-    "assists",
-    "steals",
-    "blocks",
-    "fgPct",
-    "threePtPct",
-    "ftPct",
-    "turnovers",
-    "fouls",
-    "oReb",
-    "dReb",
-  ];
-
-  const leaderboardLabelMap: Record<string, string> = {
-    points: "PTS",
-    rebounds: "REB",
-    assists: "AST",
-    steals: "STL",
-    blocks: "BLK",
-    fgPct: "FG%",
-    threePtPct: "3P%",
-    ftPct: "FT%",
-    turnovers: "TOV",
-    fouls: "PF",
-    oReb: "OREB",
-    dReb: "DREB",
-  };
-
-  const orderedLeaders = [...(data.leagueLeaders ?? [])].sort(
-    (a, b) =>
-      leaderboardOrder.indexOf(a.statKey) - leaderboardOrder.indexOf(b.statKey),
-  );
 
   if (!data.playerStats.length) {
     return (
@@ -755,41 +785,6 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
           </table>
         </div>
       </div>
-
-      <div className="space-y-2">
-        <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-          League leaders
-        </h3>
-        {!orderedLeaders.length ? (
-          <div className="glass-card rounded-2xl p-4 text-sm text-text/65">
-            League leaderboard is unavailable right now.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {orderedLeaders.map((leader) => (
-              <div
-                key={leader.statKey}
-                className="glass-card rounded-2xl p-4 space-y-1"
-              >
-                <p className="text-xs uppercase tracking-wider text-text/55 font-semibold">
-                  {leaderboardLabelMap[leader.statKey] ?? leader.label}
-                </p>
-                <p className="text-lg font-display mt-1 truncate">
-                  {leader.playerName}
-                </p>
-                <p className="text-sm text-text/75 mt-1 font-mono">
-                  {leader.value.toFixed(1)} per game
-                </p>
-                <p className="text-sm mt-2 text-accent font-semibold">
-                  {leader.leagueRank
-                    ? `#${leader.leagueRank} in NBA`
-                    : "NBA rank unavailable"}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -806,33 +801,42 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {data.players.map((player) => (
-        <div
-          key={player.playerId}
-          className="glass-card p-3 flex items-center gap-3"
-        >
-          <img
-            src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.playerId}.png`}
-            alt={player.playerName}
-            className="w-14 h-14 rounded-full object-cover bg-white/10"
-            onError={(event) => {
-              (event.target as HTMLImageElement).src =
-                "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
-            }}
-          />
-          <div className="min-w-0">
-            <p className="font-semibold truncate">{player.playerName}</p>
-            <p className="text-xs text-text/60">
-              #{player.jersey || "--"} | {player.position || "N/A"} |{" "}
-              {player.age ?? "N/A"}
-            </p>
-            <p className="text-xs text-text/50 mt-1">
-              {player.height || "N/A"} | {player.weight || "N/A"} | EXP{" "}
-              {player.experience || "0"}
-            </p>
-          </div>
-        </div>
-      ))}
+      {data.players.map((player) =>
+        (() => {
+          const detailLine = [
+            `#${player.jersey || "--"}`,
+            player.position || "N/A",
+            typeof player.age === "number" ? `${player.age}` : null,
+          ]
+            .filter(Boolean)
+            .join(" | ");
+
+          return (
+            <div
+              key={player.playerId}
+              className="glass-card p-3 flex items-center gap-3"
+            >
+              <img
+                src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.playerId}.png`}
+                alt={player.playerName}
+                className="w-14 h-14 rounded-full object-cover bg-white/10"
+                onError={(event) => {
+                  (event.target as HTMLImageElement).src =
+                    "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
+                }}
+              />
+              <div className="min-w-0">
+                <p className="font-semibold truncate">{player.playerName}</p>
+                <p className="text-xs text-text/60">{detailLine}</p>
+                <p className="text-xs text-text/50 mt-1">
+                  {player.height || "N/A"} | {player.weight || "N/A"} | EXP{" "}
+                  {player.experience || "0"}
+                </p>
+              </div>
+            </div>
+          );
+        })(),
+      )}
     </div>
   );
 }

@@ -11,12 +11,57 @@ import {
   inferHomeAway,
   num,
   pickResultSet,
-  toRecentForm,
 } from "@/app/lib/teamData";
 
 export const dynamic = "force-dynamic";
 
 const DASH_STATS_RETRIES = 1;
+
+const DASH_COMMON_PARAMS: Record<string, string | number> = {
+  College: "",
+  Conference: "",
+  Country: "",
+  DateFrom: "",
+  DateTo: "",
+  Division: "",
+  DraftPick: "",
+  DraftYear: "",
+  GameScope: "",
+  GameSegment: "",
+  Height: "",
+  LastNGames: 0,
+  LeagueID: "00",
+  Location: "",
+  MeasureType: "Base",
+  Month: 0,
+  OpponentTeamID: 0,
+  Outcome: "",
+  PORound: 0,
+  PaceAdjust: "N",
+  PerMode: "PerGame",
+  Period: 0,
+  PlayerExperience: "",
+  PlayerPosition: "",
+  PlusMinus: "N",
+  Rank: "N",
+  Season: CURRENT_SEASON,
+  SeasonSegment: "",
+  SeasonType: "Regular Season",
+  ShotClockRange: "",
+  StarterBench: "",
+  TeamID: 0,
+  TwoWay: "0",
+  VsConference: "",
+  VsDivision: "",
+  Weight: "",
+};
+
+function buildDashParams(overrides: Record<string, string | number>) {
+  return {
+    ...DASH_COMMON_PARAMS,
+    ...overrides,
+  };
+}
 
 const PROD_ERROR_MESSAGES = {
   overview:
@@ -42,14 +87,6 @@ const ALL_SECTIONS: TeamSection[] = [
   "schedule",
   "results",
 ];
-
-const TRICODE_TO_TEAM_ID = Object.entries(TEAM_META).reduce(
-  (acc, [id, meta]) => {
-    acc[meta.tricode.toUpperCase()] = Number(id);
-    return acc;
-  },
-  {} as Record<string, number>,
-);
 
 function parseInclude(
   raw: string | null,
@@ -85,13 +122,6 @@ function parseInclude(
   );
 
   return requested.length ? [...new Set(requested)] : ["overview"];
-}
-
-function resolveOpponentTeamId(matchup: string): number {
-  const tricode = matchup.trim().split(" ").pop()?.toUpperCase();
-
-  if (!tricode) return 0;
-  return TRICODE_TO_TEAM_ID[tricode] ?? 0;
 }
 
 function parseScheduleDate(raw?: string): Date {
@@ -166,6 +196,32 @@ function buildFieldAudit(
   };
 }
 
+function getFirstRowValue(row: any[], headers: string[], keys: string[]) {
+  for (const key of keys) {
+    const value = getValueFromRow(row, headers, key);
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function resolveTeamTricode(row: any[], headers: string[], teamId: number) {
+  const fromSource = getFirstRowValue(row, headers, [
+    "TeamAbbreviation",
+    "TEAM_ABBREVIATION",
+    "TeamTricode",
+    "TEAM_TRICODE",
+  ]);
+
+  return String(fromSource ?? TEAM_META[teamId]?.tricode ?? teamId);
+}
+
+function safeDiv(numerator: number, denominator: number) {
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
 function isPlayoffGame(game: any): boolean {
   const stage = Number(
     game.seasonStageId ?? game.seasonStageID ?? game.seasonStage,
@@ -220,14 +276,9 @@ async function buildOverview(teamId: number) {
   const mapSnapshot = (rows: any[], rankKey: string) =>
     rows.map((row: any[]) => {
       const rowTeamId = num(getValueFromRow(row, headers, "TeamID"));
-      const meta = TEAM_META[rowTeamId];
       return {
         teamId: rowTeamId,
-        tricode: String(
-          getValueFromRow(row, headers, "TeamAbbreviation") ??
-            meta?.tricode ??
-            rowTeamId,
-        ),
+        tricode: resolveTeamTricode(row, headers, rowTeamId),
         wins: num(getValueFromRow(row, headers, "WINS")),
         losses: num(getValueFromRow(row, headers, "LOSSES")),
         rank: num(getValueFromRow(row, headers, rankKey)),
@@ -304,10 +355,7 @@ async function buildOverview(teamId: number) {
     name: String(
       getValueFromRow(teamRow, headers, "TeamName") ?? TEAM_META[teamId].name,
     ),
-    tricode: String(
-      getValueFromRow(teamRow, headers, "TeamAbbreviation") ??
-        TEAM_META[teamId].tricode,
-    ),
+    tricode: String(resolveTeamTricode(teamRow, headers, teamId)),
     record: {
       wins: num(getValueFromRow(teamRow, headers, "WINS")),
       losses: num(getValueFromRow(teamRow, headers, "LOSSES")),
@@ -320,9 +368,6 @@ async function buildOverview(teamId: number) {
     streak: String(
       getValueFromRow(teamRow, headers, "strCurrentStreak") ?? "N/A",
     ),
-    recentForm: toRecentForm(
-      String(getValueFromRow(teamRow, headers, "L10") ?? "0-0"),
-    ),
     standingsSnapshot: {
       conference: mapSnapshot(
         centerAroundTeam(conferenceRows, "PlayoffRank", 8),
@@ -333,47 +378,19 @@ async function buildOverview(teamId: number) {
         "DivisionRank",
       ),
     },
-    injuries: {
-      list: [],
-      reason: "No reported injuries",
-    },
     fieldAudit,
   };
 }
 
-function buildStandardStatsRow(
-  row: any[],
-  headers: string[],
-  options?: { totalsMode?: boolean },
-) {
-  const totalsMode = Boolean(options?.totalsMode);
-
+function buildStandardStatsRow(row: any[], headers: string[]) {
   return {
     GP: num(getValueFromRow(row, headers, "GP")),
-    PPG: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "PTS" : "PTS")),
-      1,
-    ),
-    RPG: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "REB" : "REB")),
-      1,
-    ),
-    APG: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "AST" : "AST")),
-      1,
-    ),
-    BPG: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "BLK" : "BLK")),
-      1,
-    ),
-    SPG: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "STL" : "STL")),
-      1,
-    ),
-    TOV: roundTo(
-      num(getValueFromRow(row, headers, totalsMode ? "TOV" : "TOV")),
-      1,
-    ),
+    PPG: roundTo(num(getValueFromRow(row, headers, "PTS")), 1),
+    RPG: roundTo(num(getValueFromRow(row, headers, "REB")), 1),
+    APG: roundTo(num(getValueFromRow(row, headers, "AST")), 1),
+    BPG: roundTo(num(getValueFromRow(row, headers, "BLK")), 1),
+    SPG: roundTo(num(getValueFromRow(row, headers, "STL")), 1),
+    TOV: roundTo(num(getValueFromRow(row, headers, "TOV")), 1),
     ORPG: roundTo(num(getValueFromRow(row, headers, "OREB")), 1),
     DRPG: roundTo(num(getValueFromRow(row, headers, "DREB")), 1),
     FG_PCT: formatPct(getValueFromRow(row, headers, "FG_PCT")),
@@ -389,26 +406,56 @@ function buildStandardStatsRow(
   };
 }
 
+function buildOpponentStatsRow(row: any[], headers: string[]) {
+  return {
+    PPG: roundTo(num(getValueFromRow(row, headers, "OPP_PTS")), 1),
+    RPG: roundTo(num(getValueFromRow(row, headers, "OPP_REB")), 1),
+    APG: roundTo(num(getValueFromRow(row, headers, "OPP_AST")), 1),
+    BPG: roundTo(num(getValueFromRow(row, headers, "OPP_BLK")), 1),
+    SPG: roundTo(num(getValueFromRow(row, headers, "OPP_STL")), 1),
+    TOV: roundTo(num(getValueFromRow(row, headers, "OPP_TOV")), 1),
+    ORPG: roundTo(num(getValueFromRow(row, headers, "OPP_OREB")), 1),
+    DRPG: roundTo(num(getValueFromRow(row, headers, "OPP_DREB")), 1),
+    FG_PCT: formatPct(getValueFromRow(row, headers, "OPP_FG_PCT")),
+    FG3_PCT: formatPct(getValueFromRow(row, headers, "OPP_FG3_PCT")),
+    FT_PCT: formatPct(getValueFromRow(row, headers, "OPP_FT_PCT")),
+    FG3A: roundTo(num(getValueFromRow(row, headers, "OPP_FG3A")), 1),
+    FG3M: roundTo(num(getValueFromRow(row, headers, "OPP_FG3M")), 1),
+    FGA: roundTo(num(getValueFromRow(row, headers, "OPP_FGA")), 1),
+    FGM: roundTo(num(getValueFromRow(row, headers, "OPP_FGM")), 1),
+    FTA: roundTo(num(getValueFromRow(row, headers, "OPP_FTA")), 1),
+    FTM: roundTo(num(getValueFromRow(row, headers, "OPP_FTM")), 1),
+    PF: roundTo(num(getValueFromRow(row, headers, "OPP_PF")), 1),
+  };
+}
+
 function buildAdvancedStatsRow(
   row: any[],
   headers: string[],
   opponentRow: any[],
   opponentHeaders: string[],
 ) {
+  const oppFgm = num(getValueFromRow(opponentRow, opponentHeaders, "OPP_FGM"));
+  const oppFg3m = num(
+    getValueFromRow(opponentRow, opponentHeaders, "OPP_FG3M"),
+  );
+  const oppFga = num(getValueFromRow(opponentRow, opponentHeaders, "OPP_FGA"));
+  const oppTov = num(getValueFromRow(opponentRow, opponentHeaders, "OPP_TOV"));
+  const oppFta = num(getValueFromRow(opponentRow, opponentHeaders, "OPP_FTA"));
+
+  const oppEFGPct = safeDiv(oppFgm + 0.5 * oppFg3m, oppFga);
+  const oppTovPct = safeDiv(oppTov, oppFga + 0.44 * oppFta + oppTov);
+
   return {
     ORtg: roundTo(num(getValueFromRow(row, headers, "OFF_RATING")), 1),
     DRtg: roundTo(num(getValueFromRow(row, headers, "DEF_RATING")), 1),
     Pace: roundTo(num(getValueFromRow(row, headers, "PACE")), 1),
     eFG_PCT: formatPct(getValueFromRow(row, headers, "EFG_PCT")),
-    Opp_eFG_PCT: formatPct(
-      getValueFromRow(opponentRow, opponentHeaders, "EFG_PCT"),
-    ),
+    Opp_eFG_PCT: formatPct(oppEFGPct),
     DRB_PCT: formatPct(getValueFromRow(row, headers, "DREB_PCT")),
     ORB_PCT: formatPct(getValueFromRow(row, headers, "OREB_PCT")),
     TOV_PCT: formatPct(getValueFromRow(row, headers, "TM_TOV_PCT")),
-    Opp_TOV_PCT: formatPct(
-      getValueFromRow(opponentRow, opponentHeaders, "TM_TOV_PCT"),
-    ),
+    Opp_TOV_PCT: formatPct(oppTovPct),
   };
 }
 
@@ -425,103 +472,35 @@ async function buildStats(teamId: number) {
 }
 
 async function buildStatsFromPrimary(teamId: number) {
-  const leaderboardConfig: Array<{
-    statKey:
-      | "points"
-      | "rebounds"
-      | "assists"
-      | "steals"
-      | "blocks"
-      | "fgPct"
-      | "threePtPct"
-      | "ftPct"
-      | "turnovers"
-      | "fouls"
-      | "oReb"
-      | "dReb";
-    label: string;
-    playerHeader: string;
-  }> = [
-    { statKey: "points", label: "Points", playerHeader: "PTS" },
-    { statKey: "rebounds", label: "Rebounds", playerHeader: "REB" },
-    { statKey: "assists", label: "Assists", playerHeader: "AST" },
-    { statKey: "steals", label: "Steals", playerHeader: "STL" },
-    { statKey: "blocks", label: "Blocks", playerHeader: "BLK" },
-    { statKey: "fgPct", label: "Field Goal %", playerHeader: "FG_PCT" },
-    { statKey: "threePtPct", label: "3PT %", playerHeader: "FG3_PCT" },
-    { statKey: "ftPct", label: "Free Throw %", playerHeader: "FT_PCT" },
-    { statKey: "turnovers", label: "Turnovers", playerHeader: "TOV" },
-    { statKey: "fouls", label: "Personal Fouls", playerHeader: "PF" },
-    {
-      statKey: "oReb",
-      label: "Offensive Rebounds",
-      playerHeader: "OREB",
-    },
-    {
-      statKey: "dReb",
-      label: "Defensive Rebounds",
-      playerHeader: "DREB",
-    },
-  ];
-
   const requests: Promise<any>[] = [
     fetchStatsApi(
       "leaguedashteamstats",
-      {
+      buildDashParams({
         TeamID: teamId,
-        Season: CURRENT_SEASON,
-        SeasonType: "Regular Season",
         MeasureType: "Base",
         PerMode: "PerGame",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
-      },
+      }),
       DASH_STATS_RETRIES,
       900,
     ),
     fetchStatsApi(
       "leaguedashplayerstats",
-      {
+      buildDashParams({
         TeamID: teamId,
-        Season: CURRENT_SEASON,
-        SeasonType: "Regular Season",
-        PerMode: "PerGame",
         MeasureType: "Base",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
-      },
+        PerMode: "PerGame",
+      }),
       DASH_STATS_RETRIES,
       900,
     ),
     fetchStatsApi(
-      "leaguedashplayerstats",
+      "teamgamelog",
       {
+        TeamID: teamId,
         Season: CURRENT_SEASON,
         SeasonType: "Regular Season",
-        PerMode: "PerGame",
-        MeasureType: "Base",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
       },
-      DASH_STATS_RETRIES,
+      3,
       900,
     ),
   ];
@@ -529,61 +508,31 @@ async function buildStatsFromPrimary(teamId: number) {
   requests.push(
     fetchStatsApi(
       "leaguedashteamstats",
-      {
+      buildDashParams({
         TeamID: teamId,
-        Season: CURRENT_SEASON,
-        SeasonType: "Regular Season",
         MeasureType: "Base",
         PerMode: "Totals",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
-      },
+      }),
       DASH_STATS_RETRIES,
       900,
     ),
     fetchStatsApi(
       "leaguedashteamstats",
-      {
+      buildDashParams({
         TeamID: teamId,
-        Season: CURRENT_SEASON,
-        SeasonType: "Regular Season",
         MeasureType: "Opponent",
         PerMode: "PerGame",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
-      },
+      }),
       DASH_STATS_RETRIES,
       900,
     ),
     fetchStatsApi(
       "leaguedashteamstats",
-      {
+      buildDashParams({
         TeamID: teamId,
-        Season: CURRENT_SEASON,
-        SeasonType: "Regular Season",
         MeasureType: "Advanced",
         PerMode: "PerGame",
-        PlusMinus: "N",
-        PaceAdjust: "N",
-        Rank: "N",
-        LastNGames: 0,
-        Month: 0,
-        OpponentTeamID: 0,
-        DateFrom: "",
-        DateTo: "",
-      },
+      }),
       DASH_STATS_RETRIES,
       900,
     ),
@@ -592,7 +541,7 @@ async function buildStatsFromPrimary(teamId: number) {
   const [
     teamStatsRaw,
     playerStatsRaw,
-    leaguePlayerStatsRaw,
+    teamGameLogRaw,
     teamTotalsRaw,
     opponentPerGameRaw,
     advancedRaw,
@@ -600,7 +549,6 @@ async function buildStatsFromPrimary(teamId: number) {
 
   const teamSet = pickResultSet(teamStatsRaw, 0);
   const playerSet = pickResultSet(playerStatsRaw, 0);
-  const leaguePlayerSet = pickResultSet(leaguePlayerStatsRaw, 0);
   const teamRow = teamSet.rowSet[0] ?? [];
 
   const players = playerSet.rowSet
@@ -632,58 +580,48 @@ async function buildStatsFromPrimary(teamId: number) {
     }))
     .sort((a: any, b: any) => b.points - a.points);
 
-  const leagueRows = leaguePlayerSet.rowSet.map((row: any[]) => ({
-    playerId: num(getValueFromRow(row, leaguePlayerSet.headers, "PLAYER_ID")),
-    points: num(getValueFromRow(row, leaguePlayerSet.headers, "PTS")),
-    rebounds: num(getValueFromRow(row, leaguePlayerSet.headers, "REB")),
-    assists: num(getValueFromRow(row, leaguePlayerSet.headers, "AST")),
-    steals: num(getValueFromRow(row, leaguePlayerSet.headers, "STL")),
-    blocks: num(getValueFromRow(row, leaguePlayerSet.headers, "BLK")),
-    fgPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FG_PCT")),
-    threePtPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FG3_PCT")),
-    ftPct: num(getValueFromRow(row, leaguePlayerSet.headers, "FT_PCT")),
-    turnovers: num(getValueFromRow(row, leaguePlayerSet.headers, "TOV")),
-    fouls: num(getValueFromRow(row, leaguePlayerSet.headers, "PF")),
-    oReb: num(getValueFromRow(row, leaguePlayerSet.headers, "OREB")),
-    dReb: num(getValueFromRow(row, leaguePlayerSet.headers, "DREB")),
-  }));
-
-  const leagueLeaders = leaderboardConfig
-    .map((config) => {
-      const teamLeader = [...players].sort(
-        (a, b) =>
-          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
-      )[0];
-
-      if (!teamLeader) return null;
-
-      const sortedLeague = [...leagueRows].sort(
-        (a, b) =>
-          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
-      );
-
-      const leagueRankIndex = sortedLeague.findIndex(
-        (row) => row.playerId === teamLeader.playerId,
-      );
-
-      return {
-        statKey: config.statKey,
-        label: config.label,
-        playerId: teamLeader.playerId,
-        playerName: teamLeader.playerName,
-        value: Number(teamLeader[config.statKey] ?? 0),
-        leagueRank: leagueRankIndex >= 0 ? leagueRankIndex + 1 : null,
-      };
-    })
-    .filter(Boolean);
-
   const totalsSet = pickResultSet(teamTotalsRaw, 0);
   const opponentSet = pickResultSet(opponentPerGameRaw, 0);
   const advancedSet = pickResultSet(advancedRaw, 0);
+  const teamGameLogSet = pickResultSet(teamGameLogRaw, 0);
 
   const totalsRow = totalsSet.rowSet[0] ?? [];
   const opponentRow = opponentSet.rowSet[0] ?? [];
   const advancedRow = advancedSet.rowSet[0] ?? [];
+
+  let homeWins = 0;
+  let homeLosses = 0;
+  let awayWins = 0;
+  let awayLosses = 0;
+
+  teamGameLogSet.rowSet.forEach((row: any[]) => {
+    const matchup = String(
+      getValueFromRow(row, teamGameLogSet.headers, "MATCHUP") ?? "",
+    );
+    const isHome = inferHomeAway(matchup) === "Home";
+    const won =
+      String(getValueFromRow(row, teamGameLogSet.headers, "WL") ?? "") === "W";
+
+    if (isHome) {
+      homeWins += won ? 1 : 0;
+      homeLosses += won ? 0 : 1;
+      return;
+    }
+
+    awayWins += won ? 1 : 0;
+    awayLosses += won ? 0 : 1;
+  });
+
+  const offRating = num(
+    getValueFromRow(advancedRow, advancedSet.headers, "OFF_RATING"),
+  );
+  const defRating = num(
+    getValueFromRow(advancedRow, advancedSet.headers, "DEF_RATING"),
+  );
+  const pace = num(getValueFromRow(advancedRow, advancedSet.headers, "PACE"));
+  const netRating =
+    num(getValueFromRow(advancedRow, advancedSet.headers, "NET_RATING")) ||
+    roundTo(offRating - defRating, 1);
 
   const fieldAudit = buildFieldAudit(
     [
@@ -715,7 +653,8 @@ async function buildStatsFromPrimary(teamId: number) {
         field: "opponentPerGameTable",
         sourceEndpoint:
           "stats.nba.com/leaguedashteamstats?MeasureType=Opponent&PerMode=PerGame",
-        sourceKey: "opponent base columns",
+        sourceKey:
+          "OPP_PTS, OPP_REB, OPP_AST, OPP_BLK, OPP_STL, OPP_TOV, OPP_OREB, OPP_DREB, OPP_FG_PCT, OPP_FG3_PCT, OPP_FT_PCT, OPP_FG3A, OPP_FG3M, OPP_FGA, OPP_FGM, OPP_FTA, OPP_FTM, OPP_PF",
         available: opponentSet.rowSet.length > 0,
         previousFormat: "not present",
         formattedAs: "normalized 19-column row",
@@ -729,17 +668,15 @@ async function buildStatsFromPrimary(teamId: number) {
         available: advancedSet.rowSet.length > 0,
         previousFormat: "off/def/net/pace summary only",
         formattedAs: "normalized 9-column row",
-        note: "Opp eFG% and Opp TOV% are sourced from opponent per-game advanced-compatible fields",
+        note: "Opp eFG% = (OPP_FGM + 0.5*OPP_FG3M)/OPP_FGA and Opp TOV% = OPP_TOV/(OPP_FGA + 0.44*OPP_FTA + OPP_TOV)",
       },
     ],
   );
 
   const tables = {
     teamPerGame: buildStandardStatsRow(teamRow, teamSet.headers),
-    teamTotals: buildStandardStatsRow(totalsRow, totalsSet.headers, {
-      totalsMode: true,
-    }),
-    opponentPerGame: buildStandardStatsRow(opponentRow, opponentSet.headers),
+    teamTotals: buildStandardStatsRow(totalsRow, totalsSet.headers),
+    opponentPerGame: buildOpponentStatsRow(opponentRow, opponentSet.headers),
     advanced: buildAdvancedStatsRow(
       advancedRow,
       advancedSet.headers,
@@ -757,23 +694,22 @@ async function buildStatsFromPrimary(teamId: number) {
       pointsPerGame: num(getValueFromRow(teamRow, teamSet.headers, "PTS")),
       reboundsPerGame: num(getValueFromRow(teamRow, teamSet.headers, "REB")),
       assistsPerGame: num(getValueFromRow(teamRow, teamSet.headers, "AST")),
-      netRating: num(getValueFromRow(teamRow, teamSet.headers, "NET_RATING")),
-      offRating: num(getValueFromRow(teamRow, teamSet.headers, "OFF_RATING")),
-      defRating: num(getValueFromRow(teamRow, teamSet.headers, "DEF_RATING")),
-      pace: num(getValueFromRow(teamRow, teamSet.headers, "PACE")),
+      netRating,
+      offRating,
+      defRating,
+      pace,
     },
     homeAwaySplits: {
       home: {
-        wins: num(getValueFromRow(teamRow, teamSet.headers, "W_HOME")),
-        losses: num(getValueFromRow(teamRow, teamSet.headers, "L_HOME")),
+        wins: homeWins,
+        losses: homeLosses,
       },
       away: {
-        wins: num(getValueFromRow(teamRow, teamSet.headers, "W_ROAD")),
-        losses: num(getValueFromRow(teamRow, teamSet.headers, "L_ROAD")),
+        wins: awayWins,
+        losses: awayLosses,
       },
     },
     playerStats: players,
-    leagueLeaders,
     tables,
   };
 }
@@ -810,36 +746,6 @@ function toPercent(value: unknown): number {
 }
 
 async function buildStatsFromCdn(teamId: number) {
-  const leaderboardConfig: Array<{
-    statKey:
-      | "points"
-      | "rebounds"
-      | "assists"
-      | "steals"
-      | "blocks"
-      | "fgPct"
-      | "threePtPct"
-      | "ftPct"
-      | "turnovers"
-      | "fouls"
-      | "oReb"
-      | "dReb";
-    label: string;
-  }> = [
-    { statKey: "points", label: "Points" },
-    { statKey: "rebounds", label: "Rebounds" },
-    { statKey: "assists", label: "Assists" },
-    { statKey: "steals", label: "Steals" },
-    { statKey: "blocks", label: "Blocks" },
-    { statKey: "fgPct", label: "Field Goal %" },
-    { statKey: "threePtPct", label: "3PT %" },
-    { statKey: "ftPct", label: "Free Throw %" },
-    { statKey: "turnovers", label: "Turnovers" },
-    { statKey: "fouls", label: "Personal Fouls" },
-    { statKey: "oReb", label: "Offensive Rebounds" },
-    { statKey: "dReb", label: "Defensive Rebounds" },
-  ];
-
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
     { cache: "no-store" },
@@ -1197,26 +1103,6 @@ async function buildStatsFromCdn(teamId: number) {
     })
     .sort((a, b) => b.points - a.points);
 
-  const leagueLeaders = leaderboardConfig
-    .map((config) => {
-      const teamLeader = [...playerStats].sort(
-        (a, b) =>
-          Number(b[config.statKey] ?? 0) - Number(a[config.statKey] ?? 0),
-      )[0];
-
-      if (!teamLeader) return null;
-
-      return {
-        statKey: config.statKey,
-        label: config.label,
-        playerId: teamLeader.playerId,
-        playerName: teamLeader.playerName,
-        value: Number(teamLeader[config.statKey] ?? 0),
-        leagueRank: null,
-      };
-    })
-    .filter(Boolean);
-
   const safeDiv = (a: number, b: number) => (b > 0 ? a / b : 0);
   const perGame = (value: number) => value / gamesPlayed;
 
@@ -1313,7 +1199,6 @@ async function buildStatsFromCdn(teamId: number) {
       PF: roundTo(personalFoulsTotal, 0),
     },
     opponentPerGame: {
-      GP: gamesPlayed,
       PPG: roundTo(opponentPointsTotal / gamesPlayed, 1),
       RPG: roundTo(opponentReboundsTotal / gamesPlayed, 1),
       APG: roundTo(opponentAssistsTotal / gamesPlayed, 1),
@@ -1410,7 +1295,6 @@ async function buildStatsFromCdn(teamId: number) {
       },
     },
     playerStats,
-    leagueLeaders,
     tables: fallbackTables,
   };
 }
@@ -1434,9 +1318,14 @@ async function buildRoster(teamId: number) {
     ),
     jersey: String(getValueFromRow(row, rosterSet.headers, "NUM") ?? ""),
     position: String(getValueFromRow(row, rosterSet.headers, "POSITION") ?? ""),
-    status: String(
-      getValueFromRow(row, rosterSet.headers, "STATUS") ?? "Unknown",
-    ),
+    age: (() => {
+      const value = getFirstRowValue(row, rosterSet.headers, [
+        "AGE",
+        "PLAYER_AGE",
+      ]);
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    })(),
     height: String(getValueFromRow(row, rosterSet.headers, "HEIGHT") ?? ""),
     weight: String(getValueFromRow(row, rosterSet.headers, "WEIGHT") ?? ""),
     experience: String(getValueFromRow(row, rosterSet.headers, "EXP") ?? ""),
@@ -1562,108 +1451,121 @@ async function buildSchedule(teamId: number) {
 }
 
 async function buildResults(teamId: number) {
-  const logData = await fetchStatsApi(
-    "teamgamelog",
-    {
-      TeamID: teamId,
-      Season: CURRENT_SEASON,
-      SeasonType: "Regular Season",
-    },
-    3,
-    900,
+  const scheduleResponse = await fetch(
+    "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+    { cache: "no-store" },
   );
 
-  const gameLogSet = pickResultSet(logData, 0);
+  if (!scheduleResponse.ok) {
+    throw new Error("Failed to fetch league schedule");
+  }
 
-  const games = gameLogSet.rowSet.map((row: any[]) => {
-    const matchup = String(
-      getValueFromRow(row, gameLogSet.headers, "MATCHUP") ?? "",
-    );
-    const opponentTricode = matchup.split(" ").pop() ?? "TBD";
-    const teamPts = num(getValueFromRow(row, gameLogSet.headers, "PTS"));
-    const oppPts = num(getValueFromRow(row, gameLogSet.headers, "PTS_OPP"));
-    const result = String(getValueFromRow(row, gameLogSet.headers, "WL") ?? "");
-    const opponentTeamId = resolveOpponentTeamId(matchup);
-    const opponentMeta = TEAM_META[opponentTeamId];
-    const teamMeta = TEAM_META[teamId];
-    const isHome = inferHomeAway(matchup) === "Home";
-    const formattedDate = formatDateShort(
-      String(getValueFromRow(row, gameLogSet.headers, "GAME_DATE") ?? ""),
-    );
+  const scheduleData = await scheduleResponse.json();
+  const flattenedGames = (
+    scheduleData?.leagueSchedule?.gameDates ?? []
+  ).flatMap((day: any) => day.games ?? []);
 
-    const homeTeamName = isHome
-      ? `${teamMeta.city} ${teamMeta.name}`
-      : opponentMeta
-        ? `${opponentMeta.city} ${opponentMeta.name}`
-        : opponentTricode;
-    const awayTeamName = isHome
-      ? opponentMeta
-        ? `${opponentMeta.city} ${opponentMeta.name}`
-        : opponentTricode
-      : `${teamMeta.city} ${teamMeta.name}`;
+  const games = flattenedGames
+    .filter((game: any) => {
+      const isTeamGame =
+        Number(game.homeTeam?.teamId) === teamId ||
+        Number(game.awayTeam?.teamId) === teamId;
+      if (!isTeamGame) return false;
+      if (isPlayoffGame(game)) return false;
 
-    const homeTeamScore = isHome ? teamPts : oppPts;
-    const awayTeamScore = isHome ? oppPts : teamPts;
+      const status = Number(
+        game.gameStatus ?? game.gameStatusID ?? game.gameStatusId ?? 0,
+      );
+      const statusText = String(game.gameStatusText ?? "").toLowerCase();
+      return status === 3 || statusText.includes("final");
+    })
+    .sort(
+      (a: any, b: any) =>
+        parseScheduleDate(b.gameDateTimeUTC).getTime() -
+        parseScheduleDate(a.gameDateTimeUTC).getTime(),
+    )
+    .map((game: any) => {
+      const homeTeamId = Number(game.homeTeam?.teamId ?? 0);
+      const awayTeamId = Number(game.awayTeam?.teamId ?? 0);
+      const homeMeta = TEAM_META[homeTeamId];
+      const awayMeta = TEAM_META[awayTeamId];
+      const isHome = homeTeamId === teamId;
+      const opponentNode = isHome ? game.awayTeam : game.homeTeam;
+      const opponentTeamId = Number(opponentNode?.teamId ?? 0);
+      const opponentMeta = TEAM_META[opponentTeamId];
+      const homeTeamScore = num(game.homeTeam?.score, 0);
+      const awayTeamScore = num(game.awayTeam?.score, 0);
+      const isoDate = String(game.gameDateTimeUTC ?? game.gameDateEst ?? "");
+      const teamScore = isHome ? homeTeamScore : awayTeamScore;
+      const opponentScore = isHome ? awayTeamScore : homeTeamScore;
 
-    return {
-      gameId: String(getValueFromRow(row, gameLogSet.headers, "Game_ID") ?? ""),
-      gameDate: String(
-        getValueFromRow(row, gameLogSet.headers, "GAME_DATE") ?? "",
-      ),
-      gameDateDisplay: formattedDate,
-      homeTeamId: isHome ? teamId : opponentTeamId,
-      awayTeamId: isHome ? opponentTeamId : teamId,
-      homeTeamName,
-      awayTeamName,
-      homeTeamTricode: isHome ? teamMeta.tricode : opponentTricode,
-      awayTeamTricode: isHome ? opponentTricode : teamMeta.tricode,
-      homeTeamScore,
-      awayTeamScore,
-      opponentTeamId,
-      opponentTricode,
-      opponentName: opponentMeta
-        ? `${opponentMeta.city} ${opponentMeta.name}`
-        : opponentTricode,
-      homeAway: inferHomeAway(matchup),
-      status: "Final",
-      finalScore: `${homeTeamScore}-${awayTeamScore}`,
-      result: result === "W" ? "W" : "L",
-    };
-  });
+      return {
+        gameId: String(game.gameId ?? ""),
+        gameDate: isoDate,
+        gameDateDisplay: formatDateShort(isoDate),
+        homeTeamId,
+        awayTeamId,
+        homeTeamName: homeMeta
+          ? `${homeMeta.city} ${homeMeta.name}`
+          : String(game.homeTeam?.teamName ?? "TBD"),
+        awayTeamName: awayMeta
+          ? `${awayMeta.city} ${awayMeta.name}`
+          : String(game.awayTeam?.teamName ?? "TBD"),
+        homeTeamTricode: String(
+          game.homeTeam?.teamTricode ?? homeMeta?.tricode ?? "TBD",
+        ),
+        awayTeamTricode: String(
+          game.awayTeam?.teamTricode ?? awayMeta?.tricode ?? "TBD",
+        ),
+        homeTeamScore,
+        awayTeamScore,
+        opponentTeamId,
+        opponentTricode: String(
+          opponentNode?.teamTricode ?? opponentMeta?.tricode ?? "TBD",
+        ),
+        opponentName: opponentMeta
+          ? `${opponentMeta.city} ${opponentMeta.name}`
+          : "TBD",
+        homeAway: isHome ? "Home" : "Away",
+        status: "Final",
+        finalScore: `${homeTeamScore}-${awayTeamScore}`,
+        result: teamScore > opponentScore ? "W" : "L",
+      };
+    });
 
   const fieldAudit = buildFieldAudit(
-    ["stats.nba.com/teamgamelog"],
+    ["cdn.nba.com/staticData/scheduleLeagueV2_1.json"],
     [
       {
         field: "homeTeam",
-        sourceEndpoint: "stats.nba.com/teamgamelog",
-        sourceKey: "MATCHUP + TeamID",
+        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
+        sourceKey: "homeTeam.teamId/teamTricode/teamName",
         available: games.every((game: any) => Boolean(game.homeTeamName)),
         previousFormat: "team-perspective matchup string",
         formattedAs: "homeTeamName/homeTeamTricode explicit fields",
       },
       {
         field: "awayTeam",
-        sourceEndpoint: "stats.nba.com/teamgamelog",
-        sourceKey: "MATCHUP + TeamID",
+        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
+        sourceKey: "awayTeam.teamId/teamTricode/teamName",
         available: games.every((game: any) => Boolean(game.awayTeamName)),
         previousFormat: "team-perspective matchup string",
         formattedAs: "awayTeamName/awayTeamTricode explicit fields",
       },
       {
         field: "finalScore",
-        sourceEndpoint: "stats.nba.com/teamgamelog",
-        sourceKey: "PTS + PTS_OPP + MATCHUP",
+        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
+        sourceKey: "homeTeam.score + awayTeam.score",
         available: games.every((game: any) => Boolean(game.finalScore)),
-        previousFormat: "teamPts-oppPts from team perspective",
+        previousFormat: "teamPts-opponentPts from team perspective",
         formattedAs: "home-away scoreboard order",
       },
       {
         field: "date",
-        sourceEndpoint: "stats.nba.com/teamgamelog",
-        sourceKey: "GAME_DATE",
+        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
+        sourceKey: "gameDateTimeUTC",
         available: games.every((game: any) => Boolean(game.gameDateDisplay)),
-        previousFormat: "raw GAME_DATE",
+        previousFormat: "raw ISO timestamp",
         formattedAs: "gameDateDisplay (MMM D, YYYY)",
       },
     ],

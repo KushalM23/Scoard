@@ -8,13 +8,6 @@ export interface TeamApiError {
   section: string;
 }
 
-export interface TeamInjuryData {
-  playerName: string;
-  status: string;
-  note?: string;
-  updatedAt?: string;
-}
-
 export interface TeamOverviewData {
   teamId: number;
   logoUrl?: string;
@@ -31,7 +24,6 @@ export interface TeamOverviewData {
     divisionRank: number;
   };
   streak: string;
-  recentForm: string[];
   standingsSnapshot: {
     conference: Array<{
       teamId: number;
@@ -47,10 +39,6 @@ export interface TeamOverviewData {
       losses: number;
       rank: number;
     }>;
-  };
-  injuries: {
-    list: TeamInjuryData[];
-    reason?: string;
   };
   fieldAudit?: {
     inspectedEndpoints: string[];
@@ -89,6 +77,27 @@ export interface TeamStatsStandardRow {
   PF: number;
 }
 
+export interface TeamStatsOpponentRow {
+  PPG: number;
+  RPG: number;
+  APG: number;
+  BPG: number;
+  SPG: number;
+  TOV: number;
+  ORPG: number;
+  DRPG: number;
+  FG_PCT: string;
+  FG3_PCT: string;
+  FT_PCT: string;
+  FG3A: number;
+  FG3M: number;
+  FGA: number;
+  FGM: number;
+  FTA: number;
+  FTM: number;
+  PF: number;
+}
+
 export interface TeamStatsAdvancedRow {
   ORtg: number;
   DRtg: number;
@@ -104,7 +113,7 @@ export interface TeamStatsAdvancedRow {
 export interface TeamStatsTables {
   teamPerGame: TeamStatsStandardRow;
   teamTotals: TeamStatsStandardRow;
-  opponentPerGame: TeamStatsStandardRow;
+  opponentPerGame: TeamStatsOpponentRow;
   advanced: TeamStatsAdvancedRow;
   fieldAudit: {
     inspectedEndpoints: string[];
@@ -146,27 +155,6 @@ export interface TeamStatsPlayerRow {
   ftPct: number;
 }
 
-export interface TeamLeagueLeaderEntry {
-  statKey:
-    | "points"
-    | "rebounds"
-    | "assists"
-    | "steals"
-    | "blocks"
-    | "fgPct"
-    | "threePtPct"
-    | "ftPct"
-    | "turnovers"
-    | "fouls"
-    | "oReb"
-    | "dReb";
-  label: string;
-  playerId: number;
-  playerName: string;
-  value: number;
-  leagueRank: number | null;
-}
-
 export interface TeamStatsData {
   teamMetrics: {
     gamesPlayed: number;
@@ -185,7 +173,6 @@ export interface TeamStatsData {
     away: { wins: number; losses: number };
   };
   playerStats: TeamStatsPlayerRow[];
-  leagueLeaders?: TeamLeagueLeaderEntry[];
   tables?: TeamStatsTables;
 }
 
@@ -195,7 +182,6 @@ export interface TeamRosterPlayer {
   jersey?: string;
   position?: string;
   age?: number;
-  status?: string;
   height?: string;
   weight?: string;
   experience?: string;
