@@ -118,7 +118,7 @@ function TeamOverviewInline({
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
 }) {
-  const panelHeightClass = "h-[250px] md:h-[372px]";
+  const panelHeightClass = "h-[210px] md:h-[372px]";
   const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
 
   const formatGameDate = (rawDate: string, display?: string) => {
@@ -264,16 +264,16 @@ function TeamOverviewInline({
           <Link
             key={game.gameId}
             href={`/game/${game.gameId}`}
-            className="rounded-xl border border-white/10 bg-background/35 p-4 hover:bg-background/50 transition-colors block"
+            className="rounded-xl border border-white/10 bg-background/35 p-3 md:p-4 hover:bg-background/50 transition-colors block"
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-text/95 w-1/3 text-base md:text-xl font-display">
+              <span className="text-text/95 w-1/3 text-sm sm:text-base md:text-xl font-display">
                 {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
               </span>
               <span className="text-text/60 text-sm uppercase tracking-wide w-1/3 text-center">
                 vs
               </span>
-              <span className="text-text/95 text-right w-1/3 text-base md:text-xl font-display">
+              <span className="text-text/95 text-right w-1/3 text-sm sm:text-base md:text-xl font-display">
                 {game.awayTeamTricode ?? game.awayTeamName ?? "Away"}
               </span>
             </div>
@@ -318,21 +318,21 @@ function TeamOverviewInline({
             <Link
               key={game.gameId}
               href={`/game/${game.gameId}`}
-              className="rounded-xl border border-white/10 bg-background/35 p-4 hover:bg-background/50 transition-colors block"
+              className="rounded-xl border border-white/10 bg-background/35 p-3 md:p-4 hover:bg-background/50 transition-colors block"
             >
               <div className="flex items-center justify-between gap-3">
                 <span
-                  className={`${tone.homeTeamTone} w-1/3 text-base md:text-xl font-display`}
+                  className={`${tone.homeTeamTone} w-1/3 text-sm sm:text-base md:text-xl font-display`}
                 >
                   {game.homeTeamTricode ?? game.homeTeamName ?? "Home"}
                 </span>
-                <div className="w-1/3 flex items-center justify-center gap-2 md:gap-3 leading-none font-mono text-2xl md:text-3xl font-bold">
+                <div className="w-1/3 flex items-center justify-center gap-2 md:gap-3 leading-none font-mono text-xl sm:text-2xl md:text-3xl font-bold">
                   <span className={tone.homeScoreTone}>{scores.home}</span>
                   <span className="text-text/50">-</span>
                   <span className={tone.awayScoreTone}>{scores.away}</span>
                 </div>
                 <span
-                  className={`${tone.awayTeamTone} text-right w-1/3 text-base md:text-xl font-display`}
+                  className={`${tone.awayTeamTone} text-right w-1/3 text-sm sm:text-base md:text-xl font-display`}
                 >
                   {game.awayTeamTricode ?? game.awayTeamName ?? "Away"}
                 </span>
@@ -350,8 +350,8 @@ function TeamOverviewInline({
   };
 
   return (
-    <section className="mb-6">
-      <div className="glass-card p-5 md:p-6">
+    <section className="mb-4 md:mb-6">
+      <div className="glass-card p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
           <div className="flex items-center gap-4 min-w-0">
             <img
@@ -360,13 +360,13 @@ function TeamOverviewInline({
                 `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
               }
               alt={`${data.city} ${data.name}`}
-              className="w-16 h-16 md:w-20 md:h-20 object-contain"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain"
             />
             <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-display leading-tight truncate">
+              <h1 className="text-base sm:text-xl md:text-2xl font-display leading-tight truncate">
                 {data.city}
               </h1>
-              <h2 className="text-2xl md:text-3xl font-display leading-tight truncate">
+              <h2 className="text-xl sm:text-3xl md:text-3xl font-display leading-tight truncate">
                 {data.name}
               </h2>
             </div>
@@ -423,14 +423,16 @@ function TeamOverviewInline({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 mt-3 md:mt-4">
           <div
             className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
           >
             <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
               Results
             </h3>
-            <div className="overflow-y-auto pr-1">{renderResultsContent()}</div>
+            <div className="overflow-y-auto pr-0 md:pr-1">
+              {renderResultsContent()}
+            </div>
           </div>
           <div
             className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
@@ -438,7 +440,7 @@ function TeamOverviewInline({
             <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
               Schedule
             </h3>
-            <div className="overflow-y-auto pr-1">
+            <div className="overflow-y-auto pr-0 md:pr-1">
               {renderScheduleContent()}
             </div>
           </div>
@@ -850,7 +852,7 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
       {data.players.map((player) =>
         (() => {
           const detailLine = [
@@ -864,12 +866,12 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
           return (
             <div
               key={player.playerId}
-              className="glass-card p-3 flex items-center gap-3"
+              className="glass-card p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
             >
               <img
                 src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.playerId}.png`}
                 alt={player.playerName}
-                className="w-14 h-14 rounded-full object-cover bg-white/10"
+                className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover bg-white/10"
                 onError={(event) => {
                   (event.target as HTMLImageElement).src =
                     "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
@@ -1187,7 +1189,7 @@ export default function TeamPageClient({
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-3 md:space-y-4 pb-4 md:pb-6">
       {overview.loading && !overview.data ? (
         <div className="py-10">
           <Loading text="Loading team overview..." />

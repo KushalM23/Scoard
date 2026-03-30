@@ -294,14 +294,14 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
   ];
 
   return (
-    <section className="space-y-4">
-      <div className="glass-card p-5 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-start gap-5 lg:gap-7">
-          <div className="w-full max-w-[220px] mx-auto lg:mx-0">
+    <section className="space-y-3 md:space-y-4">
+      <div className="glass-card p-4 md:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-start gap-4 lg:gap-7">
+          <div className="w-full max-w-[160px] sm:max-w-[220px] mx-auto lg:mx-0">
             <img
               src={`https://cdn.nba.com/headshots/nba/latest/260x190/${data.playerId}.png`}
               alt={data.displayName}
-              className="w-full h-[280px] rounded-2xl object-cover bg-white/10 border border-white/10"
+              className="w-full h-[210px] sm:h-[280px] rounded-2xl object-cover bg-white/10 border border-white/10"
               onError={(event) => {
                 (event.target as HTMLImageElement).src =
                   "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
@@ -309,9 +309,9 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
             />
           </div>
 
-          <div className="space-y-4 min-w-0">
+          <div className="space-y-3 md:space-y-4 min-w-0">
             <div>
-              <h1 className="text-3xl md:text-4xl font-display leading-tight break-words">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-display leading-tight break-words">
                 {data.displayName}
               </h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-text/80 mt-2">
@@ -334,16 +334,16 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {detailsRows.map((row) => (
                 <div
                   key={row.label}
-                  className="rounded-xl border border-white/10 bg-background/20 px-4 py-3 min-h-[78px]"
+                  className="rounded-xl border border-white/10 bg-background/20 px-3 py-2.5 min-h-[64px]"
                 >
                   <p className="text-[10px] uppercase tracking-wider text-text/60">
                     {row.label}
                   </p>
-                  <p className="text-base font-semibold mt-1 break-words text-text/95">
+                  <p className="text-sm sm:text-base font-semibold mt-1 break-words text-text/95 leading-snug">
                     {row.value}
                   </p>
                 </div>
@@ -434,7 +434,7 @@ function PlayerOverviewTab({
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="space-y-2">
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
           Season
@@ -619,10 +619,10 @@ function PlayerOverviewTab({
             {data.awards.grouped.map((award) => (
               <div
                 key={award.label}
-                className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-white/5"
+                className="px-4 md:px-5 py-3 md:py-4 flex items-start sm:items-center justify-between gap-3 hover:bg-white/5"
               >
                 <div className="min-w-0">
-                  <p className="text-base text-text/95 leading-relaxed font-medium">
+                  <p className="text-sm md:text-base text-text/95 leading-relaxed font-medium">
                     {award.label}
                   </p>
                   <p className="text-xs text-text/60 mt-1 break-words">
@@ -867,6 +867,40 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
     setSortDirection(key === "gameDate" ? "desc" : "asc");
   };
 
+  const renderGameLogCell = (
+    game: PlayerGameLogData["games"][number],
+    key: keyof PlayerGameLogData["games"][number],
+  ) => {
+    if (key === "matchup") {
+      if (game.gameId) {
+        return (
+          <Link
+            href={`/game/${game.gameId}`}
+            className="hover:text-accent transition-colors"
+          >
+            {game.matchup}
+          </Link>
+        );
+      }
+      return game.matchup;
+    }
+
+    if (key === "result") {
+      return game.result || "-";
+    }
+
+    if (key === "fgPct" || key === "threePtPct" || key === "ftPct") {
+      return `${(game[key] * 100).toFixed(1)}%`;
+    }
+
+    const value = game[key];
+    if (typeof value === "number") {
+      return value.toFixed(1);
+    }
+
+    return value || "--";
+  };
+
   if (!data.games.length) {
     return (
       <EmptyState
@@ -914,80 +948,24 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
                 key={`${game.gameId}-${game.gameDate}`}
                 className="border-t border-white/10 hover:bg-white/5"
               >
-                <td className="px-5 py-4 text-left whitespace-nowrap">
-                  {game.gameDate}
-                </td>
-                <td className="px-5 py-4 text-left whitespace-nowrap">
-                  {game.gameId ? (
-                    <Link
-                      href={`/game/${game.gameId}`}
-                      className="hover:text-accent transition-colors"
-                    >
-                      {game.matchup}
-                    </Link>
-                  ) : (
-                    game.matchup
-                  )}
-                </td>
-                <td
-                  className={`px-5 py-4 font-semibold whitespace-nowrap ${
-                    game.result === "W"
-                      ? "text-green-300"
-                      : game.result === "L"
-                        ? "text-red-400"
-                        : "text-text"
-                  }`}
-                >
-                  {game.result || "-"}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.minutes.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.points.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.rebounds.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.assists.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.steals.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.blocks.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.turnovers.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.fgm.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.fga.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.threePtMade.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.threePtAttempted.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.ftm.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {game.fta.toFixed(1)}
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {(game.fgPct * 100).toFixed(1)}%
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {(game.threePtPct * 100).toFixed(1)}%
-                </td>
-                <td className="px-5 py-4 font-mono whitespace-nowrap">
-                  {(game.ftPct * 100).toFixed(1)}%
-                </td>
+                {columns.map((column) => (
+                  <td
+                    key={`${game.gameId}-${game.gameDate}-${String(column.key)}`}
+                    className={`px-5 py-4 font-semibold whitespace-nowrap ${
+                      column.align === "left" ? "text-left" : "text-center"
+                    } ${
+                      column.key === "result"
+                        ? game.result === "W"
+                          ? "text-green-300"
+                          : game.result === "L"
+                            ? "text-red-400"
+                            : "text-text/90"
+                        : "text-text/90"
+                    }`}
+                  >
+                    {renderGameLogCell(game, column.key)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -1218,7 +1196,7 @@ export default function PlayerPageClient({
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-3 md:space-y-4 pb-4 md:pb-6">
       {header.loading && !header.data ? (
         <div className="py-10">
           <Loading text="Loading player details..." />

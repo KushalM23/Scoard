@@ -256,7 +256,7 @@ export default async function PlayerPage({
   return (
     <Layout>
       <Header />
-      <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 py-6">
+      <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-5 lg:py-6">
         <PlayerPageClient
           playerId={playerId}
           initialTab={initialTab}
