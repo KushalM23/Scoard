@@ -113,10 +113,12 @@ function TeamOverviewInline({
   data,
   schedule,
   results,
+  snapshotLoading,
 }: {
   data: TeamOverviewData;
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
+  snapshotLoading: boolean;
 }) {
   const panelHeightClass = "h-[210px] md:h-[372px]";
   const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
@@ -209,30 +211,38 @@ function TeamOverviewInline({
         {title}
       </h3>
       <div className="flex flex-col gap-2 h-full">
-        {rows.map((row, index) => (
-          <div
-            key={`${title}-${row.teamId}`}
-            className={`${index > 4 ? "hidden md:flex" : "flex"} md:flex-1 md:min-h-0 items-center justify-between rounded-lg px-2.5 py-2 md:py-1.5 ${
-              row.teamId === data.teamId
-                ? "bg-accent/20 border border-accent/30"
-                : ""
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-text/60 w-4">{row.rank}</span>
-              <TeamLink
-                teamId={row.teamId}
-                sourceComponent="team_overview_snapshot"
-                className="text-sm hover:text-accent transition-colors"
-              >
-                {row.tricode}
-              </TeamLink>
-            </div>
-            <span className="text-xs text-text/70">
-              {row.wins}-{row.losses}
-            </span>
+        {snapshotLoading && !rows.length ? (
+          <div className="flex items-center justify-center h-full">
+            <Loading size={24} className="p-0" showText={false} />
           </div>
-        ))}
+        ) : !rows.length ? (
+          <p className="text-text/60 text-sm">Snapshot is unavailable.</p>
+        ) : (
+          rows.map((row, index) => (
+            <div
+              key={`${title}-${row.teamId}`}
+              className={`${index > 4 ? "hidden md:flex" : "flex"} md:flex-1 md:min-h-0 items-center justify-between rounded-lg px-2.5 py-2 md:py-1.5 ${
+                row.teamId === data.teamId
+                  ? "bg-accent/20 border border-accent/30"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text/60 w-4">{row.rank}</span>
+                <TeamLink
+                  teamId={row.teamId}
+                  sourceComponent="team_overview_snapshot"
+                  className="text-sm hover:text-accent transition-colors"
+                >
+                  {row.tricode}
+                </TeamLink>
+              </div>
+              <span className="text-xs text-text/70">
+                {row.wins}-{row.losses}
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -1207,6 +1217,7 @@ export default function TeamPageClient({
           data={overview.data}
           schedule={schedule}
           results={results}
+          snapshotLoading={overview.loading}
         />
       )}
 
