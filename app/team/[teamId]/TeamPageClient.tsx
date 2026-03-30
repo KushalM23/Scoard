@@ -9,7 +9,6 @@ import {
 } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowUpDown } from "lucide-react";
 import Loading from "@/app/components/Loading";
@@ -88,6 +87,7 @@ function SectionError({
       </p>
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
           className="self-start px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm transition-colors"
         >
@@ -118,7 +118,8 @@ function TeamOverviewInline({
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
 }) {
-  const panelHeightClass = "h-[372px]";
+  const panelHeightClass = "h-[250px] md:h-[372px]";
+  const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
 
   const formatGameDate = (rawDate: string, display?: string) => {
     if (display) return display;
@@ -202,16 +203,16 @@ function TeamOverviewInline({
     rows: TeamOverviewData["standingsSnapshot"]["conference"],
   ) => (
     <div
-      className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${panelHeightClass} flex flex-col`}
+      className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${snapshotPanelHeightClass} flex flex-col`}
     >
       <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
         {title}
       </h3>
       <div className="flex flex-col gap-2 h-full">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <div
             key={`${title}-${row.teamId}`}
-            className={`flex-1 min-h-0 flex items-center justify-between rounded-lg px-2.5 py-1.5 ${
+            className={`${index > 4 ? "hidden md:flex" : "flex"} md:flex-1 md:min-h-0 items-center justify-between rounded-lg px-2.5 py-2 md:py-1.5 ${
               row.teamId === data.teamId
                 ? "bg-accent/20 border border-accent/30"
                 : ""
@@ -371,7 +372,7 @@ function TeamOverviewInline({
             </div>
           </div>
 
-          <div className="w-full md:w-auto md:min-w-[320px] lg:min-w-[360px]">
+          <div className="hidden md:block w-full md:w-auto md:min-w-[320px] lg:min-w-[360px]">
             <div className="flex items-center justify-center md:justify-end gap-2 font-bold text-xs md:text-lg text-text/80">
               <span>
                 {data.record.wins}-{data.record.losses}
@@ -384,6 +385,41 @@ function TeamOverviewInline({
               <span className="text-text/30">|</span>
               <span>Div #{data.ranks.divisionRank}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="md:hidden mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-text/60">
+              Record
+            </p>
+            <p className="text-base font-semibold mt-1">
+              {data.record.wins}-{data.record.losses}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-text/60">
+              Streak
+            </p>
+            <p className={`text-base font-semibold mt-1 ${streakClass}`}>
+              {data.streak}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-text/60">
+              Conference
+            </p>
+            <p className="text-sm font-semibold mt-1">
+              #{data.ranks.conferenceRank}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-text/60">
+              Division
+            </p>
+            <p className="text-sm font-semibold mt-1">
+              #{data.ranks.divisionRank}
+            </p>
           </div>
         </div>
 
@@ -906,9 +942,6 @@ export default function TeamPageClient({
   initialTab,
   initialOverview,
 }: TeamPageClientProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [activeTab, setActiveTab] = useState<TeamTab>(initialTab);
 
   const [overview, setOverview] = useState<SectionState<TeamOverviewData>>({
@@ -919,12 +952,12 @@ export default function TeamPageClient({
 
   const [stats, setStats] = useState<SectionState<TeamStatsData>>({
     data: null,
-    loading: true,
+    loading: initialTab !== "roster",
     error: null,
   });
   const [roster, setRoster] = useState<SectionState<TeamRosterData>>({
     data: null,
-    loading: true,
+    loading: initialTab === "roster",
     error: null,
   });
   const [schedule, setSchedule] = useState<SectionState<TeamScheduleData>>({
@@ -938,33 +971,36 @@ export default function TeamPageClient({
     error: null,
   });
 
-  const syncQuery = (next: { tab?: TeamTab }) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next.tab) params.set("tab", next.tab);
-    router.replace(`/team/${teamId}?${params.toString()}`);
+  const syncTabToUrl = (tab: TeamTab) => {
+    if (typeof window === "undefined") return;
+
+    const currentScrollY = window.scrollY;
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", tab);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/team/${teamId}?${params.toString()}`,
+    );
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: currentScrollY });
+    });
   };
 
-  const querySignature = useMemo(() => searchParams.toString(), [searchParams]);
-
   useEffect(() => {
-    const tab = parseTab(searchParams.get("tab"));
+    if (typeof window === "undefined") return;
 
-    setActiveTab(tab);
-  }, [querySignature]);
+    const handlePopState = () => {
+      const tab = parseTab(
+        new URLSearchParams(window.location.search).get("tab"),
+      );
+      setActiveTab(tab);
+    };
 
-  useEffect(() => {
-    const rawTab = searchParams.get("tab");
-
-    const normalizedTab = parseTab(rawTab);
-
-    const shouldNormalize = rawTab !== normalizedTab;
-
-    if (shouldNormalize) {
-      syncQuery({
-        tab: normalizedTab,
-      });
-    }
-  }, [querySignature]);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const setSectionFromPayload = <T,>(
     setState: Dispatch<SetStateAction<SectionState<T>>>,
@@ -983,14 +1019,10 @@ export default function TeamPageClient({
     setState({ data: sectionPayload, loading: false, error: null });
   };
 
-  const fetchTeamPagePayload = async (preserveOverview = true) => {
-    const include: TeamSection[] = ["overview", "schedule", "results"];
-    if (activeTab === "roster") {
-      include.push("roster");
-    } else {
-      include.push("stats");
-    }
-
+  const fetchTeamPagePayload = async (
+    include: TeamSection[],
+    preserveOverview = true,
+  ) => {
     const includeSet = new Set<TeamSection>(include);
 
     setOverview((prev) => ({
@@ -1091,12 +1123,44 @@ export default function TeamPageClient({
   }, [teamId]);
 
   useEffect(() => {
-    fetchTeamPagePayload(true);
-  }, [teamId, activeTab]);
+    setOverview({
+      data: initialOverview,
+      loading: !initialOverview,
+      error: null,
+    });
+    setSchedule({ data: null, loading: true, error: null });
+    setResults({ data: null, loading: true, error: null });
+    setStats({ data: null, loading: activeTab !== "roster", error: null });
+    setRoster({ data: null, loading: activeTab === "roster", error: null });
+
+    const include: TeamSection[] = ["overview", "schedule", "results"];
+    if (activeTab === "roster") {
+      include.push("roster");
+    } else {
+      include.push("stats");
+    }
+
+    fetchTeamPagePayload(include, true);
+  }, [teamId, initialOverview]);
+
+  useEffect(() => {
+    if (activeTab === "roster") {
+      if (!roster.data && !roster.loading) {
+        fetchTeamPagePayload(["roster"], true);
+      }
+      return;
+    }
+
+    if (!stats.data && !stats.loading) {
+      fetchTeamPagePayload(["stats"], true);
+    }
+  }, [activeTab, stats.data, stats.loading, roster.data, roster.loading]);
 
   const handleTabChange = (tab: TeamTab) => {
+    if (tab === activeTab) return;
+
     setActiveTab(tab);
-    syncQuery({ tab });
+    syncTabToUrl(tab);
     trackEvent("team_tab_change", { teamId, tab });
   };
 
@@ -1110,7 +1174,9 @@ export default function TeamPageClient({
         <SectionError
           title="Overview unavailable"
           message={overview.error ?? "Team overview failed to load."}
-          onRetry={() => fetchTeamPagePayload(false)}
+          onRetry={() =>
+            fetchTeamPagePayload(["overview", "schedule", "results"], false)
+          }
         />
       ) : (
         <TeamOverviewInline
@@ -1124,6 +1190,7 @@ export default function TeamPageClient({
         <div className="bg-transparent rounded-xl p-1 flex gap-1 md:gap-2 relative w-full md:w-auto justify-between md:justify-center">
           {TABS.map((tab) => (
             <button
+              type="button"
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
               className={`relative flex-1 md:flex-none px-3 md:px-6 py-2 rounded-lg font-display text-xs md:text-sm transition-colors duration-300 tracking-wide z-10 whitespace-nowrap ${
@@ -1154,7 +1221,7 @@ export default function TeamPageClient({
             <SectionError
               title="Team stats unavailable"
               message={stats.error}
-              onRetry={() => fetchTeamPagePayload(true)}
+              onRetry={() => fetchTeamPagePayload(["stats"], true)}
             />
           ) : null}
           {stats.data ? <TeamStatsInline data={stats.data} /> : null}
@@ -1170,7 +1237,7 @@ export default function TeamPageClient({
             <SectionError
               title="Player stats unavailable"
               message={stats.error}
-              onRetry={() => fetchTeamPagePayload(true)}
+              onRetry={() => fetchTeamPagePayload(["stats"], true)}
             />
           ) : null}
           {stats.data ? <TeamPlayerStatsInline data={stats.data} /> : null}
@@ -1186,7 +1253,7 @@ export default function TeamPageClient({
             <SectionError
               title="Roster unavailable"
               message={roster.error}
-              onRetry={() => fetchTeamPagePayload(true)}
+              onRetry={() => fetchTeamPagePayload(["roster"], true)}
             />
           ) : null}
           {roster.data ? <TeamRosterInline data={roster.data} /> : null}
