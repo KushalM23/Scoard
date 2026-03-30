@@ -12,6 +12,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpDown } from "lucide-react";
 import Loading from "@/app/components/Loading";
+import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
 import { trackEvent } from "@/app/lib/analytics";
 import { parseTab } from "@/app/lib/teams";
@@ -564,12 +565,12 @@ function TeamStatsTable({
       </h3>
       <div className="glass-card overflow-auto rounded-2xl">
         <table className={`w-full ${tableMinWidthClass} text-center`}>
-          <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+          <thead className="text-[13px] md:text-sm uppercase text-text/75 bg-white/[0.03]">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-5 py-4 font-semibold whitespace-nowrap text-center"
+                  className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center"
                 >
                   {column.label}
                 </th>
@@ -581,7 +582,7 @@ function TeamStatsTable({
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center"
+                  className="px-5 py-4 text-base md:text-lg whitespace-nowrap text-center"
                 >
                   {row[column.key] ?? "--"}
                 </td>
@@ -758,21 +759,21 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
         </h3>
         <div className="glass-card overflow-auto rounded-2xl">
           <table className="w-full min-w-[1160px] text-center">
-            <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+            <thead className="text-[13px] md:text-sm uppercase text-text/75 bg-white/[0.03]">
               <tr>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap text-left">
+                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left">
                   Player
                 </th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap text-center">
+                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
                   GP
                 </th>
-                <th className="px-5 py-4 font-semibold whitespace-nowrap text-center">
+                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
                   MIN
                 </th>
                 {statColumns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-5 py-4 font-semibold whitespace-nowrap text-center cursor-pointer"
+                    className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center cursor-pointer"
                     onClick={() => handleSort(column.key)}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -792,7 +793,13 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
                   className="border-t border-white/10 hover:bg-white/5"
                 >
                   <td className="px-5 py-4 text-left text-base md:text-lg font-semibold whitespace-nowrap">
-                    {row.playerName}
+                    <PlayerLink
+                      playerId={row.playerId}
+                      className="hover:text-accent transition-colors"
+                      sourceComponent="team_player_stats_table"
+                    >
+                      {row.playerName}
+                    </PlayerLink>
                   </td>
                   <td className="px-5 py-4 font-mono text-base md:text-lg whitespace-nowrap text-center">
                     {row.gamesPlayed}
@@ -862,7 +869,15 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
                 }}
               />
               <div className="min-w-0">
-                <p className="font-semibold truncate">{player.playerName}</p>
+                <p className="font-semibold truncate">
+                  <PlayerLink
+                    playerId={player.playerId}
+                    className="hover:text-accent transition-colors"
+                    sourceComponent="team_roster_card"
+                  >
+                    {player.playerName}
+                  </PlayerLink>
+                </p>
                 <p className="text-xs text-text/60">{detailLine}</p>
                 <p className="text-xs text-text/50 mt-1">
                   {player.height || "N/A"} | {player.weight || "N/A"} | EXP{" "}
