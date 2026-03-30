@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
 import Loading from "./Loading";
@@ -221,38 +221,51 @@ const Standings: React.FC = () => {
     label: string,
     key: keyof TeamStanding | "gb",
     align: "left" | "center" | "right" = "center",
-  ) => (
-    <th
-      className={`px-4 py-3 text-${align} bg-background cursor-pointer hover:bg-white/5 transition-colors group select-none`}
-      onClick={() => handleSort(key)}
-    >
-      <div
-        className={`flex items-center gap-1 ${align === "center" ? "justify-center" : ""}`}
+  ) => {
+    const alignClass =
+      align === "left"
+        ? "text-left"
+        : align === "right"
+          ? "text-right"
+          : "text-center";
+
+    return (
+      <th
+        className={`px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${alignClass} cursor-pointer hover:text-text transition-colors group select-none`}
+        onClick={() => handleSort(key)}
       >
-        {label}
-        <div className="flex flex-col text-text/40 group-hover:text-accent transition-colors">
-          {sortConfig.key === key ? (
-            sortConfig.direction === "asc" ? (
-              <ArrowUp className="w-3 h-3" />
-            ) : (
-              <ArrowDown className="w-3 h-3" />
-            )
-          ) : (
-            <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50" />
-          )}
+        <div
+          className={`flex items-center gap-1 ${align === "center" ? "justify-center" : ""}`}
+        >
+          {label}
+          <span
+            className={`text-sm ${
+              sortConfig.key === key
+                ? "text-accent"
+                : "text-text/40 group-hover:text-text"
+            }`}
+          >
+            {sortConfig.key === key
+              ? sortConfig.direction === "asc"
+                ? "↑"
+                : "↓"
+              : "↕"}
+          </span>
         </div>
-      </div>
-    </th>
-  );
+      </th>
+    );
+  };
 
   const renderTable = (teams: TeamStanding[]) => (
-    <div className="mb-8 glass-card overflow-hidden">
+    <div className="mb-8 glass-card overflow-hidden rounded-2xl">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-text/80 whitespace-nowrap">
-          <thead className="text-xs text-text/60 uppercase bg-white/5 font-display tracking-wider">
+        <table className="w-full min-w-[1180px] text-center whitespace-nowrap">
+          <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
             <tr>
-              <th className="p-0 sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px] md:min-w-[180px]">
-                <div className="px-4 py-3">Team</div>
+              <th className="p-0 sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[140px] md:min-w-[200px]">
+                <div className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] text-left">
+                  Team
+                </div>
               </th>
               {renderSortableHeader("W", "wins")}
               {renderSortableHeader("L", "losses")}
@@ -271,11 +284,11 @@ const Standings: React.FC = () => {
             {teams.map((team) => (
               <tr
                 key={team.teamId}
-                className="border-b border-white/5 hover:bg-white/5 transition-colors duration-200"
+                className="border-t border-white/10 hover:bg-white/5 transition-colors duration-200"
               >
-                <td className="px-4 py-3 font-medium text-text sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                <td className="px-5 py-4 font-semibold text-text/90 sticky left-0 bg-background z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] text-left whitespace-nowrap">
                   <div className="flex items-center gap-2 md:gap-3">
-                    <span className="text-text/40 w-4 text-right font-mono text-md">
+                    <span className="text-text/50 w-4 text-right font-mono text-sm">
                       {/* Rank Logic: If sorted, show order index. If default sort, show official rank. */}
                       {sortConfig.key
                         ? teams.findIndex((t) => t.teamId === team.teamId) + 1
@@ -312,44 +325,44 @@ const Standings: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.wins}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.losses}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {viewMode === "Conference"
                     ? team.conferenceGamesBack
                     : viewMode === "Division"
                       ? team.divgamesback
                       : team.leagueGamesBack}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {(team.winPct * 100).toFixed(1)}%
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.homeRecord}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.roadRecord}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.l10}
                 </td>
                 <td
-                  className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.streak.startsWith("W") ? "text-green-400" : "text-red-400"}`}
+                  className={`px-5 py-4 text-center font-semibold whitespace-nowrap ${team.streak.startsWith("W") ? "text-green-400" : "text-red-400"}`}
                 >
                   {team.streak}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.pointsPg}
                 </td>
-                <td className="px-4 py-3 text-center text-xl font-medium font-mono text-text/60">
+                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
                   {team.oppPointsPg}
                 </td>
                 <td
-                  className={`px-4 py-3 text-center text-xl font-medium font-mono ${team.diffPointsPg > 0 ? "text-green-400" : "text-red-400"}`}
+                  className={`px-5 py-4 text-center font-semibold whitespace-nowrap ${team.diffPointsPg > 0 ? "text-green-400" : "text-red-400"}`}
                 >
                   {team.diffPointsPg > 0 ? "+" : ""}
                   {team.diffPointsPg}

@@ -430,9 +430,6 @@ export default function Game() {
             transition={{ delay: 0.4 }}
             className="w-full"
           >
-            <h3 className="text-xl md:text-lg font-bold mb-4 md:mb-3">
-              {gameData.gameStatus === 1 ? "Team Rosters" : "Game Stats"}
-            </h3>
             <StatsSection
               gameData={gameData}
               players={players}
