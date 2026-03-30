@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowUpDown } from "lucide-react";
 import type { GameData, Player, PlayByPlayEvent } from "../types";
 import TeamLink from "./TeamLink";
+import PlayerLink from "./PlayerLink";
 
 interface StatsSectionProps {
   gameData: GameData;
@@ -147,9 +148,13 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                         "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
                     }}
                   />
-                  <div className="font-bold text-text">
+                  <PlayerLink
+                    playerId={player.personId}
+                    className="font-bold text-text hover:text-accent transition-colors"
+                    sourceComponent="stats_section_roster_table"
+                  >
                     {player.firstName} {player.lastName}
-                  </div>
+                  </PlayerLink>
                 </div>
               </td>
               <td className="px-4 py-3 text-text/80 text-center">
@@ -216,9 +221,13 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                       title="On Court"
                     />
                   )}
-                  <div className="font-bold text-text truncate">
+                  <PlayerLink
+                    playerId={player.personId}
+                    className="font-bold text-text truncate hover:text-accent transition-colors"
+                    sourceComponent="stats_section_player_table"
+                  >
                     {player.firstName.charAt(0)}. {player.lastName}
-                  </div>
+                  </PlayerLink>
                 </div>
               </td>
               <td className="px-2 py-3 text-text/80 font-mono text-center">

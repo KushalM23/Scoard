@@ -18,6 +18,12 @@ export interface PlayerBasicStatLine {
   steals: number;
   blocks: number;
   turnovers: number;
+  fgm: number;
+  fga: number;
+  threePtMade: number;
+  threePtAttempted: number;
+  ftm: number;
+  fta: number;
   fgPct: number;
   threePtPct: number;
   ftPct: number;
@@ -32,6 +38,12 @@ export interface PlayerCareerBasicStats {
   steals: number;
   blocks: number;
   turnovers: number;
+  fgm: number;
+  fga: number;
+  threePtMade: number;
+  threePtAttempted: number;
+  ftm: number;
+  fta: number;
   fgPct: number;
   threePtPct: number;
   ftPct: number;
@@ -100,12 +112,15 @@ export interface PlayerOverviewData {
   careerHighs: Array<{
     label: string;
     value: number;
+    gameDate: string | null;
+    opponentTricode: string | null;
   }>;
   awards: {
     total: number;
     grouped: Array<{
       label: string;
       count: number;
+      years: string[];
     }>;
   };
 }
@@ -134,6 +149,12 @@ export interface PlayerGameLogEntry {
   steals: number;
   blocks: number;
   turnovers: number;
+  fgm: number;
+  fga: number;
+  threePtMade: number;
+  threePtAttempted: number;
+  ftm: number;
+  fta: number;
   fgPct: number;
   threePtPct: number;
   ftPct: number;

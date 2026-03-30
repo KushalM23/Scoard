@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Loading from "@/app/components/Loading";
+import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
 import { parsePlayerTab } from "@/app/lib/players";
 import { trackEvent } from "@/app/lib/analytics";
@@ -195,6 +196,90 @@ function formatCareerSpan(fromYear: string, toYear: string) {
   return "--";
 }
 
+function parseSeasonStart(value: string): number {
+  const match = value.match(/^\d{4}/);
+  return match ? Number(match[0]) : 0;
+}
+
+function getSortDirectionLabel(direction: "asc" | "desc") {
+  return direction === "asc" ? "ascending" : "descending";
+}
+
+function renderSortIndicator(active: boolean, direction: "asc" | "desc") {
+  if (!active) {
+    return <span className="ml-1 text-text/40">↕</span>;
+  }
+  return (
+    <span className="ml-1 text-accent">{direction === "asc" ? "↑" : "↓"}</span>
+  );
+}
+
+function formatAwardYears(years: string[]) {
+  if (!years.length) return "Year data unavailable";
+  return years.join(", ");
+}
+
+function formatCareerHighContext(
+  gameDate: string | null,
+  opponentTricode: string | null,
+) {
+  if (!gameDate && !opponentTricode) return null;
+
+  let formattedDate = gameDate ?? "";
+  if (gameDate) {
+    const parsed = new Date(gameDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      formattedDate = parsed.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      });
+    } else {
+      const match = gameDate.match(/^([A-Za-z]{3})\s(\d{2})\s(\d{4})$/);
+      if (match) {
+        formattedDate = `${match[1]} ${match[2]}, ${match[3]}`;
+      }
+    }
+  }
+
+  if (formattedDate && opponentTricode) {
+    return `${formattedDate} vs ${opponentTricode}`;
+  }
+
+  return formattedDate || (opponentTricode ? `vs ${opponentTricode}` : null);
+}
+
+function compareNullable(a: unknown, b: unknown) {
+  const aMissing = a === null || a === undefined || a === "";
+  const bMissing = b === null || b === undefined || b === "";
+
+  if (aMissing && bMissing) return 0;
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+  return null;
+}
+
+function normalizeStatSortValue(column: string, value: string | number | null) {
+  if (value === null || value === undefined || value === "") return null;
+  if (column === "Season") return parseSeasonStart(String(value));
+  if (typeof value === "number") return value;
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  const pctMatch = trimmed.match(/^(-?\d+(?:\.\d+)?)%$/);
+  if (pctMatch) {
+    return Number(pctMatch[1]);
+  }
+
+  const asNumber = Number(trimmed);
+  if (Number.isFinite(asNumber)) {
+    return asNumber;
+  }
+
+  return trimmed.toLowerCase();
+}
+
 function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
   const detailsRows = [
     { label: "Age", value: data.age ?? "N/A" },
@@ -291,6 +376,15 @@ function PlayerOverviewTab({
     { label: "STL", value: data.currentSeasonBasic.steals.toFixed(1) },
     { label: "BLK", value: data.currentSeasonBasic.blocks.toFixed(1) },
     { label: "TOV", value: data.currentSeasonBasic.turnovers.toFixed(1) },
+    { label: "FGM", value: data.currentSeasonBasic.fgm.toFixed(1) },
+    { label: "FGA", value: data.currentSeasonBasic.fga.toFixed(1) },
+    { label: "3PM", value: data.currentSeasonBasic.threePtMade.toFixed(1) },
+    {
+      label: "3PA",
+      value: data.currentSeasonBasic.threePtAttempted.toFixed(1),
+    },
+    { label: "FTM", value: data.currentSeasonBasic.ftm.toFixed(1) },
+    { label: "FTA", value: data.currentSeasonBasic.fta.toFixed(1) },
     {
       label: "FG%",
       value: `${(data.currentSeasonBasic.fgPct * 100).toFixed(1)}%`,
@@ -315,6 +409,15 @@ function PlayerOverviewTab({
         { label: "STL", value: data.careerBasic.steals.toFixed(1) },
         { label: "BLK", value: data.careerBasic.blocks.toFixed(1) },
         { label: "TOV", value: data.careerBasic.turnovers.toFixed(1) },
+        { label: "FGM", value: data.careerBasic.fgm.toFixed(1) },
+        { label: "FGA", value: data.careerBasic.fga.toFixed(1) },
+        { label: "3PM", value: data.careerBasic.threePtMade.toFixed(1) },
+        {
+          label: "3PA",
+          value: data.careerBasic.threePtAttempted.toFixed(1),
+        },
+        { label: "FTM", value: data.careerBasic.ftm.toFixed(1) },
+        { label: "FTA", value: data.careerBasic.fta.toFixed(1) },
         {
           label: "FG%",
           value: `${(data.careerBasic.fgPct * 100).toFixed(1)}%`,
@@ -334,10 +437,10 @@ function PlayerOverviewTab({
     <div className="space-y-6">
       <div className="space-y-2">
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-          Current Season Basic Stats
+          Season
         </h3>
         <div className="glass-card overflow-auto rounded-2xl">
-          <table className="w-full min-w-[860px] text-center">
+          <table className="w-full min-w-[1200px] text-center">
             <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
               <tr>
                 {currentSeasonRows.map((row) => (
@@ -368,11 +471,11 @@ function PlayerOverviewTab({
 
       <div className="space-y-2">
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-          Career Basic Stats
+          Career
         </h3>
         {careerRows.length ? (
           <div className="glass-card overflow-auto rounded-2xl">
-            <table className="w-full min-w-[760px] text-center">
+            <table className="w-full min-w-[1100px] text-center">
               <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
                 <tr>
                   {careerRows.map((row) => (
@@ -414,19 +517,33 @@ function PlayerOverviewTab({
         {data.careerHighs.length ? (
           <div className="glass-card overflow-hidden rounded-2xl p-3 md:p-4">
             <ul className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-              {data.careerHighs.map((entry) => (
-                <li
-                  key={entry.label}
-                  className="rounded-xl border border-white/10 bg-background/20 px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-background/35 transition-colors"
-                >
-                  <span className="text-sm text-text/75 uppercase tracking-wide">
-                    {entry.label}
-                  </span>
-                  <span className="text-sm font-semibold text-text/90">
-                    {entry.value}
-                  </span>
-                </li>
-              ))}
+              {data.careerHighs.map((entry) => {
+                const context = formatCareerHighContext(
+                  entry.gameDate,
+                  entry.opponentTricode,
+                );
+
+                return (
+                  <li
+                    key={`${entry.label}-${entry.gameDate ?? "no-date"}-${entry.opponentTricode ?? "no-opp"}`}
+                    className="rounded-xl border border-white/10 bg-background/20 px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-background/35 transition-colors"
+                  >
+                    <div>
+                      <span className="text-sm text-text/75 uppercase tracking-wide">
+                        {entry.label}
+                      </span>
+                      {context ? (
+                        <p className="text-[11px] text-text/55 mt-0.5">
+                          {context}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="text-sm font-semibold text-text/90">
+                      {entry.value}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : (
@@ -439,7 +556,7 @@ function PlayerOverviewTab({
 
       <div className="space-y-2">
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-          Teams Played For
+          Teams
         </h3>
         {teamTimeline.length ? (
           <div className="glass-card overflow-auto rounded-2xl">
@@ -504,10 +621,15 @@ function PlayerOverviewTab({
                 key={award.label}
                 className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-white/5"
               >
-                <p className="text-base text-text/95 leading-relaxed font-medium">
-                  {award.label}
-                </p>
-                <span className="inline-flex min-w-10 justify-center rounded-full bg-accent/20 border border-accent/30 px-3 py-1 text-sm font-semibold text-text">
+                <div className="min-w-0">
+                  <p className="text-base text-text/95 leading-relaxed font-medium">
+                    {award.label}
+                  </p>
+                  <p className="text-xs text-text/60 mt-1 break-words">
+                    {formatAwardYears(award.years)}
+                  </p>
+                </div>
+                <span className="inline-flex min-w-10 justify-center rounded-full bg-accent/20 border border-accent/30 px-3 py-1 text-sm font-semibold text-text shrink-0">
                   {award.count}
                 </span>
               </div>
@@ -541,6 +663,47 @@ function SeasonStatsTable({
   columns: string[];
   rows: Array<Record<string, string | number | null>>;
 }) {
+  const [sortColumn, setSortColumn] = useState<string>("Season");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const activeSortColumn = columns.includes(sortColumn)
+    ? sortColumn
+    : columns[0];
+
+  const sortedRows = useMemo(() => {
+    if (!activeSortColumn) return rows;
+
+    const directionMultiplier = sortDirection === "asc" ? 1 : -1;
+
+    return [...rows].sort((a, b) => {
+      const aRaw = a[activeSortColumn] ?? null;
+      const bRaw = b[activeSortColumn] ?? null;
+
+      const nullableOrder = compareNullable(aRaw, bRaw);
+      if (nullableOrder !== null) return nullableOrder;
+
+      const aValue = normalizeStatSortValue(activeSortColumn, aRaw);
+      const bValue = normalizeStatSortValue(activeSortColumn, bRaw);
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * directionMultiplier;
+      }
+
+      const aText = String(aValue ?? "");
+      const bText = String(bValue ?? "");
+      return aText.localeCompare(bText) * directionMultiplier;
+    });
+  }, [rows, activeSortColumn, sortDirection]);
+
+  const onSortColumn = (column: string) => {
+    if (column === sortColumn) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortColumn(column);
+    setSortDirection(column === "Season" ? "desc" : "asc");
+  };
+
   return (
     <div className="space-y-2">
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
@@ -556,20 +719,31 @@ function SeasonStatsTable({
           <table className="w-full min-w-[1160px] text-center">
             <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
               <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column}
-                    className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
-                      column === "Season" ? "text-left" : "text-center"
-                    }`}
-                  >
-                    {column}
-                  </th>
-                ))}
+                {columns.map((column) => {
+                  const active = column === activeSortColumn;
+                  return (
+                    <th
+                      key={column}
+                      className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
+                        column === "Season" ? "text-left" : "text-center"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSortColumn(column)}
+                        className="inline-flex items-center hover:text-text transition-colors"
+                        aria-label={`Sort by ${column} (${getSortDirectionLabel(active ? sortDirection : "asc")})`}
+                      >
+                        {column}
+                        {renderSortIndicator(active, sortDirection)}
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {sortedRows.map((row, index) => (
                 <tr
                   key={`${row.Season ?? "season"}-${index}`}
                   className="border-t border-white/10 hover:bg-white/5"
@@ -598,17 +772,17 @@ function PlayerStatsTab({ data }: { data: PlayerStatsData }) {
   return (
     <div className="space-y-6">
       <SeasonStatsTable
-        title="Season-wise Basic Stats"
+        title="Season Stats"
         columns={data.basic.columns}
         rows={data.basic.rows}
       />
       <SeasonStatsTable
-        title="Season-wise Advanced Stats"
+        title="Advanced Stats"
         columns={data.advanced.columns}
         rows={data.advanced.rows}
       />
       <SeasonStatsTable
-        title="Season-wise Per-36 Stats"
+        title="Per-36 Stats"
         columns={data.per36.columns}
         rows={data.per36.rows}
       />
@@ -617,6 +791,82 @@ function PlayerStatsTab({ data }: { data: PlayerStatsData }) {
 }
 
 function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
+  const [sortKey, setSortKey] =
+    useState<keyof PlayerGameLogData["games"][number]>("gameDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const columns: Array<{
+    key: keyof PlayerGameLogData["games"][number];
+    label: string;
+    align?: "left" | "center";
+  }> = [
+    { key: "gameDate", label: "Date", align: "left" },
+    { key: "matchup", label: "Matchup", align: "left" },
+    { key: "result", label: "WL" },
+    { key: "minutes", label: "MIN" },
+    { key: "points", label: "PTS" },
+    { key: "rebounds", label: "REB" },
+    { key: "assists", label: "AST" },
+    { key: "steals", label: "STL" },
+    { key: "blocks", label: "BLK" },
+    { key: "turnovers", label: "TOV" },
+    { key: "fgm", label: "FGM" },
+    { key: "fga", label: "FGA" },
+    { key: "threePtMade", label: "3PM" },
+    { key: "threePtAttempted", label: "3PA" },
+    { key: "ftm", label: "FTM" },
+    { key: "fta", label: "FTA" },
+    { key: "fgPct", label: "FG%" },
+    { key: "threePtPct", label: "3P%" },
+    { key: "ftPct", label: "FT%" },
+  ];
+
+  const sortedGames = useMemo(() => {
+    const directionMultiplier = sortDirection === "asc" ? 1 : -1;
+
+    return [...data.games].sort((a, b) => {
+      const aRaw = a[sortKey];
+      const bRaw = b[sortKey];
+
+      if (sortKey === "gameDate") {
+        const aDate = new Date(String(aRaw)).getTime();
+        const bDate = new Date(String(bRaw)).getTime();
+        if (Number.isFinite(aDate) && Number.isFinite(bDate)) {
+          return (aDate - bDate) * directionMultiplier;
+        }
+      }
+
+      if (sortKey === "result") {
+        const resultOrder: Record<string, number> = { W: 2, L: 1, "": 0 };
+        return (
+          ((resultOrder[String(aRaw)] ?? 0) -
+            (resultOrder[String(bRaw)] ?? 0)) *
+          directionMultiplier
+        );
+      }
+
+      if (typeof aRaw === "number" && typeof bRaw === "number") {
+        return (aRaw - bRaw) * directionMultiplier;
+      }
+
+      return (
+        String(aRaw ?? "")
+          .toLowerCase()
+          .localeCompare(String(bRaw ?? "").toLowerCase()) * directionMultiplier
+      );
+    });
+  }, [data.games, sortDirection, sortKey]);
+
+  const onSort = (key: keyof PlayerGameLogData["games"][number]) => {
+    if (key === sortKey) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection(key === "gameDate" ? "desc" : "asc");
+  };
+
   if (!data.games.length) {
     return (
       <EmptyState
@@ -629,55 +879,37 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-        Current Season Game Log
+        Game Log
       </h3>
       <div className="glass-card overflow-auto rounded-2xl">
-        <table className="w-full min-w-[1080px] text-center">
+        <table className="w-full min-w-[1620px] text-center">
           <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
             <tr>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left">
-                Date
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left">
-                Matchup
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                WL
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                MIN
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                PTS
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                REB
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                AST
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                STL
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                BLK
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                TOV
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                FG%
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                3P%
-              </th>
-              <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap">
-                FT%
-              </th>
+              {columns.map((column) => {
+                const isActive = sortKey === column.key;
+                return (
+                  <th
+                    key={column.label}
+                    className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
+                      column.align === "left" ? "text-left" : "text-center"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onSort(column.key)}
+                      className="inline-flex items-center hover:text-text transition-colors"
+                      aria-label={`Sort by ${column.label} (${getSortDirectionLabel(isActive ? sortDirection : "asc")})`}
+                    >
+                      {column.label}
+                      {renderSortIndicator(isActive, sortDirection)}
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {data.games.map((game) => (
+            {sortedGames.map((game) => (
               <tr
                 key={`${game.gameId}-${game.gameDate}`}
                 className="border-t border-white/10 hover:bg-white/5"
@@ -728,6 +960,24 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
                 </td>
                 <td className="px-5 py-4 font-mono whitespace-nowrap">
                   {game.turnovers.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.fgm.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.fga.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.threePtMade.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.threePtAttempted.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.ftm.toFixed(1)}
+                </td>
+                <td className="px-5 py-4 font-mono whitespace-nowrap">
+                  {game.fta.toFixed(1)}
                 </td>
                 <td className="px-5 py-4 font-mono whitespace-nowrap">
                   {(game.fgPct * 100).toFixed(1)}%

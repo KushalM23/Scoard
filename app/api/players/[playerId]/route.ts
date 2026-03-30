@@ -386,6 +386,12 @@ function buildCurrentSeasonBasic(gameLogRaw: any) {
     steals: avg(sum("STL")),
     blocks: avg(sum("BLK")),
     turnovers: avg(sum("TOV")),
+    fgm: avg(sum("FGM")),
+    fga: avg(sum("FGA")),
+    threePtMade: avg(sum("FG3M")),
+    threePtAttempted: avg(sum("FG3A")),
+    ftm: avg(sum("FTM")),
+    fta: avg(sum("FTA")),
     fgPct: avg(sum("FG_PCT")),
     threePtPct: avg(sum("FG3_PCT")),
     ftPct: avg(sum("FT_PCT")),
@@ -411,6 +417,12 @@ function buildCareerBasic(careerRaw: any) {
     steals: num(getValueFromRow(row, totals.headers, "STL"), 0),
     blocks: num(getValueFromRow(row, totals.headers, "BLK"), 0),
     turnovers: num(getValueFromRow(row, totals.headers, "TOV"), 0),
+    fgm: num(getValueFromRow(row, totals.headers, "FGM"), 0),
+    fga: num(getValueFromRow(row, totals.headers, "FGA"), 0),
+    threePtMade: num(getValueFromRow(row, totals.headers, "FG3M"), 0),
+    threePtAttempted: num(getValueFromRow(row, totals.headers, "FG3A"), 0),
+    ftm: num(getValueFromRow(row, totals.headers, "FTM"), 0),
+    fta: num(getValueFromRow(row, totals.headers, "FTA"), 0),
     fgPct: num(getValueFromRow(row, totals.headers, "FG_PCT"), 0),
     threePtPct: num(getValueFromRow(row, totals.headers, "FG3_PCT"), 0),
     ftPct: num(getValueFromRow(row, totals.headers, "FT_PCT"), 0),
@@ -419,9 +431,41 @@ function buildCareerBasic(careerRaw: any) {
 
 function buildCareerHighs(careerRaw: any) {
   const highs = pickResultSetByName(careerRaw, ["CareerHighs"]);
-  const row = highs.rowSet[0] ?? null;
+  if (!highs.rowSet.length) return [];
 
-  if (!row) return [];
+  const maxByStat = new Map<
+    string,
+    {
+      value: number;
+      gameDate: string | null;
+      opponentTricode: string | null;
+    }
+  >();
+
+  for (const row of highs.rowSet) {
+    const stat = String(getValueFromRow(row, highs.headers, "STAT") ?? "")
+      .trim()
+      .toUpperCase();
+    if (!stat) continue;
+
+    const statValue = num(getValueFromRow(row, highs.headers, "STAT_VALUE"), 0);
+    const gameDate =
+      String(getValueFromRow(row, highs.headers, "GAME_DATE") ?? "").trim() ||
+      null;
+    const opponentTricode =
+      String(
+        getValueFromRow(row, highs.headers, "VS_TEAM_ABBREVIATION") ?? "",
+      ).trim() || null;
+    const existing = maxByStat.get(stat);
+
+    if (!existing || statValue > existing.value) {
+      maxByStat.set(stat, {
+        value: statValue,
+        gameDate,
+        opponentTricode,
+      });
+    }
+  }
 
   const metrics = [
     { label: "PTS", key: "PTS" },
@@ -430,20 +474,33 @@ function buildCareerHighs(careerRaw: any) {
     { label: "STL", key: "STL" },
     { label: "BLK", key: "BLK" },
     { label: "FGM", key: "FGM" },
+    { label: "FGA", key: "FGA" },
     { label: "3PM", key: "FG3M" },
+    { label: "3PA", key: "FG3A" },
     { label: "FTM", key: "FTM" },
-    { label: "MIN", key: "MIN" },
+    { label: "FTA", key: "FTA" },
   ];
 
-  return metrics.map((metric) => ({
-    label: metric.label,
-    value: num(getValueFromRow(row, highs.headers, metric.key), 0),
-  }));
+  return metrics.map((metric) => {
+    const found = maxByStat.get(metric.key);
+    return {
+      label: metric.label,
+      value: found?.value ?? 0,
+      gameDate: found?.gameDate ?? null,
+      opponentTricode: found?.opponentTricode ?? null,
+    };
+  });
 }
 
 function buildAwards(awardsRaw: any) {
   const awards = pickResultSetByName(awardsRaw, ["PlayerAwards"]);
-  const groupedCounts = new Map<string, number>();
+  const groupedAwards = new Map<
+    string,
+    {
+      count: number;
+      years: Set<string>;
+    }
+  >();
 
   for (const row of awards.rowSet) {
     const rawLabel = String(
@@ -451,13 +508,31 @@ function buildAwards(awardsRaw: any) {
     )
       .replace(/\s+/g, " ")
       .trim();
+    const season = String(
+      getFirstPresentValue(row, awards.headers, ["SEASON", "YEAR"]) ?? "",
+    ).trim();
 
     if (!rawLabel) continue;
-    groupedCounts.set(rawLabel, (groupedCounts.get(rawLabel) ?? 0) + 1);
+
+    const existing = groupedAwards.get(rawLabel) ?? {
+      count: 0,
+      years: new Set<string>(),
+    };
+    existing.count += 1;
+    if (season) {
+      existing.years.add(season);
+    }
+    groupedAwards.set(rawLabel, existing);
   }
 
-  const grouped = [...groupedCounts.entries()]
-    .map(([label, count]) => ({ label, count }))
+  const grouped = [...groupedAwards.entries()]
+    .map(([label, value]) => ({
+      label,
+      count: value.count,
+      years: [...value.years].sort(
+        (a, b) => parseSeasonStart(b) - parseSeasonStart(a),
+      ),
+    }))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return a.label.localeCompare(b.label);
@@ -868,6 +943,12 @@ export async function GET(
           { key: "STL", label: "STL" },
           { key: "BLK", label: "BLK" },
           { key: "TOV", label: "TOV" },
+          { key: "FGM", label: "FGM" },
+          { key: "FGA", label: "FGA" },
+          { key: "FG3M", label: "3PM" },
+          { key: "FG3A", label: "3PA" },
+          { key: "FTM", label: "FTM" },
+          { key: "FTA", label: "FTA" },
           { key: "FG_PCT", label: "FG%", isPct: true },
           { key: "FG3_PCT", label: "3P%", isPct: true },
           { key: "FT_PCT", label: "FT%", isPct: true },
@@ -919,6 +1000,15 @@ export async function GET(
           steals: num(getValueFromRow(row, gameLog.headers, "STL"), 0),
           blocks: num(getValueFromRow(row, gameLog.headers, "BLK"), 0),
           turnovers: num(getValueFromRow(row, gameLog.headers, "TOV"), 0),
+          fgm: num(getValueFromRow(row, gameLog.headers, "FGM"), 0),
+          fga: num(getValueFromRow(row, gameLog.headers, "FGA"), 0),
+          threePtMade: num(getValueFromRow(row, gameLog.headers, "FG3M"), 0),
+          threePtAttempted: num(
+            getValueFromRow(row, gameLog.headers, "FG3A"),
+            0,
+          ),
+          ftm: num(getValueFromRow(row, gameLog.headers, "FTM"), 0),
+          fta: num(getValueFromRow(row, gameLog.headers, "FTA"), 0),
           fgPct: num(getValueFromRow(row, gameLog.headers, "FG_PCT"), 0),
           threePtPct: num(getValueFromRow(row, gameLog.headers, "FG3_PCT"), 0),
           ftPct: num(getValueFromRow(row, gameLog.headers, "FT_PCT"), 0),

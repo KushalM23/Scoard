@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { Player } from '../types';
+import PlayerLink from './PlayerLink';
 
 interface TopPerformersProps {
     homeTeamName: string;
@@ -35,7 +36,13 @@ const TopPerformers: React.FC<TopPerformersProps> = ({ homeTeamName, awayTeamNam
                 />
             </div>
             <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate">{player.firstName.charAt(0)}. {player.lastName}</div>
+                <PlayerLink
+                    playerId={player.personId}
+                    className="font-bold text-sm truncate block hover:text-accent transition-colors"
+                    sourceComponent="top_performers_card"
+                >
+                    {player.firstName.charAt(0)}. {player.lastName}
+                </PlayerLink>
                 <div className="text-xs text-text/60 flex gap-2">
                     <span>{player.points} PTS</span>
                     <span>{player.assists} AST</span>
