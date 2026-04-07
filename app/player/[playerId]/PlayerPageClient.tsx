@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Loading from "@/app/components/Loading";
 import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
+import { Skeleton } from "@/app/components/skeleton";
 import { parsePlayerTab } from "@/app/lib/players";
 import { trackEvent } from "@/app/lib/analytics";
 import type {
@@ -91,6 +91,63 @@ function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
         {title}
       </p>
       {subtitle && <p className="text-text/60 text-sm mt-2">{subtitle}</p>}
+    </div>
+  );
+}
+
+function PlayerHeaderSkeleton() {
+  return (
+    <section className="space-y-3 md:space-y-4">
+      <div className="glass-card p-4 md:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-start gap-4 lg:gap-7">
+          <div className="w-full max-w-[160px] sm:max-w-[220px] mx-auto lg:mx-0">
+            <Skeleton className="w-full h-[210px] sm:h-[280px] rounded-2xl" />
+          </div>
+
+          <div className="space-y-3 md:space-y-4 min-w-0">
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-56 sm:w-72" />
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton
+                    key={`player-header-chip-skeleton-${index}`}
+                    className="h-7 w-20 rounded-md"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={`player-header-detail-skeleton-${index}`}
+                  className="rounded-xl border border-white/10 bg-background/20 px-3 py-2.5 min-h-[64px] space-y-2"
+                >
+                  <Skeleton className="h-2.5 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlayerSectionSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-36 ml-1" />
+      <div className="glass-card rounded-2xl p-4 md:p-5 space-y-3 overflow-hidden">
+        <Skeleton className="h-8 w-full rounded-lg" />
+        {Array.from({ length: rows }).map((_, index) => (
+          <Skeleton
+            key={`player-section-row-skeleton-${index}`}
+            className="h-10 w-full rounded-lg"
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -296,7 +353,7 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
   return (
     <section className="space-y-3 md:space-y-4">
       <div className="glass-card p-4 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-start gap-4 lg:gap-7">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-center gap-4 lg:gap-7">
           <div className="w-full max-w-[160px] sm:max-w-[220px] mx-auto lg:mx-0">
             <img
               src={`https://cdn.nba.com/headshots/nba/latest/260x190/${data.playerId}.png`}
@@ -309,8 +366,8 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
             />
           </div>
 
-          <div className="space-y-3 md:space-y-4 min-w-0">
-            <div>
+          <div className="flex flex-col justify-between gap-3 md:gap-4 min-w-0">
+            <div className="flex flex-col gap-2">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-display leading-tight break-words">
                 {data.displayName}
               </h1>
@@ -334,7 +391,7 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {detailsRows.map((row) => (
                 <div
                   key={row.label}
@@ -1198,9 +1255,7 @@ export default function PlayerPageClient({
   return (
     <div className="space-y-3 md:space-y-4 pb-4 md:pb-6">
       {header.loading && !header.data ? (
-        <div className="py-10">
-          <Loading text="Loading player details..." />
-        </div>
+        <PlayerHeaderSkeleton />
       ) : header.error || !header.data ? (
         <SectionError
           title="Player details unavailable"
@@ -1240,7 +1295,7 @@ export default function PlayerPageClient({
       {activeTab === "overview" && (
         <>
           {overview.loading && !overview.data ? (
-            <Loading text="Loading overview..." />
+            <PlayerSectionSkeleton rows={9} />
           ) : null}
           {overview.error ? (
             <SectionError
@@ -1258,7 +1313,7 @@ export default function PlayerPageClient({
       {activeTab === "stats" && (
         <>
           {stats.loading && !stats.data ? (
-            <Loading text="Loading stats..." />
+            <PlayerSectionSkeleton rows={11} />
           ) : null}
           {stats.error ? (
             <SectionError
@@ -1274,7 +1329,7 @@ export default function PlayerPageClient({
       {activeTab === "game-log" && (
         <>
           {gameLog.loading && !gameLog.data ? (
-            <Loading text="Loading game log..." />
+            <PlayerSectionSkeleton rows={10} />
           ) : null}
           {gameLog.error ? (
             <SectionError

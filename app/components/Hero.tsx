@@ -9,7 +9,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import GameCard from './GameCard';
 import Standings from './Standings';
 import CalendarPicker from './CalendarPicker';
-import Loading from './Loading';
+import { Skeleton } from './skeleton';
 
 interface HeroProps {
     onGameSelect: (gameId: string) => void;
@@ -138,8 +138,32 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
                         transition={{ duration: 0.3 }}
                     >
                         {loading ? (
-                            <div className="py-20">
-                                <Loading />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-12">
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <div key={`game-skeleton-${index}`} className="glass-card rounded-2xl p-4 md:p-5 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-5 w-16 rounded-full" />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                                    <Skeleton className="h-4 w-20" />
+                                                </div>
+                                                <Skeleton className="h-6 w-10" />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                                    <Skeleton className="h-4 w-20" />
+                                                </div>
+                                                <Skeleton className="h-6 w-10" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-8 w-full rounded-xl" />
+                                    </div>
+                                ))}
                             </div>
                         ) : games.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">

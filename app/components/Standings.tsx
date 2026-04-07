@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
-import Loading from "./Loading";
 import TeamLink from "./TeamLink";
+import { Skeleton } from "./skeleton";
 
 const TEAM_CODES: Record<number, string> = {
   1610612737: "ATL",
@@ -377,8 +377,17 @@ const Standings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="py-20">
-        <Loading text="LOADING STANDINGS..." />
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex justify-between items-center mb-6">
+          <Skeleton className="h-10 w-44" />
+          <Skeleton className="h-10 w-36 rounded-lg" />
+        </div>
+        <div className="mb-8 glass-card overflow-hidden rounded-2xl p-4 md:p-6 space-y-3">
+          <Skeleton className="h-8 w-full rounded-lg" />
+          {Array.from({ length: 12 }).map((_, index) => (
+            <Skeleton key={`standings-row-skeleton-${index}`} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }

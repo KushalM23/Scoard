@@ -10,9 +10,9 @@ import {
 import axios from "axios";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Loading from "@/app/components/Loading";
 import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
+import { Skeleton } from "@/app/components/skeleton";
 import { trackEvent } from "@/app/lib/analytics";
 import { parseTab } from "@/app/lib/teams";
 import type {
@@ -109,6 +109,110 @@ function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
   );
 }
 
+function TeamOverviewSkeleton() {
+  return (
+    <section className="mb-4 md:mb-6">
+      <div className="glass-card p-4 md:p-6 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
+          <div className="flex items-center gap-4 min-w-0">
+            <Skeleton className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-36 sm:w-48" />
+              <Skeleton className="h-7 w-44 sm:w-56" />
+            </div>
+          </div>
+          <div className="hidden md:block w-full md:w-auto md:min-w-[320px] lg:min-w-[360px] space-y-2">
+            <Skeleton className="h-5 w-56 ml-auto" />
+            <Skeleton className="h-5 w-56 ml-auto" />
+          </div>
+        </div>
+
+        <div className="md:hidden grid grid-cols-2 gap-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={`team-overview-mobile-skeleton-${index}`}
+              className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5 space-y-2"
+            >
+              <Skeleton className="h-2.5 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 mt-3 md:mt-4">
+          {Array.from({ length: 3 }).map((_, panelIndex) => (
+            <div
+              key={`team-overview-panel-skeleton-${panelIndex}`}
+              className="rounded-2xl border border-white/10 bg-background/20 p-4 h-[292px] md:h-[372px]"
+            >
+              <Skeleton className="h-4 w-36 mb-3" />
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((__, rowIndex) => (
+                  <div
+                    key={`team-overview-panel-row-skeleton-${panelIndex}-${rowIndex}`}
+                    className="rounded-xl border border-white/10 bg-background/35 p-3 md:p-4 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-3 w-28 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TeamStatsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={`team-stat-metric-skeleton-${index}`}
+            className="glass-card p-4 text-center rounded-xl space-y-2"
+          >
+            <Skeleton className="h-3 w-14 mx-auto" />
+            <Skeleton className="h-7 w-16 mx-auto" />
+          </div>
+        ))}
+      </div>
+
+      <div className="glass-card overflow-hidden rounded-2xl p-4 md:p-5 space-y-3">
+        <Skeleton className="h-5 w-36" />
+        {Array.from({ length: 8 }).map((_, index) => (
+          <Skeleton key={`team-stat-row-skeleton-${index}`} className="h-10 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TeamRosterSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div
+          key={`team-roster-skeleton-${index}`}
+          className="glass-card p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
+        >
+          <Skeleton className="w-12 h-12 md:w-14 md:h-14 rounded-full shrink-0" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TeamOverviewInline({
   data,
   schedule,
@@ -122,6 +226,24 @@ function TeamOverviewInline({
 }) {
   const panelHeightClass = "h-[210px] md:h-[372px]";
   const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
+
+  const renderGamesPanelSkeleton = () => (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          key={`team-games-panel-skeleton-${index}`}
+          className="rounded-xl border border-white/10 bg-background/35 p-3 md:p-4 space-y-3"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-4 w-8" />
+            <Skeleton className="h-5 w-1/4" />
+          </div>
+          <Skeleton className="h-3 w-28 mx-auto" />
+        </div>
+      ))}
+    </div>
+  );
 
   const formatGameDate = (rawDate: string, display?: string) => {
     if (display) return display;
@@ -212,9 +334,18 @@ function TeamOverviewInline({
       </h3>
       <div className="flex flex-col gap-2 h-full">
         {snapshotLoading && !rows.length ? (
-          <div className="flex items-center justify-center h-full">
-            <Loading size={24} className="p-0" showText={false} />
-          </div>
+          Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={`${title}-snapshot-skeleton-${index}`}
+              className={`${index > 4 ? "hidden md:flex" : "flex"} items-center justify-between rounded-lg px-2.5 py-2 md:py-1.5 border border-white/10 bg-background/30`}
+            >
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3 w-4" />
+                <Skeleton className="h-4 w-10" />
+              </div>
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))
         ) : !rows.length ? (
           <p className="text-text/60 text-sm">Snapshot is unavailable.</p>
         ) : (
@@ -249,11 +380,7 @@ function TeamOverviewInline({
 
   const renderScheduleContent = () => {
     if (schedule.loading && !schedule.data) {
-      return (
-        <div className="flex items-center justify-center py-6">
-          <Loading size={24} className="p-0" showText={false} />
-        </div>
-      );
+      return renderGamesPanelSkeleton();
     }
 
     if (schedule.error && !schedule.data) {
@@ -299,11 +426,7 @@ function TeamOverviewInline({
 
   const renderResultsContent = () => {
     if (results.loading && !results.data) {
-      return (
-        <div className="flex items-center justify-center py-6">
-          <Loading size={24} className="p-0" showText={false} />
-        </div>
-      );
+      return renderGamesPanelSkeleton();
     }
 
     if (results.error && !results.data) {
@@ -1201,9 +1324,7 @@ export default function TeamPageClient({
   return (
     <div className="space-y-3 md:space-y-4 pb-4 md:pb-6">
       {overview.loading && !overview.data ? (
-        <div className="py-10">
-          <Loading text="Loading team overview..." />
-        </div>
+        <TeamOverviewSkeleton />
       ) : overview.error || !overview.data ? (
         <SectionError
           title="Overview unavailable"
@@ -1250,7 +1371,7 @@ export default function TeamPageClient({
       {activeTab === "team-stats" && (
         <>
           {stats.loading && !stats.data ? (
-            <Loading text="Loading team stats..." />
+            <TeamStatsSkeleton />
           ) : null}
           {stats.error ? (
             <SectionError
@@ -1266,7 +1387,7 @@ export default function TeamPageClient({
       {activeTab === "player-stats" && (
         <>
           {stats.loading && !stats.data ? (
-            <Loading text="Loading player stats..." />
+            <TeamStatsSkeleton />
           ) : null}
           {stats.error ? (
             <SectionError
@@ -1282,7 +1403,7 @@ export default function TeamPageClient({
       {activeTab === "roster" && (
         <>
           {roster.loading && !roster.data ? (
-            <Loading text="Loading roster..." />
+            <TeamRosterSkeleton />
           ) : null}
           {roster.error ? (
             <SectionError

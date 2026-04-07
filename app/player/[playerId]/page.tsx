@@ -139,13 +139,13 @@ async function getInitialHeader(
     );
 
     const draftYear = String(
-      getValueFromRow(row, profileSet.headers, "DRAFT_YEAR") ?? "Undrafted",
+      getValueFromRow(row, profileSet.headers, "DRAFT_YEAR"),
     );
     const draftRound = String(
-      getValueFromRow(row, profileSet.headers, "DRAFT_ROUND") ?? "-",
+      getValueFromRow(row, profileSet.headers, "DRAFT_ROUND"),
     );
     const draftPick = String(
-      getValueFromRow(row, profileSet.headers, "DRAFT_NUMBER") ?? "-",
+      getValueFromRow(row, profileSet.headers, "DRAFT_NUMBER"),
     );
 
     return {

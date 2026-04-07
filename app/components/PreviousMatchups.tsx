@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import Loading from "./Loading";
 import TeamLink from "./TeamLink";
 import type { Matchup } from "../types";
+import { Skeleton } from "./skeleton";
 
 interface PreviousMatchupsProps {
   matchups: Matchup[];
@@ -40,8 +40,15 @@ const MatchupItem: React.FC<{ matchup: Matchup }> = ({ matchup }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-3 bg-background/30 rounded-lg h-[72px]">
-        <Loading size={24} className="p-0" showText={false} />
+      <div className="p-3 bg-background/30 rounded-lg h-[72px] flex items-center">
+        <div className="w-full">
+          <Skeleton className="h-2.5 w-20 mx-auto mb-2" />
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-5 w-10" />
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-5 w-10" />
+          </div>
+        </div>
       </div>
     );
   }

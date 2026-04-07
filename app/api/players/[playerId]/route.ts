@@ -813,16 +813,19 @@ export async function GET(
           `${firstName} ${lastName}`.trim() ||
           "Unknown Player";
 
-        const draftYear = String(
-          getValueFromRow(profile.row, profile.headers, "DRAFT_YEAR") ??
-            "Undrafted",
+        let draftYear = String(
+          getValueFromRow(profile.row, profile.headers, "DRAFT_YEAR"),
         );
-        const draftRound = String(
-          getValueFromRow(profile.row, profile.headers, "DRAFT_ROUND") ?? "-",
+        let draftRound = String(
+          getValueFromRow(profile.row, profile.headers, "DRAFT_ROUND"),
         );
-        const draftPick = String(
-          getValueFromRow(profile.row, profile.headers, "DRAFT_NUMBER") ?? "-",
+        let draftPick = String(
+          getValueFromRow(profile.row, profile.headers, "DRAFT_NUMBER"),
         );
+
+        if (draftYear === "Undrafted") draftYear = "Undrafted";
+        if (draftRound === "Undrafted") draftRound = "-";
+        if (draftPick === "Undrafted") draftPick = "-";
 
         return {
           playerId,

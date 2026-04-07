@@ -15,6 +15,7 @@ import type { SearchSuggestion } from "@/app/types/search";
 import { getOrBuildSearchIndex } from "@/app/lib/search/bootstrapClient";
 import { querySearchIndex } from "@/app/lib/search/index";
 import { normalizeForSearch } from "@/app/lib/search/normalize";
+import { Skeleton } from "@/app/components/skeleton";
 
 const SEARCH_LISTBOX_ID = "global-header-search-listbox";
 const SEARCH_INPUT_ID = "global-header-search-input";
@@ -294,9 +295,20 @@ const Header: React.FC = () => {
   const renderDropdownContent = () => {
     if (isLoadingBootstrap && suggestions.length === 0) {
       return (
-        <div className="rounded-lg border border-[#352e2e] bg-[#171313] px-4 py-4 text-sm text-text/70 flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin text-accent" />
-          Loading search index...
+        <div className="rounded-lg border border-[#352e2e] bg-[#171313] px-3 py-3 space-y-2.5">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={`search-suggestion-skeleton-${index}`}
+              className="h-[60px] rounded-lg border border-[#3c3434] bg-[#241f1f] px-3 flex items-center gap-3"
+            >
+              <Skeleton className="w-10 h-10 rounded-full bg-white/10" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-2/3 bg-white/10" />
+                <Skeleton className="h-3 w-1/2 bg-white/10" />
+              </div>
+              <Skeleton className="h-5 w-14 rounded-full bg-white/10" />
+            </div>
+          ))}
         </div>
       );
     }
