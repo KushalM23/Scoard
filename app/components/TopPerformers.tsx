@@ -3,6 +3,7 @@
 import React from "react";
 import type { Player } from "../types";
 import PlayerLink from "./PlayerLink";
+import StatTooltip from "./StatTooltip";
 
 interface TopPerformersProps {
   homeTeamName: string;
@@ -55,9 +56,15 @@ const TopPerformers: React.FC<TopPerformersProps> = ({
           {player.firstName.charAt(0)}. {player.lastName}
         </PlayerLink>
         <div className="text-xs text-text/60 flex gap-2">
-          <span>{player.points} PTS</span>
-          <span>{player.assists} AST</span>
-          <span>{player.rebounds} REB</span>
+          <span>
+            {player.points} <StatTooltip label="PTS" />
+          </span>
+          <span>
+            {player.assists} <StatTooltip label="AST" />
+          </span>
+          <span>
+            {player.rebounds} <StatTooltip label="REB" />
+          </span>
         </div>
       </div>
     </div>

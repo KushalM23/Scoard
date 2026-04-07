@@ -7,6 +7,7 @@ import axios from "axios";
 import Image from "next/image";
 import TeamLink from "./TeamLink";
 import { Skeleton } from "./skeleton";
+import StatTooltip from "./StatTooltip";
 
 const TEAM_CODES: Record<number, string> = {
   1610612737: "ATL",
@@ -237,7 +238,7 @@ const Standings: React.FC = () => {
         <div
           className={`flex items-center gap-1 ${align === "center" ? "justify-center" : ""}`}
         >
-          {label}
+          <StatTooltip label={label} />
           <span
             className={`text-sm ${
               sortConfig.key === key

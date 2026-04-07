@@ -5,6 +5,7 @@ import axios from "axios";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import PlayerLink from "@/app/components/PlayerLink";
+import StatTooltip from "@/app/components/StatTooltip";
 import TeamLink from "@/app/components/TeamLink";
 import { Skeleton } from "@/app/components/skeleton";
 import { parsePlayerTab } from "@/app/lib/players";
@@ -398,7 +399,7 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
                   className="rounded-xl border border-white/10 bg-background/20 px-3 py-2.5 min-h-[64px]"
                 >
                   <p className="text-[10px] uppercase tracking-wider text-text/60">
-                    {row.label}
+                    <StatTooltip label={row.label} />
                   </p>
                   <p className="text-sm sm:text-base font-semibold mt-1 break-words text-text/95 leading-snug">
                     {row.value}
@@ -505,7 +506,7 @@ function PlayerOverviewTab({
                     key={row.label}
                     className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap"
                   >
-                    {row.label}
+                    <StatTooltip label={row.label} />
                   </th>
                 ))}
               </tr>
@@ -540,7 +541,7 @@ function PlayerOverviewTab({
                       key={row.label}
                       className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap"
                     >
-                      {row.label}
+                      <StatTooltip label={row.label} />
                     </th>
                   ))}
                 </tr>
@@ -587,7 +588,7 @@ function PlayerOverviewTab({
                   >
                     <div>
                       <span className="text-sm text-text/75 uppercase tracking-wide">
-                        {entry.label}
+                        <StatTooltip label={entry.label} />
                       </span>
                       {context ? (
                         <p className="text-[11px] text-text/55 mt-0.5">
@@ -791,7 +792,7 @@ function SeasonStatsTable({
                         className="inline-flex items-center hover:text-text transition-colors"
                         aria-label={`Sort by ${column} (${getSortDirectionLabel(active ? sortDirection : "asc")})`}
                       >
-                        {column}
+                        <StatTooltip label={column} />
                         {renderSortIndicator(active, sortDirection)}
                       </button>
                     </th>
@@ -991,7 +992,7 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
                       className="inline-flex items-center hover:text-text transition-colors"
                       aria-label={`Sort by ${column.label} (${getSortDirectionLabel(isActive ? sortDirection : "asc")})`}
                     >
-                      {column.label}
+                      <StatTooltip label={column.label} />
                       {renderSortIndicator(isActive, sortDirection)}
                     </button>
                   </th>

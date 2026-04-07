@@ -12,6 +12,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
+import StatTooltip from "@/app/components/StatTooltip";
 import { Skeleton } from "@/app/components/skeleton";
 import { trackEvent } from "@/app/lib/analytics";
 import { parseTab } from "@/app/lib/teams";
@@ -706,7 +707,7 @@ function TeamStatsTable({
                   key={column.key}
                   className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center"
                 >
-                  {column.label}
+                  <StatTooltip label={column.label} />
                 </th>
               ))}
             </tr>
@@ -780,7 +781,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
             className="glass-card p-4 text-center rounded-xl"
           >
             <p className="text-[11px] text-text/60 tracking-wider uppercase">
-              {metric.label}
+              <StatTooltip label={metric.label} />
             </p>
             <p className="text-2xl font-mono">{metric.value(data)}</p>
           </div>
@@ -899,10 +900,10 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
                   Player
                 </th>
                 <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
-                  GP
+                  <StatTooltip label="GP" />
                 </th>
                 <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
-                  MIN
+                  <StatTooltip label="MIN" />
                 </th>
                 {statColumns.map((column) => (
                   <th
@@ -911,7 +912,7 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
                     onClick={() => handleSort(column.key)}
                   >
                     <span className="inline-flex items-center gap-1">
-                      {column.label}
+                      <StatTooltip label={column.label} />
                       <span
                         className={`text-sm ${
                           sortBy === column.key ? "text-accent" : "text-text/40"

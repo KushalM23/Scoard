@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { GameData, Player, PlayByPlayEvent } from "../types";
 import TeamLink from "./TeamLink";
 import PlayerLink from "./PlayerLink";
+import StatTooltip from "./StatTooltip";
 
 interface StatsSectionProps {
   gameData: GameData;
@@ -106,7 +107,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
       onClick={() => handleSort(key)}
     >
       <div className="flex items-center justify-center gap-1">
-        {label}
+        <StatTooltip label={label} />
         <span
           className={`text-sm ${
             sortConfig.key === key
@@ -210,13 +211,13 @@ const StatsSection: React.FC<StatsSectionProps> = ({
             {renderSortHeader("FT%", "ftPercentage")}
             {renderSortHeader("+/-", "plusMinus")}
             <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              FG
+              <StatTooltip label="FG" />
             </th>
             <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              3PT
+              <StatTooltip label="3PT" />
             </th>
             <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              FT
+              <StatTooltip label="FT" />
             </th>
             {renderSortHeader("OREB", "reboundsOffensive")}
             {renderSortHeader("DREB", "reboundsDefensive")}
@@ -452,7 +453,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                     : stat.home)}
               </span>
               <span className="text-text/40 font-medium uppercase tracking-wider text-xs px-2 truncate">
-                {stat.label}
+                <StatTooltip label={stat.label} />
               </span>
               <span className="font-bold text-secondary min-w-[3rem] text-right whitespace-nowrap">
                 {(stat as any).awayDisplay ||
