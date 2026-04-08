@@ -395,7 +395,7 @@ const Header: React.FC = () => {
   return (
     <header
       ref={rootRef}
-      className="sticky top-1 z-50 px-4 sm:px-5 md:px-6 py-3 md:py-3 bg-transparent backdrop-blur-md"
+      className="sticky flex top-1 z-50 px-4 sm:px-5 md:px-6 py-3 md:py-3 bg-transparent backdrop-blur-md"
     >
       <div className="w-full max-w-[1600px] mx-auto flex flex-wrap items-center gap-3 sm:gap-4 md:gap-7">
         <Link
@@ -413,7 +413,7 @@ const Header: React.FC = () => {
           </motion.h1>
         </Link>
 
-        <div className="order-3 basis-full relative min-w-0 md:order-2 md:basis-auto md:flex-1 md:min-w-[260px] md:max-w-[1020px]">
+        <div className="order-3 flex-1 basis-full relative min-w-0 md:order-2 md:basis-auto md:flex-1 md:min-w-[260px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/45 pointer-events-none" />
           {isLoadingBootstrap && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent animate-spin" />
@@ -434,91 +434,6 @@ const Header: React.FC = () => {
             aria-autocomplete="list"
             className="w-full h-10 md:h-11 pl-10 pr-10 rounded-xl glass bg-white/5 border border-white/10 focus:outline-none text-sm md:text-base text-text placeholder:text-text/45"
           />
-
-          <AnimatePresence>
-            {shouldShowSearchDropdown && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.16 }}
-                className="absolute top-full left-0 right-0 mt-3 p-1.5 bg-[#191515] border border-[#4a3f3f] rounded-xl shadow-[0_22px_50px_rgba(0,0,0,0.65),0_8px_18px_rgba(0,0,0,0.45)] ring-1 ring-white/10 z-50"
-              >
-                {renderDropdownContent()}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="order-2 ml-auto flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 flex-none md:order-3">
-          <div className="relative">
-            <motion.button
-              onClick={() => setIsSportOpen(!isSportOpen)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-1.5 px-2.5 py-2 md:px-4 md:py-2.5 rounded-lg glass hover:bg-white/5 transition-all duration-300 border border-white/10 hover:border-accent/50 group"
-            >
-              <span className="font-medium font-display group-hover:text-accent transition-colors text-sm md:text-base">
-                NBA
-              </span>
-              <motion.div
-                animate={{ rotate: isSportOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ChevronDown className="w-4 h-4 text-text/60" />
-              </motion.div>
-            </motion.button>
-
-            <AnimatePresence>
-              {isSportOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="absolute top-full right-0 mt-3 w-56 bg-background border border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden ring-1 ring-white/5"
-                >
-                  <div className="px-4 py-2 text-xs font-sans text-text/50 uppercase tracking-widest">
-                    Select League
-                  </div>
-
-                  <motion.button
-                    whileHover={{ color: "rgba(255, 255, 255, 0.05)" }}
-                    className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors bg-white/5 border-l-2 border-accent"
-                  >
-                    <span className="font-bold font-display text-text">
-                      NBA
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ color: "rgba(255, 255, 255, 0.05)" }}
-                    className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-white/20"
-                  >
-                    <span className="font-medium font-display text-text/70 group-hover:text-text transition-colors">
-                      IPL
-                    </span>
-                    <span className="text-[10px] font-bold bg-secondary/10 px-2 py-0.5 rounded text-secondary">
-                      SOON
-                    </span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ color: "rgba(255, 255, 255, 0.05)" }}
-                    className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-white/20"
-                  >
-                    <span className="font-medium font-display text-text/70 group-hover:text-text transition-colors">
-                      F1
-                    </span>
-                    <span className="text-[10px] font-bold bg-secondary/10 px-2 py-0.5 rounded text-secondary">
-                      SOON
-                    </span>
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
       </div>
     </header>

@@ -497,46 +497,12 @@ function PlayerOverviewTab({
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
           Season
         </h3>
-        <div className="glass-card overflow-auto rounded-2xl">
-          <table className="w-full min-w-[1200px] text-center">
-            <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-              <tr>
-                {currentSeasonRows.map((row) => (
-                  <th
-                    key={row.label}
-                    className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap"
-                  >
-                    <StatTooltip label={row.label} />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-white/10 hover:bg-white/5">
-                {currentSeasonRows.map((row) => (
-                  <td
-                    key={row.label}
-                    className="px-4 py-3 text-sm font-semibold text-text/90 whitespace-nowrap"
-                  >
-                    {row.value}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
-          Career
-        </h3>
-        {careerRows.length ? (
-          <div className="glass-card overflow-auto rounded-2xl">
-            <table className="w-full min-w-[1100px] text-center">
+        <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1200px] text-center">
               <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
                 <tr>
-                  {careerRows.map((row) => (
+                  {currentSeasonRows.map((row) => (
                     <th
                       key={row.label}
                       className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap"
@@ -548,7 +514,7 @@ function PlayerOverviewTab({
               </thead>
               <tbody>
                 <tr className="border-t border-white/10 hover:bg-white/5">
-                  {careerRows.map((row) => (
+                  {currentSeasonRows.map((row) => (
                     <td
                       key={row.label}
                       className="px-4 py-3 text-sm font-semibold text-text/90 whitespace-nowrap"
@@ -559,6 +525,44 @@ function PlayerOverviewTab({
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
+          Career
+        </h3>
+        {careerRows.length ? (
+          <div className="glass-card overflow-hidden rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-center">
+                <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+                  <tr>
+                    {careerRows.map((row) => (
+                      <th
+                        key={row.label}
+                        className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap"
+                      >
+                        <StatTooltip label={row.label} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-white/10 hover:bg-white/5">
+                    {careerRows.map((row) => (
+                      <td
+                        key={row.label}
+                        className="px-4 py-3 text-sm font-semibold text-text/90 whitespace-nowrap"
+                      >
+                        {row.value}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <EmptyState
@@ -617,48 +621,50 @@ function PlayerOverviewTab({
           Teams
         </h3>
         {teamTimeline.length ? (
-          <div className="glass-card overflow-auto rounded-2xl">
-            <table className="w-full min-w-[680px] text-left">
-              <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-                <tr>
-                  <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-                    Team
-                  </th>
-                  <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-                    Years
-                  </th>
-                  <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-                    Seasons
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamTimeline.map((team) => (
-                  <tr
-                    key={team.teamId}
-                    className="border-t border-white/10 hover:bg-white/5"
-                  >
-                    <td className="px-4 py-3 text-base">
-                      <TeamLink
-                        teamId={team.teamId}
-                        sourceComponent="player_overview_team_history_table"
-                        className="font-semibold hover:text-accent transition-colors"
-                      >
-                        {team.teamName} ({team.teamTricode})
-                      </TeamLink>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-text/90">
-                      {team.firstSeason === team.lastSeason
-                        ? team.firstSeason
-                        : `${team.firstSeason} to ${team.lastSeason}`}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text/75">
-                      {team.seasons.length}
-                    </td>
+          <div className="glass-card overflow-hidden rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left">
+                <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+                  <tr>
+                    <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                      Team
+                    </th>
+                    <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                      Years
+                    </th>
+                    <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                      Seasons
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {teamTimeline.map((team) => (
+                    <tr
+                      key={team.teamId}
+                      className="border-t border-white/10 hover:bg-white/5"
+                    >
+                      <td className="px-4 py-3 text-base">
+                        <TeamLink
+                          teamId={team.teamId}
+                          sourceComponent="player_overview_team_history_table"
+                          className="font-semibold hover:text-accent transition-colors"
+                        >
+                          {team.teamName} ({team.teamTricode})
+                        </TeamLink>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-text/90">
+                        {team.firstSeason === team.lastSeason
+                          ? team.firstSeason
+                          : `${team.firstSeason} to ${team.lastSeason}`}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text/75">
+                        {team.seasons.length}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <EmptyState
@@ -773,53 +779,55 @@ function SeasonStatsTable({
           subtitle="No rows available."
         />
       ) : (
-        <div className="glass-card overflow-auto rounded-2xl">
-          <table className="w-full min-w-[1160px] text-center">
-            <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
-              <tr>
-                {columns.map((column) => {
-                  const active = column === activeSortColumn;
-                  return (
-                    <th
-                      key={column}
-                      className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
-                        column === "Season" ? "text-left" : "text-center"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onSortColumn(column)}
-                        className="inline-flex items-center hover:text-text transition-colors"
-                        aria-label={`Sort by ${column} (${getSortDirectionLabel(active ? sortDirection : "asc")})`}
+        <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1160px] text-center">
+              <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+                <tr>
+                  {columns.map((column) => {
+                    const active = column === activeSortColumn;
+                    return (
+                      <th
+                        key={column}
+                        className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
+                          column === "Season" ? "text-left" : "text-center"
+                        }`}
                       >
-                        <StatTooltip label={column} />
-                        {renderSortIndicator(active, sortDirection)}
-                      </button>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedRows.map((row, index) => (
-                <tr
-                  key={`${row.Season ?? "season"}-${index}`}
-                  className="border-t border-white/10 hover:bg-white/5"
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={`${index}-${column}`}
-                      className={`px-5 py-4 font-semibold text-text/90 whitespace-nowrap ${
-                        column === "Season" ? "text-left" : "text-center"
-                      }`}
-                    >
-                      {renderStatCell(row[column])}
-                    </td>
-                  ))}
+                        <button
+                          type="button"
+                          onClick={() => onSortColumn(column)}
+                          className="inline-flex items-center hover:text-text transition-colors"
+                          aria-label={`Sort by ${column} (${getSortDirectionLabel(active ? sortDirection : "asc")})`}
+                        >
+                          <StatTooltip label={column} />
+                          {renderSortIndicator(active, sortDirection)}
+                        </button>
+                      </th>
+                    );
+                  })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedRows.map((row, index) => (
+                  <tr
+                    key={`${row.Season ?? "season"}-${index}`}
+                    className="border-t border-white/10 hover:bg-white/5"
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={`${index}-${column}`}
+                        className={`px-5 py-4 font-semibold text-text/90 whitespace-nowrap ${
+                          column === "Season" ? "text-left" : "text-center"
+                        }`}
+                      >
+                        {renderStatCell(row[column])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -973,61 +981,63 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
         Game Log
       </h3>
-      <div className="glass-card overflow-auto rounded-2xl">
-        <table className="w-full min-w-[1620px] text-center">
-          <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
-            <tr>
-              {columns.map((column) => {
-                const isActive = sortKey === column.key;
-                return (
-                  <th
-                    key={column.label}
-                    className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
-                      column.align === "left" ? "text-left" : "text-center"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onSort(column.key)}
-                      className="inline-flex items-center hover:text-text transition-colors"
-                      aria-label={`Sort by ${column.label} (${getSortDirectionLabel(isActive ? sortDirection : "asc")})`}
+      <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1620px] text-center">
+            <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
+              <tr>
+                {columns.map((column) => {
+                  const isActive = sortKey === column.key;
+                  return (
+                    <th
+                      key={column.label}
+                      className={`px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${
+                        column.align === "left" ? "text-left" : "text-center"
+                      }`}
                     >
-                      <StatTooltip label={column.label} />
-                      {renderSortIndicator(isActive, sortDirection)}
-                    </button>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedGames.map((game) => (
-              <tr
-                key={`${game.gameId}-${game.gameDate}`}
-                className="border-t border-white/10 hover:bg-white/5"
-              >
-                {columns.map((column) => (
-                  <td
-                    key={`${game.gameId}-${game.gameDate}-${String(column.key)}`}
-                    className={`px-5 py-4 font-semibold whitespace-nowrap ${
-                      column.align === "left" ? "text-left" : "text-center"
-                    } ${
-                      column.key === "result"
-                        ? game.result === "W"
-                          ? "text-green-300"
-                          : game.result === "L"
-                            ? "text-red-400"
-                            : "text-text/90"
-                        : "text-text/90"
-                    }`}
-                  >
-                    {renderGameLogCell(game, column.key)}
-                  </td>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => onSort(column.key)}
+                        className="inline-flex items-center hover:text-text transition-colors"
+                        aria-label={`Sort by ${column.label} (${getSortDirectionLabel(isActive ? sortDirection : "asc")})`}
+                      >
+                        <StatTooltip label={column.label} />
+                        {renderSortIndicator(isActive, sortDirection)}
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedGames.map((game) => (
+                <tr
+                  key={`${game.gameId}-${game.gameDate}`}
+                  className="border-t border-white/10 hover:bg-white/5"
+                >
+                  {columns.map((column) => (
+                    <td
+                      key={`${game.gameId}-${game.gameDate}-${String(column.key)}`}
+                      className={`px-5 py-4 font-semibold whitespace-nowrap ${
+                        column.align === "left" ? "text-left" : "text-center"
+                      } ${
+                        column.key === "result"
+                          ? game.result === "W"
+                            ? "text-green-300"
+                            : game.result === "L"
+                              ? "text-red-400"
+                              : "text-text/90"
+                          : "text-text/90"
+                      }`}
+                    >
+                      {renderGameLogCell(game, column.key)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

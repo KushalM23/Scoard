@@ -126,191 +126,195 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   );
 
   const renderRosterTable = (teamPlayers: Player[]) => (
-    <div className="glass-card overflow-auto max-h-[400px] rounded-2xl">
-      <table className="w-full text-left min-w-[600px]">
-        <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-          <tr>
-            <th className="px-4 py-3 whitespace-nowrap text-left text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-              Jersey
-            </th>
-            <th className="px-4 py-3 whitespace-nowrap text-left w-full text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-              PLAYER
-            </th>
-            <th className="px-4 py-3 whitespace-nowrap text-center text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-              Pos
-            </th>
-            <th className="px-4 py-3 whitespace-nowrap text-center text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {teamPlayers.map((player) => (
-            <tr
-              key={player.personId}
-              className="border-t border-white/10 hover:bg-white/5 transition-colors"
-            >
-              <td className="px-4 py-3 text-text/90 font-semibold whitespace-nowrap">
-                {player.jersey}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.personId}.png`}
-                    alt={`${player.firstName} ${player.lastName}`}
-                    className="w-8 h-8 object-cover rounded-full bg-white/10"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
-                    }}
-                  />
-                  <PlayerLink
-                    playerId={player.personId}
-                    className="font-bold text-text hover:text-accent transition-colors"
-                    sourceComponent="stats_section_roster_table"
-                  >
-                    {player.firstName} {player.lastName}
-                  </PlayerLink>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-text/90 font-semibold text-center whitespace-nowrap">
-                {player.position}
-              </td>
-              <td className="px-4 py-3 text-center">
-                <span
-                  className={`px-2 py-1 rounded text-[10px] font-bold ${player.status === "ACTIVE" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
-                >
-                  {player.status}
-                </span>
-              </td>
+    <div className="glass-card overflow-hidden rounded-2xl">
+      <div className="overflow-auto max-h-[400px]">
+        <table className="w-full text-left min-w-[600px]">
+          <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+            <tr>
+              <th className="px-4 py-3 whitespace-nowrap text-left text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                Jersey
+              </th>
+              <th className="px-4 py-3 whitespace-nowrap text-left w-full text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                PLAYER
+              </th>
+              <th className="px-4 py-3 whitespace-nowrap text-center text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                Pos
+              </th>
+              <th className="px-4 py-3 whitespace-nowrap text-center text-sm md:text-base font-semibold font-mono tracking-[0.05em]">
+                Status
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {teamPlayers.map((player) => (
+              <tr
+                key={player.personId}
+                className="border-t border-white/10 hover:bg-white/5 transition-colors"
+              >
+                <td className="px-4 py-3 text-text/90 font-semibold whitespace-nowrap">
+                  {player.jersey}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.personId}.png`}
+                      alt={`${player.firstName} ${player.lastName}`}
+                      className="w-8 h-8 object-cover rounded-full bg-white/10"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
+                      }}
+                    />
+                    <PlayerLink
+                      playerId={player.personId}
+                      className="font-bold text-text hover:text-accent transition-colors"
+                      sourceComponent="stats_section_roster_table"
+                    >
+                      {player.firstName} {player.lastName}
+                    </PlayerLink>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-text/90 font-semibold text-center whitespace-nowrap">
+                  {player.position}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span
+                    className={`px-2 py-1 rounded text-[10px] font-bold ${player.status === "ACTIVE" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                  >
+                    {player.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   const renderPlayerTable = (teamPlayers: Player[]) => (
-    <div className="glass-card overflow-auto max-h-[400px] rounded-2xl">
-      <table className="w-full text-left min-w-[1000px]">
-        <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-          <tr>
-            <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left w-[140px] md:w-[220px]">
-              PLAYER
-            </th>
-            {renderSortHeader("MIN", "minutes")}
-            {renderSortHeader("PTS", "points")}
-            {renderSortHeader("REB", "rebounds")}
-            {renderSortHeader("AST", "assists")}
-            {renderSortHeader("STL", "steals")}
-            {renderSortHeader("BLK", "blocks")}
-            {renderSortHeader("TO", "turnovers")}
-            {renderSortHeader("PF", "fouls")}
-            {renderSortHeader("FG%", "fgPercentage")}
-            {renderSortHeader("3P%", "threePtPercentage")}
-            {renderSortHeader("FT%", "ftPercentage")}
-            {renderSortHeader("+/-", "plusMinus")}
-            <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              <StatTooltip label="FG" />
-            </th>
-            <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              <StatTooltip label="3PT" />
-            </th>
-            <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
-              <StatTooltip label="FT" />
-            </th>
-            {renderSortHeader("OREB", "reboundsOffensive")}
-            {renderSortHeader("DREB", "reboundsDefensive")}
-          </tr>
-        </thead>
-        <tbody>
-          {teamPlayers.map((player) => (
-            <tr
-              key={player.personId}
-              className={`border-t border-white/10 ${player.isOnCourt ? "bg-text/5" : ""} hover:bg-white/5 transition-colors`}
-            >
-              <td className="px-4 py-3 whitespace-nowrap text-left max-w-[140px] md:max-w-[220px] overflow-hidden text-ellipsis">
-                <div className="flex items-center gap-2">
-                  {player.isOnCourt && (
-                    <div
-                      className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse shrink-0"
-                      title="On Court"
-                    />
-                  )}
-                  <PlayerLink
-                    playerId={player.personId}
-                    className="font-bold text-text truncate hover:text-accent transition-colors"
-                    sourceComponent="stats_section_player_table"
-                  >
-                    {player.firstName.charAt(0)}. {player.lastName}
-                  </PlayerLink>
-                </div>
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {
-                  player.minutes
-                    .replace("PT", "")
-                    .replace("M", ":")
-                    .replace("S", "")
-                    .split(".")[0]
-                }
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.points}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.rebounds}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.assists}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.steals}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.blocks}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.turnovers}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.fouls}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {formatPercentage(player.fgPercentage)}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {formatPercentage(player.threePtPercentage)}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {formatPercentage(player.ftPercentage)}
-              </td>
-              <td
-                className={`px-4 py-3 text-center font-semibold whitespace-nowrap ${player.plusMinus > 0 ? "text-green-400" : player.plusMinus < 0 ? "text-red-400" : "text-text/90"}`}
-              >
-                {player.plusMinus > 0
-                  ? `+${player.plusMinus}`
-                  : player.plusMinus}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.fg}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.threePt}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.ft}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.reboundsOffensive}
-              </td>
-              <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
-                {player.reboundsDefensive}
-              </td>
+    <div className="glass-card overflow-hidden rounded-2xl">
+      <div className="overflow-auto max-h-[400px]">
+        <table className="w-full text-left min-w-[1000px]">
+          <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+            <tr>
+              <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left w-[140px] md:w-[220px]">
+                PLAYER
+              </th>
+              {renderSortHeader("MIN", "minutes")}
+              {renderSortHeader("PTS", "points")}
+              {renderSortHeader("REB", "rebounds")}
+              {renderSortHeader("AST", "assists")}
+              {renderSortHeader("STL", "steals")}
+              {renderSortHeader("BLK", "blocks")}
+              {renderSortHeader("TO", "turnovers")}
+              {renderSortHeader("PF", "fouls")}
+              {renderSortHeader("FG%", "fgPercentage")}
+              {renderSortHeader("3P%", "threePtPercentage")}
+              {renderSortHeader("FT%", "ftPercentage")}
+              {renderSortHeader("+/-", "plusMinus")}
+              <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
+                <StatTooltip label="FG" />
+              </th>
+              <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
+                <StatTooltip label="3PT" />
+              </th>
+              <th className="px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center min-w-[60px]">
+                <StatTooltip label="FT" />
+              </th>
+              {renderSortHeader("OREB", "reboundsOffensive")}
+              {renderSortHeader("DREB", "reboundsDefensive")}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {teamPlayers.map((player) => (
+              <tr
+                key={player.personId}
+                className={`border-t border-white/10 ${player.isOnCourt ? "bg-text/5" : ""} hover:bg-white/5 transition-colors`}
+              >
+                <td className="px-4 py-3 whitespace-nowrap text-left max-w-[140px] md:max-w-[220px] overflow-hidden text-ellipsis">
+                  <div className="flex items-center gap-2">
+                    {player.isOnCourt && (
+                      <div
+                        className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse shrink-0"
+                        title="On Court"
+                      />
+                    )}
+                    <PlayerLink
+                      playerId={player.personId}
+                      className="font-bold text-text truncate hover:text-accent transition-colors"
+                      sourceComponent="stats_section_player_table"
+                    >
+                      {player.firstName.charAt(0)}. {player.lastName}
+                    </PlayerLink>
+                  </div>
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {
+                    player.minutes
+                      .replace("PT", "")
+                      .replace("M", ":")
+                      .replace("S", "")
+                      .split(".")[0]
+                  }
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.points}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.rebounds}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.assists}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.steals}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.blocks}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.turnovers}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.fouls}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {formatPercentage(player.fgPercentage)}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {formatPercentage(player.threePtPercentage)}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {formatPercentage(player.ftPercentage)}
+                </td>
+                <td
+                  className={`px-4 py-3 text-center font-semibold whitespace-nowrap ${player.plusMinus > 0 ? "text-green-400" : player.plusMinus < 0 ? "text-red-400" : "text-text/90"}`}
+                >
+                  {player.plusMinus > 0
+                    ? `+${player.plusMinus}`
+                    : player.plusMinus}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.fg}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.threePt}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.ft}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.reboundsOffensive}
+                </td>
+                <td className="px-4 py-3 font-semibold text-text/90 whitespace-nowrap text-center">
+                  {player.reboundsDefensive}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 

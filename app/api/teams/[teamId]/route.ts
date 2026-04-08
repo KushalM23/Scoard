@@ -3,6 +3,7 @@ import { fetchStatsApi } from "@/app/lib/statsApi";
 import {
   CURRENT_SEASON,
   TEAM_META,
+  parseSeason,
   parseTeamId,
   parseTab,
 } from "@/app/lib/teams";
@@ -87,6 +88,13 @@ const ALL_SECTIONS: TeamSection[] = [
   "schedule",
   "results",
 ];
+
+const TEAM_ID_BY_TRICODE = Object.entries(TEAM_META).reduce<
+  Record<string, number>
+>((accumulator, [teamId, meta]) => {
+  accumulator[meta.tricode] = Number(teamId);
+  return accumulator;
+}, {});
 
 function parseInclude(
   raw: string | null,
@@ -231,12 +239,12 @@ function isPlayoffGame(game: any): boolean {
   return stage === 4 || label.includes("playoff");
 }
 
-async function buildOverview(teamId: number) {
+async function buildOverview(teamId: number, season: string) {
   const standingsData = await fetchStatsApi(
     "leaguestandingsv3",
     {
       LeagueID: "00",
-      Season: CURRENT_SEASON,
+      Season: season,
       SeasonType: "Regular Season",
     },
     3,
@@ -459,10 +467,14 @@ function buildAdvancedStatsRow(
   };
 }
 
-async function buildStats(teamId: number) {
+async function buildStats(teamId: number, season: string) {
   try {
-    return await buildStatsFromPrimary(teamId);
+    return await buildStatsFromPrimary(teamId, season);
   } catch (primaryError) {
+    if (season !== CURRENT_SEASON) {
+      throw primaryError;
+    }
+
     console.warn(
       `Primary team stats source failed for team ${teamId}, falling back to CDN boxscores.`,
       primaryError,
@@ -471,11 +483,12 @@ async function buildStats(teamId: number) {
   }
 }
 
-async function buildStatsFromPrimary(teamId: number) {
+async function buildStatsFromPrimary(teamId: number, season: string) {
   const requests: Promise<any>[] = [
     fetchStatsApi(
       "leaguedashteamstats",
       buildDashParams({
+        Season: season,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "PerGame",
@@ -486,6 +499,7 @@ async function buildStatsFromPrimary(teamId: number) {
     fetchStatsApi(
       "leaguedashplayerstats",
       buildDashParams({
+        Season: season,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "PerGame",
@@ -497,7 +511,7 @@ async function buildStatsFromPrimary(teamId: number) {
       "teamgamelog",
       {
         TeamID: teamId,
-        Season: CURRENT_SEASON,
+        Season: season,
         SeasonType: "Regular Season",
       },
       3,
@@ -509,6 +523,7 @@ async function buildStatsFromPrimary(teamId: number) {
     fetchStatsApi(
       "leaguedashteamstats",
       buildDashParams({
+        Season: season,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "Totals",
@@ -519,6 +534,7 @@ async function buildStatsFromPrimary(teamId: number) {
     fetchStatsApi(
       "leaguedashteamstats",
       buildDashParams({
+        Season: season,
         TeamID: teamId,
         MeasureType: "Opponent",
         PerMode: "PerGame",
@@ -529,6 +545,7 @@ async function buildStatsFromPrimary(teamId: number) {
     fetchStatsApi(
       "leaguedashteamstats",
       buildDashParams({
+        Season: season,
         TeamID: teamId,
         MeasureType: "Advanced",
         PerMode: "PerGame",
@@ -1299,12 +1316,12 @@ async function buildStatsFromCdn(teamId: number) {
   };
 }
 
-async function buildRoster(teamId: number) {
+async function buildRoster(teamId: number, season: string) {
   const rosterRaw = await fetchStatsApi(
     "commonteamroster",
     {
       TeamID: teamId,
-      Season: CURRENT_SEASON,
+      Season: season,
     },
     3,
     3600,
@@ -1334,7 +1351,28 @@ async function buildRoster(teamId: number) {
   return { teamId, players };
 }
 
-async function buildSchedule(teamId: number) {
+async function buildSchedule(teamId: number, season: string) {
+  if (season !== CURRENT_SEASON) {
+    return {
+      teamId,
+      games: [],
+      fieldAudit: buildFieldAudit(
+        ["cdn.nba.com/staticData/scheduleLeagueV2_1.json"],
+        [
+          {
+            field: "schedule",
+            sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
+            sourceKey: "current-season schedule feed",
+            available: true,
+            previousFormat: "current season only",
+            formattedAs: "empty list for historical seasons",
+            note: "Upcoming games are only available for the active NBA season.",
+          },
+        ],
+      ),
+    };
+  }
+
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
     { cache: "no-store" },
@@ -1450,120 +1488,133 @@ async function buildSchedule(teamId: number) {
   return { teamId, games, fieldAudit };
 }
 
-async function buildResults(teamId: number) {
-  const scheduleResponse = await fetch(
-    "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-    { cache: "no-store" },
+async function buildResults(teamId: number, season: string) {
+  const teamMeta = TEAM_META[teamId];
+  const teamGameLogRaw = await fetchStatsApi(
+    "teamgamelog",
+    {
+      TeamID: teamId,
+      Season: season,
+      SeasonType: "Regular Season",
+    },
+    3,
+    900,
   );
 
-  if (!scheduleResponse.ok) {
-    throw new Error("Failed to fetch league schedule");
-  }
+  const teamGameLogSet = pickResultSet(teamGameLogRaw, 0);
 
-  const scheduleData = await scheduleResponse.json();
-  const flattenedGames = (
-    scheduleData?.leagueSchedule?.gameDates ?? []
-  ).flatMap((day: any) => day.games ?? []);
-
-  const games = flattenedGames
-    .filter((game: any) => {
-      const isTeamGame =
-        Number(game.homeTeam?.teamId) === teamId ||
-        Number(game.awayTeam?.teamId) === teamId;
-      if (!isTeamGame) return false;
-      if (isPlayoffGame(game)) return false;
-
-      const status = Number(
-        game.gameStatus ?? game.gameStatusID ?? game.gameStatusId ?? 0,
+  const games = teamGameLogSet.rowSet
+    .map((row: any[]) => {
+      const matchup = String(
+        getValueFromRow(row, teamGameLogSet.headers, "MATCHUP") ?? "",
       );
-      const statusText = String(game.gameStatusText ?? "").toLowerCase();
-      return status === 3 || statusText.includes("final");
-    })
-    .sort(
-      (a: any, b: any) =>
-        parseScheduleDate(b.gameDateTimeUTC).getTime() -
-        parseScheduleDate(a.gameDateTimeUTC).getTime(),
-    )
-    .map((game: any) => {
-      const homeTeamId = Number(game.homeTeam?.teamId ?? 0);
-      const awayTeamId = Number(game.awayTeam?.teamId ?? 0);
+      const homeAway = inferHomeAway(matchup);
+      const separator = homeAway === "Home" ? " vs. " : " @ ";
+      const matchupParts = matchup.split(separator);
+      const opponentTricode = String(matchupParts[1]?.trim() ?? "TBD");
+      const opponentTeamId = TEAM_ID_BY_TRICODE[opponentTricode] ?? 0;
+      const opponentMeta = TEAM_META[opponentTeamId];
+      const teamScore = num(getValueFromRow(row, teamGameLogSet.headers, "PTS"));
+      const plusMinus = num(
+        getValueFromRow(row, teamGameLogSet.headers, "PLUS_MINUS"),
+      );
+      const opponentScore = teamScore - plusMinus;
+      const homeTeamId = homeAway === "Home" ? teamId : opponentTeamId;
+      const awayTeamId = homeAway === "Home" ? opponentTeamId : teamId;
       const homeMeta = TEAM_META[homeTeamId];
       const awayMeta = TEAM_META[awayTeamId];
-      const isHome = homeTeamId === teamId;
-      const opponentNode = isHome ? game.awayTeam : game.homeTeam;
-      const opponentTeamId = Number(opponentNode?.teamId ?? 0);
-      const opponentMeta = TEAM_META[opponentTeamId];
-      const homeTeamScore = num(game.homeTeam?.score, 0);
-      const awayTeamScore = num(game.awayTeam?.score, 0);
-      const isoDate = String(game.gameDateTimeUTC ?? game.gameDateEst ?? "");
-      const teamScore = isHome ? homeTeamScore : awayTeamScore;
-      const opponentScore = isHome ? awayTeamScore : homeTeamScore;
+      const rawDate = String(
+        getFirstRowValue(row, teamGameLogSet.headers, [
+          "GAME_DATE",
+          "GAME_DATE_EST",
+          "GameDate",
+        ]) ?? "",
+      );
+      const result =
+        String(getValueFromRow(row, teamGameLogSet.headers, "WL") ?? "").toUpperCase() ===
+        "W"
+          ? "W"
+          : "L";
+      const homeTeamScore = homeAway === "Home" ? teamScore : opponentScore;
+      const awayTeamScore = homeAway === "Home" ? opponentScore : teamScore;
 
       return {
-        gameId: String(game.gameId ?? ""),
-        gameDate: isoDate,
-        gameDateDisplay: formatDateShort(isoDate),
+        gameId: String(
+          getFirstRowValue(row, teamGameLogSet.headers, ["Game_ID", "GAME_ID"]) ??
+            "",
+        ),
+        gameDate: rawDate,
+        gameDateDisplay: formatDateShort(rawDate),
         homeTeamId,
         awayTeamId,
         homeTeamName: homeMeta
           ? `${homeMeta.city} ${homeMeta.name}`
-          : String(game.homeTeam?.teamName ?? "TBD"),
+          : homeAway === "Home"
+            ? `${teamMeta.city} ${teamMeta.name}`
+            : opponentMeta
+              ? `${opponentMeta.city} ${opponentMeta.name}`
+              : opponentTricode,
         awayTeamName: awayMeta
           ? `${awayMeta.city} ${awayMeta.name}`
-          : String(game.awayTeam?.teamName ?? "TBD"),
-        homeTeamTricode: String(
-          game.homeTeam?.teamTricode ?? homeMeta?.tricode ?? "TBD",
-        ),
-        awayTeamTricode: String(
-          game.awayTeam?.teamTricode ?? awayMeta?.tricode ?? "TBD",
-        ),
+          : homeAway === "Away"
+            ? `${teamMeta.city} ${teamMeta.name}`
+            : opponentMeta
+              ? `${opponentMeta.city} ${opponentMeta.name}`
+              : opponentTricode,
+        homeTeamTricode:
+          homeMeta?.tricode ?? (homeAway === "Home" ? teamMeta.tricode : opponentTricode),
+        awayTeamTricode:
+          awayMeta?.tricode ?? (homeAway === "Away" ? teamMeta.tricode : opponentTricode),
         homeTeamScore,
         awayTeamScore,
         opponentTeamId,
-        opponentTricode: String(
-          opponentNode?.teamTricode ?? opponentMeta?.tricode ?? "TBD",
-        ),
+        opponentTricode,
         opponentName: opponentMeta
           ? `${opponentMeta.city} ${opponentMeta.name}`
-          : "TBD",
-        homeAway: isHome ? "Home" : "Away",
+          : opponentTricode,
+        homeAway,
         status: "Final",
         finalScore: `${homeTeamScore}-${awayTeamScore}`,
-        result: teamScore > opponentScore ? "W" : "L",
+        result,
       };
-    });
+    })
+    .sort(
+      (a: any, b: any) =>
+        parseScheduleDate(b.gameDate).getTime() -
+        parseScheduleDate(a.gameDate).getTime(),
+    );
 
   const fieldAudit = buildFieldAudit(
-    ["cdn.nba.com/staticData/scheduleLeagueV2_1.json"],
+    ["stats.nba.com/teamgamelog"],
     [
       {
         field: "homeTeam",
-        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
-        sourceKey: "homeTeam.teamId/teamTricode/teamName",
+        sourceEndpoint: "stats.nba.com/teamgamelog",
+        sourceKey: "MATCHUP + TEAM_META lookup",
         available: games.every((game: any) => Boolean(game.homeTeamName)),
         previousFormat: "team-perspective matchup string",
         formattedAs: "homeTeamName/homeTeamTricode explicit fields",
       },
       {
         field: "awayTeam",
-        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
-        sourceKey: "awayTeam.teamId/teamTricode/teamName",
+        sourceEndpoint: "stats.nba.com/teamgamelog",
+        sourceKey: "MATCHUP + TEAM_META lookup",
         available: games.every((game: any) => Boolean(game.awayTeamName)),
         previousFormat: "team-perspective matchup string",
         formattedAs: "awayTeamName/awayTeamTricode explicit fields",
       },
       {
         field: "finalScore",
-        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
-        sourceKey: "homeTeam.score + awayTeam.score",
+        sourceEndpoint: "stats.nba.com/teamgamelog",
+        sourceKey: "PTS + PLUS_MINUS",
         available: games.every((game: any) => Boolean(game.finalScore)),
         previousFormat: "teamPts-opponentPts from team perspective",
         formattedAs: "home-away scoreboard order",
       },
       {
         field: "date",
-        sourceEndpoint: "cdn.nba.com/staticData/scheduleLeagueV2_1.json",
-        sourceKey: "gameDateTimeUTC",
+        sourceEndpoint: "stats.nba.com/teamgamelog",
+        sourceKey: "GAME_DATE",
         available: games.every((game: any) => Boolean(game.gameDateDisplay)),
         previousFormat: "raw ISO timestamp",
         formattedAs: "gameDateDisplay (MMM D, YYYY)",
@@ -1605,6 +1656,7 @@ export async function GET(
   }
 
   const tab = parseTab(request.nextUrl.searchParams.get("tab"));
+  const season = parseSeason(request.nextUrl.searchParams.get("season"));
   const include = parseInclude(
     request.nextUrl.searchParams.get("include"),
     tab,
@@ -1612,11 +1664,11 @@ export async function GET(
 
   try {
     const sectionBuilders: Record<TeamSection, () => Promise<any>> = {
-      overview: () => buildOverview(teamId),
-      stats: () => buildStats(teamId),
-      roster: () => buildRoster(teamId),
-      schedule: () => buildSchedule(teamId),
-      results: () => buildResults(teamId),
+      overview: () => buildOverview(teamId, season),
+      stats: () => buildStats(teamId, season),
+      roster: () => buildRoster(teamId, season),
+      schedule: () => buildSchedule(teamId, season),
+      results: () => buildResults(teamId, season),
     };
 
     const sectionResults = await Promise.allSettled(
@@ -1626,6 +1678,7 @@ export async function GET(
     const payload: Record<string, unknown> = {
       teamId,
       tab,
+      season,
       seasonType: "Regular Season",
       include,
     };

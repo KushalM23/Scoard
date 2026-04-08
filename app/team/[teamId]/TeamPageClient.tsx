@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useRef,
   useEffect,
   useMemo,
   useState,
@@ -9,13 +10,19 @@ import {
 } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, Trophy } from "lucide-react";
 import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
 import StatTooltip from "@/app/components/StatTooltip";
 import { Skeleton } from "@/app/components/skeleton";
 import { trackEvent } from "@/app/lib/analytics";
-import { parseTab } from "@/app/lib/teams";
+import {
+  CURRENT_SEASON,
+  getTeamSeasonOptions,
+  parseSeason,
+  parseTab,
+} from "@/app/lib/teams";
 import type {
   TeamOverviewData,
   TeamRosterData,
@@ -34,6 +41,7 @@ import type {
 interface TeamPageClientProps {
   teamId: number;
   initialTab: TeamTab;
+  initialSeason: string;
   initialOverview: TeamOverviewData | null;
 }
 
@@ -48,6 +56,19 @@ const TABS: Array<{ id: TeamTab; label: string }> = [
   { id: "player-stats", label: "Player Stats" },
   { id: "roster", label: "Roster" },
 ];
+
+const NBA_CHAMPIONS_BY_SEASON: Record<string, number> = {
+  "2024-25": 1610612760,
+  "2023-24": 1610612738,
+  "2022-23": 1610612743,
+  "2021-22": 1610612744,
+  "2020-21": 1610612749,
+  "2019-20": 1610612747,
+  "2018-19": 1610612761,
+  "2017-18": 1610612744,
+  "2016-17": 1610612744,
+  "2015-16": 1610612739,
+};
 
 const metricLabels: Array<{
   label: string;
@@ -187,7 +208,10 @@ function TeamStatsSkeleton() {
       <div className="glass-card overflow-hidden rounded-2xl p-4 md:p-5 space-y-3">
         <Skeleton className="h-5 w-36" />
         {Array.from({ length: 8 }).map((_, index) => (
-          <Skeleton key={`team-stat-row-skeleton-${index}`} className="h-10 w-full rounded-lg" />
+          <Skeleton
+            key={`team-stat-row-skeleton-${index}`}
+            className="h-10 w-full rounded-lg"
+          />
         ))}
       </div>
     </div>
@@ -219,14 +243,24 @@ function TeamOverviewInline({
   schedule,
   results,
   snapshotLoading,
+  selectedSeason,
+  seasonOptions,
+  onSeasonChange,
+  seasonLoading,
 }: {
   data: TeamOverviewData;
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
   snapshotLoading: boolean;
+  selectedSeason: string;
+  seasonOptions: string[];
+  onSeasonChange: (season: string) => void;
+  seasonLoading: boolean;
 }) {
   const panelHeightClass = "h-[210px] md:h-[372px]";
   const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
+  const [isSeasonMenuOpen, setIsSeasonMenuOpen] = useState(false);
+  const seasonMenuRef = useRef<HTMLDivElement | null>(null);
 
   const renderGamesPanelSkeleton = () => (
     <div className="space-y-3">
@@ -266,6 +300,40 @@ function TeamOverviewInline({
     : /^L/i.test(data.streak)
       ? "text-red-400"
       : "text-text/80";
+  const isChampion = NBA_CHAMPIONS_BY_SEASON[selectedSeason] === data.teamId;
+  const overviewStats = [
+    { label: "Record", value: `${data.record.wins}-${data.record.losses}` },
+    { label: "Streak", value: data.streak, valueClassName: streakClass },
+    { label: "Conference", value: `#${data.ranks.conferenceRank}` },
+    { label: "Division", value: `#${data.ranks.divisionRank}` },
+  ];
+
+  useEffect(() => {
+    if (!isSeasonMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        seasonMenuRef.current &&
+        !seasonMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsSeasonMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSeasonMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isSeasonMenuOpen]);
 
   const formatScoreLine = (game: TeamResultsData["games"][number]) => {
     if (
@@ -485,75 +553,126 @@ function TeamOverviewInline({
 
   return (
     <section className="mb-4 md:mb-6">
-      <div className="glass-card p-4 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
-          <div className="flex items-center gap-4 min-w-0">
-            <img
-              src={
-                data.logoUrl ??
-                `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
-              }
-              alt={`${data.city} ${data.name}`}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain"
-            />
-            <div className="min-w-0">
-              <h1 className="text-base sm:text-xl md:text-2xl font-display leading-tight truncate">
-                {data.city}
-              </h1>
-              <h2 className="text-xl sm:text-3xl md:text-3xl font-display leading-tight truncate">
-                {data.name}
-              </h2>
+      <div className="glass-card p-4 md:p-5 lg:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-3 md:gap-5">
+          <div className="min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-[116px_minmax(0,1fr)] md:grid-cols-[128px_minmax(0,1fr)] gap-3 sm:gap-4 items-start">
+              <div className="shrink-0 rounded-2xl border border-white/10 bg-background/25 w-[116px] h-[116px] md:w-[128px] md:h-[128px] flex items-center justify-center">
+                <img
+                  src={
+                    data.logoUrl ??
+                    `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
+                  }
+                  alt={`${data.city} ${data.name}`}
+                  className="w-[82px] h-[82px] md:w-[94px] md:h-[94px] object-contain"
+                />
+              </div>
+
+              <div className="min-w-0 self-center">
+                <h1 className="text-xs sm:text-base md:text-lg font-display leading-tight text-text/70 truncate uppercase tracking-[0.12em]">
+                  {data.city}
+                </h1>
+                <div className="mt-1 flex items-center gap-2.5 min-w-0">
+                  <h2 className="text-3xl sm:text-5xl md:text-[3.6rem] font-display leading-none truncate uppercase">
+                    {data.name}
+                  </h2>
+                  {isChampion ? (
+                    <span title={`${selectedSeason} NBA Champions`}>
+                      <Trophy className="h-5 w-5 md:h-6 md:w-6 shrink-0 text-amber-200" />
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div
+                className="w-full max-w-[420px] sm:col-span-2 md:col-span-2"
+                ref={seasonMenuRef}
+              >
+                <span className="text-[10px] uppercase tracking-[0.28em] text-text/50">
+                  Season
+                </span>
+                <div className="relative mt-2">
+                  <motion.button
+                    type="button"
+                    onClick={() => setIsSeasonMenuOpen((prev) => !prev)}
+                    whileTap={{ scale: 0.985 }}
+                    disabled={seasonLoading}
+                    className="flex w-full items-center justify-between gap-3 rounded-xl hover:bg-white/5 hover:text-accent transition-all duration-300 border border-white/10 group px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className="text-base font-display tracking-wide text-text group-hover:text-accent transition-colors">
+                      {selectedSeason}
+                    </span>
+                    <motion.div
+                      animate={{ rotate: isSeasonMenuOpen ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="h-4 w-4 text-text/55" />
+                    </motion.div>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {isSeasonMenuOpen ? (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-xl bg-background border border-white/10 shadow-2xl ring-1 ring-white/5 origin-top"
+                      >
+                        <div className="max-h-[20rem] overflow-y-auto py-2">
+                          {seasonOptions.map((season) => {
+                            const isActive = season === selectedSeason;
+
+                            return (
+                              <button
+                                key={season}
+                                type="button"
+                                onClick={() => {
+                                  onSeasonChange(season);
+                                  setIsSeasonMenuOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${
+                                  isActive
+                                    ? "bg-white/5 border-l-2 border-accent text-text"
+                                    : "text-text/72 hover:bg-white/5 hover:text-text border-l-2 border-transparent hover:border-accent"
+                                }`}
+                              >
+                                <span className="text-base font-display tracking-wide">
+                                  {season}
+                                </span>
+                                {isActive ? (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.45)]" />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="hidden md:block w-full md:w-auto md:min-w-[320px] lg:min-w-[360px]">
-            <div className="flex items-center justify-center md:justify-end gap-2 font-bold text-xs md:text-lg text-text/80">
-              <span>
-                {data.record.wins}-{data.record.losses}
-              </span>
-              <span className="text-text/30">|</span>
-              <span className={streakClass}>{data.streak}</span>
-            </div>
-            <div className="flex items-center justify-center md:justify-end gap-2 font-bold text-xs md:text-lg text-text/80 mt-1">
-              <span>Conf #{data.ranks.conferenceRank}</span>
-              <span className="text-text/30">|</span>
-              <span>Div #{data.ranks.divisionRank}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="md:hidden mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-text/60">
-              Record
-            </p>
-            <p className="text-base font-semibold mt-1">
-              {data.record.wins}-{data.record.losses}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-text/60">
-              Streak
-            </p>
-            <p className={`text-base font-semibold mt-1 ${streakClass}`}>
-              {data.streak}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-text/60">
-              Conference
-            </p>
-            <p className="text-sm font-semibold mt-1">
-              #{data.ranks.conferenceRank}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-background/30 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-text/60">
-              Division
-            </p>
-            <p className="text-sm font-semibold mt-1">
-              #{data.ranks.divisionRank}
-            </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 md:gap-3">
+            {overviewStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-2xl border border-white/10 bg-background/24 px-3 py-3 md:px-4 min-h-[72px] flex flex-col justify-center"
+              >
+                <p className="text-[10px] uppercase tracking-[0.22em] text-text/55">
+                  {stat.label}
+                </p>
+                <p
+                  className={`mt-2 text-base md:text-lg font-display leading-none ${
+                    stat.valueClassName ?? "text-text/90"
+                  }`}
+                >
+                  {stat.value}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -690,41 +809,40 @@ function TeamStatsTable({
   columns: Array<{ key: string; label: string }>;
   row: Record<string, string | number>;
 }) {
-  const tableMinWidthClass =
-    columns.length <= 10 ? "min-w-[760px]" : "min-w-[1160px]";
-
   return (
     <div className="space-y-2">
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
         {title}
       </h3>
-      <div className="glass-card overflow-auto rounded-2xl">
-        <table className={`w-full ${tableMinWidthClass} text-center`}>
-          <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center"
-                >
-                  <StatTooltip label={column.label} />
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-t border-white/10 hover:bg-white/5">
-              {columns.map((column) => (
-                <td
-                  key={column.key}
-                  className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center"
-                >
-                  {row[column.key] ?? "--"}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+      <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-max min-w-full text-center whitespace-nowrap">
+            <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center"
+                  >
+                    <StatTooltip label={column.label} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-white/10 hover:bg-white/5">
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center"
+                  >
+                    {row[column.key] ?? "--"}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -892,83 +1010,87 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
           Player Stats - Per Game
         </h3>
-        <div className="glass-card overflow-auto rounded-2xl">
-          <table className="w-full min-w-[1160px] text-center">
-            <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
-              <tr>
-                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left">
-                  Player
-                </th>
-                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
-                  <StatTooltip label="GP" />
-                </th>
-                <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
-                  <StatTooltip label="MIN" />
-                </th>
-                {statColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center cursor-pointer"
-                    onClick={() => handleSort(column.key)}
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      <StatTooltip label={column.label} />
-                      <span
-                        className={`text-sm ${
-                          sortBy === column.key ? "text-accent" : "text-text/40"
-                        }`}
-                      >
-                        {sortBy === column.key
-                          ? sortDirection === "asc"
-                            ? "↑"
-                            : "↓"
-                          : "↕"}
-                      </span>
-                    </span>
+        <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-max min-w-full text-center whitespace-nowrap">
+              <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
+                <tr>
+                  <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-left">
+                    Player
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedRows.map((row: TeamStatsPlayerRow) => (
-                <tr
-                  key={row.playerId}
-                  className="border-t border-white/10 hover:bg-white/5"
-                >
-                  <td className="px-5 py-4 text-left font-semibold text-text/90 whitespace-nowrap">
-                    <PlayerLink
-                      playerId={row.playerId}
-                      className="hover:text-accent transition-colors"
-                      sourceComponent="team_player_stats_table"
+                  <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
+                    <StatTooltip label="GP" />
+                  </th>
+                  <th className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center">
+                    <StatTooltip label="MIN" />
+                  </th>
+                  {statColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className="px-5 py-4 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap text-center cursor-pointer"
+                      onClick={() => handleSort(column.key)}
                     >
-                      {row.playerName}
-                    </PlayerLink>
-                  </td>
-                  <td className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center">
-                    {row.gamesPlayed}
-                  </td>
-                  <td className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center">
-                    {row.minutes.toFixed(1)}
-                  </td>
-                  {statColumns.map((column) => {
-                    const raw = Number(row[column.key] ?? 0);
-                    const value = column.format
-                      ? column.format(raw)
-                      : raw.toFixed(1);
-
-                    return (
-                      <td
-                        key={`${row.playerId}-${column.key}`}
-                        className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center"
-                      >
-                        {value}
-                      </td>
-                    );
-                  })}
+                      <span className="inline-flex items-center gap-1">
+                        <StatTooltip label={column.label} />
+                        <span
+                          className={`text-sm ${
+                            sortBy === column.key
+                              ? "text-accent"
+                              : "text-text/40"
+                          }`}
+                        >
+                          {sortBy === column.key
+                            ? sortDirection === "asc"
+                              ? "↑"
+                              : "↓"
+                            : "↕"}
+                        </span>
+                      </span>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedRows.map((row: TeamStatsPlayerRow) => (
+                  <tr
+                    key={row.playerId}
+                    className="border-t border-white/10 hover:bg-white/5"
+                  >
+                    <td className="px-5 py-4 text-left font-semibold text-text/90 whitespace-nowrap">
+                      <PlayerLink
+                        playerId={row.playerId}
+                        className="hover:text-accent transition-colors"
+                        sourceComponent="team_player_stats_table"
+                      >
+                        {row.playerName}
+                      </PlayerLink>
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center">
+                      {row.gamesPlayed}
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center">
+                      {row.minutes.toFixed(1)}
+                    </td>
+                    {statColumns.map((column) => {
+                      const raw = Number(row[column.key] ?? 0);
+                      const value = column.format
+                        ? column.format(raw)
+                        : raw.toFixed(1);
+
+                      return (
+                        <td
+                          key={`${row.playerId}-${column.key}`}
+                          className="px-5 py-4 font-semibold text-text/90 whitespace-nowrap text-center"
+                        >
+                          {value}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1098,9 +1220,15 @@ const isSectionError = (payload: unknown): payload is TeamApiError => {
 export default function TeamPageClient({
   teamId,
   initialTab,
+  initialSeason,
   initialOverview,
 }: TeamPageClientProps) {
   const [activeTab, setActiveTab] = useState<TeamTab>(initialTab);
+  const [selectedSeason, setSelectedSeason] = useState(initialSeason);
+  const seasonOptions = useMemo(
+    () => getTeamSeasonOptions(selectedSeason),
+    [selectedSeason],
+  );
 
   const [overview, setOverview] = useState<SectionState<TeamOverviewData>>({
     data: initialOverview,
@@ -1129,12 +1257,17 @@ export default function TeamPageClient({
     error: null,
   });
 
-  const syncTabToUrl = (tab: TeamTab) => {
+  const syncStateToUrl = (tab: TeamTab, season: string) => {
     if (typeof window === "undefined") return;
 
     const currentScrollY = window.scrollY;
     const params = new URLSearchParams(window.location.search);
     params.set("tab", tab);
+    if (season === CURRENT_SEASON) {
+      params.delete("season");
+    } else {
+      params.set("season", season);
+    }
     window.history.replaceState(
       window.history.state,
       "",
@@ -1150,10 +1283,11 @@ export default function TeamPageClient({
     if (typeof window === "undefined") return;
 
     const handlePopState = () => {
-      const tab = parseTab(
-        new URLSearchParams(window.location.search).get("tab"),
-      );
+      const params = new URLSearchParams(window.location.search);
+      const tab = parseTab(params.get("tab"));
+      const season = parseSeason(params.get("season"));
       setActiveTab(tab);
+      setSelectedSeason(season);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -1180,6 +1314,7 @@ export default function TeamPageClient({
   const fetchTeamPagePayload = async (
     include: TeamSection[],
     preserveOverview = true,
+    preserveSectionData = true,
   ) => {
     const includeSet = new Set<TeamSection>(include);
 
@@ -1189,29 +1324,29 @@ export default function TeamPageClient({
       error: null,
     }));
     setStats((prev) => ({
-      data: prev.data,
+      data: preserveSectionData ? prev.data : null,
       loading: includeSet.has("stats"),
       error: null,
     }));
     setRoster((prev) => ({
-      data: prev.data,
+      data: preserveSectionData ? prev.data : null,
       loading: includeSet.has("roster"),
       error: null,
     }));
     setSchedule((prev) => ({
-      data: prev.data,
+      data: preserveSectionData ? prev.data : null,
       loading: includeSet.has("schedule"),
       error: null,
     }));
     setResults((prev) => ({
-      data: prev.data,
+      data: preserveSectionData ? prev.data : null,
       loading: includeSet.has("results"),
       error: null,
     }));
 
     try {
       const response = await axios.get<TeamPagePayload>(
-        `/api/teams/${teamId}?tab=${activeTab}&include=${include.join(",")}`,
+        `/api/teams/${teamId}?tab=${activeTab}&season=${selectedSeason}&include=${include.join(",")}`,
       );
       const payload = response.data;
 
@@ -1277,13 +1412,24 @@ export default function TeamPageClient({
   };
 
   useEffect(() => {
-    trackEvent("team_page_view", { teamId, tab: activeTab });
-  }, [teamId]);
+    setActiveTab(initialTab);
+    setSelectedSeason(initialSeason);
+  }, [teamId, initialSeason, initialTab]);
 
   useEffect(() => {
+    trackEvent("team_page_view", {
+      teamId,
+      season: selectedSeason,
+    });
+  }, [selectedSeason, teamId]);
+
+  useEffect(() => {
+    const seededOverview =
+      selectedSeason === initialSeason ? initialOverview : null;
+
     setOverview({
-      data: initialOverview,
-      loading: !initialOverview,
+      data: seededOverview,
+      loading: !seededOverview,
       error: null,
     });
     setSchedule({ data: null, loading: true, error: null });
@@ -1298,8 +1444,8 @@ export default function TeamPageClient({
       include.push("stats");
     }
 
-    fetchTeamPagePayload(include, true);
-  }, [teamId, initialOverview]);
+    fetchTeamPagePayload(include, Boolean(seededOverview), false);
+  }, [teamId, initialOverview, initialSeason, selectedSeason]);
 
   useEffect(() => {
     if (activeTab === "roster") {
@@ -1314,12 +1460,27 @@ export default function TeamPageClient({
     }
   }, [activeTab, stats.data, stats.loading, roster.data, roster.loading]);
 
+  const seasonLoading =
+    overview.loading ||
+    stats.loading ||
+    roster.loading ||
+    schedule.loading ||
+    results.loading;
+
   const handleTabChange = (tab: TeamTab) => {
     if (tab === activeTab) return;
 
     setActiveTab(tab);
-    syncTabToUrl(tab);
-    trackEvent("team_tab_change", { teamId, tab });
+    syncStateToUrl(tab, selectedSeason);
+    trackEvent("team_tab_change", { teamId, tab, season: selectedSeason });
+  };
+
+  const handleSeasonChange = (season: string) => {
+    if (season === selectedSeason) return;
+
+    setSelectedSeason(season);
+    syncStateToUrl(activeTab, season);
+    trackEvent("team_season_change", { teamId, tab: activeTab, season });
   };
 
   return (
@@ -1340,6 +1501,10 @@ export default function TeamPageClient({
           schedule={schedule}
           results={results}
           snapshotLoading={overview.loading}
+          selectedSeason={selectedSeason}
+          seasonOptions={seasonOptions}
+          onSeasonChange={handleSeasonChange}
+          seasonLoading={seasonLoading}
         />
       )}
 
@@ -1371,9 +1536,7 @@ export default function TeamPageClient({
 
       {activeTab === "team-stats" && (
         <>
-          {stats.loading && !stats.data ? (
-            <TeamStatsSkeleton />
-          ) : null}
+          {stats.loading && !stats.data ? <TeamStatsSkeleton /> : null}
           {stats.error ? (
             <SectionError
               title="Team stats unavailable"
@@ -1387,9 +1550,7 @@ export default function TeamPageClient({
 
       {activeTab === "player-stats" && (
         <>
-          {stats.loading && !stats.data ? (
-            <TeamStatsSkeleton />
-          ) : null}
+          {stats.loading && !stats.data ? <TeamStatsSkeleton /> : null}
           {stats.error ? (
             <SectionError
               title="Player stats unavailable"
@@ -1403,9 +1564,7 @@ export default function TeamPageClient({
 
       {activeTab === "roster" && (
         <>
-          {roster.loading && !roster.data ? (
-            <TeamRosterSkeleton />
-          ) : null}
+          {roster.loading && !roster.data ? <TeamRosterSkeleton /> : null}
           {roster.error ? (
             <SectionError
               title="Roster unavailable"

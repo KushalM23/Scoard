@@ -254,6 +254,7 @@ export interface TeamResultsData {
 export interface TeamPagePayload {
   teamId: number;
   tab: TeamTab;
+  season: string;
   seasonType: SeasonType;
   include?: Array<"overview" | "stats" | "roster" | "schedule" | "results">;
   overview?: TeamOverviewData | TeamApiError;

@@ -5,8 +5,8 @@ import Layout from "@/app/components/Layout";
 import TeamPageClient from "./TeamPageClient";
 import { fetchStatsApi } from "@/app/lib/statsApi";
 import {
-  CURRENT_SEASON,
   TEAM_META,
+  parseSeason,
   parseTab,
   parseTeamId,
 } from "@/app/lib/teams";
@@ -42,13 +42,14 @@ function resolveStandingsTricode(
 
 async function getInitialOverview(
   teamId: number,
+  season: string,
 ): Promise<TeamOverviewData | null> {
   try {
     const standingsData = await fetchStatsApi(
       "leaguestandingsv3",
       {
         LeagueID: "00",
-        Season: CURRENT_SEASON,
+        Season: season,
         SeasonType: "Regular Season",
       },
       3,
@@ -141,8 +142,13 @@ export default async function TeamPage({
       ? resolvedSearchParams.tab
       : null,
   );
+  const initialSeason = parseSeason(
+    typeof resolvedSearchParams.season === "string"
+      ? resolvedSearchParams.season
+      : null,
+  );
 
-  const initialOverview = await getInitialOverview(parsedTeamId);
+  const initialOverview = await getInitialOverview(parsedTeamId, initialSeason);
 
   return (
     <Layout>
@@ -151,6 +157,7 @@ export default async function TeamPage({
         <TeamPageClient
           teamId={parsedTeamId}
           initialTab={initialTab}
+          initialSeason={initialSeason}
           initialOverview={initialOverview}
         />
       </div>

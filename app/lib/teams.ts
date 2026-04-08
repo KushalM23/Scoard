@@ -1,6 +1,8 @@
 import type { SeasonType, TeamRange, TeamTab } from "@/app/types/team";
 
 export const CURRENT_SEASON = "2025-26";
+const SEASON_ID_PATTERN = /^\d{4}-\d{2}$/;
+const MIN_SEASON_START_YEAR = 1996;
 
 export const TEAM_META: Record<
   number,
@@ -55,6 +57,83 @@ export function parseTeamId(raw: string): number | null {
 
 export function parseSeasonType(raw: string | null): SeasonType {
   return "Regular Season";
+}
+
+export function parseSeasonStart(seasonId: string): number {
+  const [start] = seasonId.split("-");
+  return Number(start);
+}
+
+export function formatSeasonId(startYear: number): string {
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
+}
+
+export function isValidSeasonId(seasonId: string): boolean {
+  if (!SEASON_ID_PATTERN.test(seasonId)) {
+    return false;
+  }
+
+  const startYear = parseSeasonStart(seasonId);
+  if (!Number.isInteger(startYear)) {
+    return false;
+  }
+
+  const expectedSuffix = String((startYear + 1) % 100).padStart(2, "0");
+  const [, suffix] = seasonId.split("-");
+
+  return suffix === expectedSuffix;
+}
+
+export function parseSeason(raw: string | null): string {
+  if (!raw || !isValidSeasonId(raw)) {
+    return CURRENT_SEASON;
+  }
+
+  const startYear = parseSeasonStart(raw);
+  const currentStartYear = parseSeasonStart(CURRENT_SEASON);
+
+  if (startYear < MIN_SEASON_START_YEAR || startYear > currentStartYear) {
+    return CURRENT_SEASON;
+  }
+
+  return raw;
+}
+
+export function getTeamSeasonOptions(
+  selectedSeason = CURRENT_SEASON,
+  limit?: number,
+): string[] {
+  const currentStartYear = parseSeasonStart(CURRENT_SEASON);
+  const selectedStartYear = parseSeasonStart(selectedSeason);
+  const oldestStartYear = Math.min(
+    MIN_SEASON_START_YEAR,
+    Number.isInteger(selectedStartYear) ? selectedStartYear : currentStartYear,
+  );
+
+  const seasons: string[] = [];
+  for (let startYear = currentStartYear; startYear >= oldestStartYear; startYear -= 1) {
+    seasons.push(formatSeasonId(startYear));
+  }
+
+  if (!seasons.includes(selectedSeason) && isValidSeasonId(selectedSeason)) {
+    seasons.push(selectedSeason);
+  }
+
+  const sorted = seasons.sort(
+    (a, b) => parseSeasonStart(b) - parseSeasonStart(a),
+  );
+
+  if (sorted.includes(selectedSeason)) {
+    const withSelectedFirst = [
+      selectedSeason,
+      ...sorted.filter((season) => season !== selectedSeason),
+    ];
+    return typeof limit === "number"
+      ? withSelectedFirst.slice(0, limit)
+      : withSelectedFirst;
+  }
+
+  return typeof limit === "number" ? sorted.slice(0, limit) : sorted;
 }
 
 export function parseTab(raw: string | null): TeamTab {
