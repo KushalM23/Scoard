@@ -1,3 +1,5 @@
+import type { SeasonType } from "@/app/types/team";
+
 export type PlayerTab = "overview" | "stats" | "game-log";
 export type PlayerSection = "header" | "overview" | "stats" | "gameLog";
 
@@ -168,6 +170,8 @@ export interface PlayerGameLogData {
 export interface PlayerPagePayload {
   playerId: number;
   tab: PlayerTab;
+  season: string;
+  seasonType: SeasonType;
   include: PlayerSection[];
   header?: PlayerHeaderData | PlayerApiError;
   overview?: PlayerOverviewData | PlayerApiError;

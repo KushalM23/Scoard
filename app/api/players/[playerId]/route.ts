@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStatsApi } from "@/app/lib/statsApi";
-import { CURRENT_SEASON, TEAM_META } from "@/app/lib/teams";
+import {
+  CURRENT_SEASON,
+  TEAM_META,
+  parseSeason,
+  parseSeasonType,
+} from "@/app/lib/teams";
 import { parsePlayerId, parsePlayerTab } from "@/app/lib/players";
 import { getValueFromRow, num } from "@/app/lib/teamData";
 import type { PlayerSection } from "@/app/types/player";
@@ -630,6 +635,10 @@ export async function GET(
   }
 
   const tab = parsePlayerTab(request.nextUrl.searchParams.get("tab"));
+  const season = parseSeason(request.nextUrl.searchParams.get("season"));
+  const seasonType = parseSeasonType(
+    request.nextUrl.searchParams.get("seasonType"),
+  );
   const include = parseInclude(
     request.nextUrl.searchParams.get("include"),
     tab,
@@ -673,8 +682,8 @@ export async function GET(
           "playergamelog",
           {
             PlayerID: playerId,
-            Season: CURRENT_SEASON,
-            SeasonType: "Regular Season",
+            Season: season,
+            SeasonType: seasonType,
           },
           3,
           600,
@@ -723,6 +732,8 @@ export async function GET(
           buildDashboardParams(playerId, {
             MeasureType: "Base",
             PerMode: "PerGame",
+            Season: season,
+            SeasonType: seasonType,
           }),
           2,
           1200,
@@ -739,6 +750,8 @@ export async function GET(
           buildDashboardParams(playerId, {
             MeasureType: "Advanced",
             PerMode: "PerGame",
+            Season: season,
+            SeasonType: seasonType,
           }),
           2,
           1200,
@@ -755,6 +768,8 @@ export async function GET(
           buildDashboardParams(playerId, {
             MeasureType: "Base",
             PerMode: "Per36",
+            Season: season,
+            SeasonType: seasonType,
           }),
           2,
           1200,
@@ -1031,6 +1046,8 @@ export async function GET(
     const payload: Record<string, unknown> = {
       playerId,
       tab,
+      season,
+      seasonType,
       include,
     };
 

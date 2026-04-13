@@ -1,5 +1,5 @@
 export type TeamTab = "team-stats" | "player-stats" | "roster";
-export type SeasonType = "Regular Season";
+export type SeasonType = "Regular Season" | "Playoffs";
 export type TeamRange = 5 | 10 | 15;
 
 export interface TeamApiError {

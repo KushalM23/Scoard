@@ -1,4 +1,5 @@
 import type { SeasonType, TeamRange, TeamTab } from "@/app/types/team";
+import { parseSeasonType as parseNbaSeasonType } from "@/app/lib/postseason";
 
 export const CURRENT_SEASON = "2025-26";
 const SEASON_ID_PATTERN = /^\d{4}-\d{2}$/;
@@ -56,7 +57,7 @@ export function parseTeamId(raw: string): number | null {
 }
 
 export function parseSeasonType(raw: string | null): SeasonType {
-  return "Regular Season";
+  return parseNbaSeasonType(raw);
 }
 
 export function parseSeasonStart(seasonId: string): number {

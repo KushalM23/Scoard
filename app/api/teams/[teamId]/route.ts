@@ -4,9 +4,11 @@ import {
   CURRENT_SEASON,
   TEAM_META,
   parseSeason,
+  parseSeasonType,
   parseTeamId,
   parseTab,
 } from "@/app/lib/teams";
+import { isGameForSeasonType } from "@/app/lib/postseason";
 import {
   getValueFromRow,
   inferHomeAway,
@@ -230,22 +232,17 @@ function safeDiv(numerator: number, denominator: number) {
   return denominator > 0 ? numerator / denominator : 0;
 }
 
-function isPlayoffGame(game: any): boolean {
-  const stage = Number(
-    game.seasonStageId ?? game.seasonStageID ?? game.seasonStage,
-  );
-  const label =
-    `${game.gameLabel ?? ""} ${game.seriesText ?? ""}`.toLowerCase();
-  return stage === 4 || label.includes("playoff");
-}
-
-async function buildOverview(teamId: number, season: string) {
+async function buildOverview(
+  teamId: number,
+  season: string,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   const standingsData = await fetchStatsApi(
     "leaguestandingsv3",
     {
       LeagueID: "00",
       Season: season,
-      SeasonType: "Regular Season",
+      SeasonType: seasonType,
     },
     3,
     900,
@@ -467,9 +464,13 @@ function buildAdvancedStatsRow(
   };
 }
 
-async function buildStats(teamId: number, season: string) {
+async function buildStats(
+  teamId: number,
+  season: string,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   try {
-    return await buildStatsFromPrimary(teamId, season);
+    return await buildStatsFromPrimary(teamId, season, seasonType);
   } catch (primaryError) {
     if (season !== CURRENT_SEASON) {
       throw primaryError;
@@ -479,16 +480,21 @@ async function buildStats(teamId: number, season: string) {
       `Primary team stats source failed for team ${teamId}, falling back to CDN boxscores.`,
       primaryError,
     );
-    return buildStatsFromCdn(teamId);
+    return buildStatsFromCdn(teamId, seasonType);
   }
 }
 
-async function buildStatsFromPrimary(teamId: number, season: string) {
+async function buildStatsFromPrimary(
+  teamId: number,
+  season: string,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   const requests: Promise<any>[] = [
     fetchStatsApi(
       "leaguedashteamstats",
       buildDashParams({
         Season: season,
+        SeasonType: seasonType,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "PerGame",
@@ -500,6 +506,7 @@ async function buildStatsFromPrimary(teamId: number, season: string) {
       "leaguedashplayerstats",
       buildDashParams({
         Season: season,
+        SeasonType: seasonType,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "PerGame",
@@ -512,7 +519,7 @@ async function buildStatsFromPrimary(teamId: number, season: string) {
       {
         TeamID: teamId,
         Season: season,
-        SeasonType: "Regular Season",
+        SeasonType: seasonType,
       },
       3,
       900,
@@ -524,6 +531,7 @@ async function buildStatsFromPrimary(teamId: number, season: string) {
       "leaguedashteamstats",
       buildDashParams({
         Season: season,
+        SeasonType: seasonType,
         TeamID: teamId,
         MeasureType: "Base",
         PerMode: "Totals",
@@ -535,6 +543,7 @@ async function buildStatsFromPrimary(teamId: number, season: string) {
       "leaguedashteamstats",
       buildDashParams({
         Season: season,
+        SeasonType: seasonType,
         TeamID: teamId,
         MeasureType: "Opponent",
         PerMode: "PerGame",
@@ -546,6 +555,7 @@ async function buildStatsFromPrimary(teamId: number, season: string) {
       "leaguedashteamstats",
       buildDashParams({
         Season: season,
+        SeasonType: seasonType,
         TeamID: teamId,
         MeasureType: "Advanced",
         PerMode: "PerGame",
@@ -762,10 +772,16 @@ function toPercent(value: unknown): number {
   return parsed > 1 ? parsed / 100 : parsed;
 }
 
-async function buildStatsFromCdn(teamId: number) {
+async function buildStatsFromCdn(
+  teamId: number,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-    { cache: "no-store" },
+    {
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    },
   );
 
   if (!scheduleResponse.ok) {
@@ -777,13 +793,13 @@ async function buildStatsFromCdn(teamId: number) {
     (dateNode: any) => dateNode.games ?? [],
   );
 
-  const completedRegularSeasonGames = allGames
+  const completedSeasonTypeGames = allGames
     .filter((game: any) => {
       const isTeamGame =
         Number(game.homeTeam?.teamId) === teamId ||
         Number(game.awayTeam?.teamId) === teamId;
       if (!isTeamGame) return false;
-      if (isPlayoffGame(game)) return false;
+      if (!isGameForSeasonType(game, seasonType)) return false;
 
       const status = Number(
         game.gameStatus ?? game.gameStatusID ?? game.gameStatusId ?? 0,
@@ -797,12 +813,12 @@ async function buildStatsFromCdn(teamId: number) {
         parseScheduleDate(a.gameDateTimeUTC).getTime(),
     );
 
-  if (!completedRegularSeasonGames.length) {
+  if (!completedSeasonTypeGames.length) {
     throw new Error("No completed games available for fallback stats");
   }
 
   const boxscoreResults = await Promise.allSettled(
-    completedRegularSeasonGames.map(async (game: any) => {
+    completedSeasonTypeGames.map(async (game: any) => {
       const gameId = String(game.gameId ?? "");
       if (!gameId) throw new Error("Missing game id");
 
@@ -1351,7 +1367,11 @@ async function buildRoster(teamId: number, season: string) {
   return { teamId, players };
 }
 
-async function buildSchedule(teamId: number, season: string) {
+async function buildSchedule(
+  teamId: number,
+  season: string,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   if (season !== CURRENT_SEASON) {
     return {
       teamId,
@@ -1375,7 +1395,10 @@ async function buildSchedule(teamId: number, season: string) {
 
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
-    { cache: "no-store" },
+    {
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    },
   );
 
   if (!scheduleResponse.ok) {
@@ -1395,8 +1418,7 @@ async function buildSchedule(teamId: number, season: string) {
         Number(game.awayTeam?.teamId) === teamId;
       if (!isTeamGame) return false;
 
-      const playoff = isPlayoffGame(game);
-      if (playoff) return false;
+      if (!isGameForSeasonType(game, seasonType)) return false;
 
       return parseScheduleDate(game.gameDateTimeUTC) >= now;
     })
@@ -1488,14 +1510,18 @@ async function buildSchedule(teamId: number, season: string) {
   return { teamId, games, fieldAudit };
 }
 
-async function buildResults(teamId: number, season: string) {
+async function buildResults(
+  teamId: number,
+  season: string,
+  seasonType: ReturnType<typeof parseSeasonType>,
+) {
   const teamMeta = TEAM_META[teamId];
   const teamGameLogRaw = await fetchStatsApi(
     "teamgamelog",
     {
       TeamID: teamId,
       Season: season,
-      SeasonType: "Regular Season",
+      SeasonType: seasonType,
     },
     3,
     900,
@@ -1657,6 +1683,9 @@ export async function GET(
 
   const tab = parseTab(request.nextUrl.searchParams.get("tab"));
   const season = parseSeason(request.nextUrl.searchParams.get("season"));
+  const seasonType = parseSeasonType(
+    request.nextUrl.searchParams.get("seasonType"),
+  );
   const include = parseInclude(
     request.nextUrl.searchParams.get("include"),
     tab,
@@ -1664,11 +1693,11 @@ export async function GET(
 
   try {
     const sectionBuilders: Record<TeamSection, () => Promise<any>> = {
-      overview: () => buildOverview(teamId, season),
-      stats: () => buildStats(teamId, season),
+      overview: () => buildOverview(teamId, season, seasonType),
+      stats: () => buildStats(teamId, season, seasonType),
       roster: () => buildRoster(teamId, season),
-      schedule: () => buildSchedule(teamId, season),
-      results: () => buildResults(teamId, season),
+      schedule: () => buildSchedule(teamId, season, seasonType),
+      results: () => buildResults(teamId, season, seasonType),
     };
 
     const sectionResults = await Promise.allSettled(
@@ -1679,7 +1708,7 @@ export async function GET(
       teamId,
       tab,
       season,
-      seasonType: "Regular Season",
+      seasonType,
       include,
     };
 
