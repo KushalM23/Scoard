@@ -52,34 +52,65 @@ function TeamBadge({
   compact?: boolean;
 }) {
   return (
-    <div className={compact ? "rounded-xl border-white/5 bg-white/[0.03] p-3" : "glass-card p-4 sm:p-5"}>
+    <div
+      className={
+        compact
+          ? "rounded-xl border-white/5 bg-white/[0.03] p-3"
+          : "glass-card p-4 sm:p-5"
+      }
+    >
       <div className="flex items-center gap-3">
         {team.logoUrl ? (
           <img
             src={team.logoUrl}
             alt={team.displayName}
-            className={compact ? "w-8 h-8 object-contain" : "w-11 h-11 object-contain"}
+            className={
+              compact ? "w-8 h-8 object-contain" : "w-11 h-11 object-contain"
+            }
           />
         ) : (
-          <div className={compact ? "w-8 h-8 rounded-full border border-white/30" : "w-11 h-11 rounded-full border border-white/30"} />
+          <div
+            className={
+              compact
+                ? "w-8 h-8 rounded-full border border-white/30"
+                : "w-11 h-11 rounded-full border border-white/30"
+            }
+          />
         )}
 
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.16em] text-text/60">Seed {team.seed ?? "-"}</p>
-          <p className="text-base sm:text-xl font-semibold truncate">{team.displayName}</p>
-          <p className="text-xs text-text/65">{team.regularSeasonRecord.wins}-{team.regularSeasonRecord.losses} regular season</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-text/60">
+            Seed {team.seed ?? "-"}
+          </p>
+          <p className="text-base sm:text-xl font-semibold truncate">
+            {team.displayName}
+          </p>
+          <p className="text-xs text-text/65">
+            {team.regularSeasonRecord.wins}-{team.regularSeasonRecord.losses}{" "}
+            regular season
+          </p>
         </div>
 
         <div className="ml-auto text-center">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-text/55">Series Wins</p>
-          <p className="font-display text-3xl leading-none text-primary">{team.seriesWins}</p>
+          <p className="text-[10px] uppercase tracking-[0.15em] text-text/55">
+            Series Wins
+          </p>
+          <p className="font-display text-3xl leading-none text-primary">
+            {team.seriesWins}
+          </p>
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">Conf #{team.conferenceRank}</p>
-        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">Div #{team.divisionRank}</p>
-        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">Streak {team.streak}</p>
+        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">
+          Conf #{team.conferenceRank}
+        </p>
+        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">
+          Div #{team.divisionRank}
+        </p>
+        <p className="rounded-lg border border-white/10 px-2 py-1 text-text/75">
+          Streak {team.streak}
+        </p>
       </div>
     </div>
   );
@@ -100,7 +131,9 @@ function GameCard({
   return (
     <div className="rounded-xl glass-card p-3.5">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <p className="text-xs uppercase tracking-[0.16em] text-text/60">Game {game.gameNumber ?? "-"}</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-text/60">
+          Game {game.gameNumber ?? "-"}
+        </p>
         <p
           className={[
             "text-xs font-semibold uppercase",
@@ -108,7 +141,7 @@ function GameCard({
               ? "text-accent"
               : game.status === "completed"
                 ? "text-secondary"
-                : "text-secondary"
+                : "text-secondary",
           ].join(" ")}
         >
           {game.statusText || game.status.replace("_", " ")}
@@ -116,21 +149,41 @@ function GameCard({
       </div>
 
       <div className="space-y-2">
-        <div className={["rounded-lg border px-2.5 py-2 flex items-center gap-2", winnerRowTone(game.awayTeam.teamId)].join(" ")}>
+        <div
+          className={[
+            "rounded-lg border px-2.5 py-2 flex items-center gap-2",
+            winnerRowTone(game.awayTeam.teamId),
+          ].join(" ")}
+        >
           <p className="text-sm font-semibold">{game.awayTeam.tricode}</p>
-          <p className="text-xs text-text/65 truncate">{game.awayTeam.displayName}</p>
-          <p className="ml-auto text-base font-display">{game.awayTeam.score ?? "-"}</p>
+          <p className="text-xs text-text/65 truncate">
+            {game.awayTeam.displayName}
+          </p>
+          <p className="ml-auto text-base font-display">
+            {game.awayTeam.score ?? "-"}
+          </p>
         </div>
 
-        <div className={["rounded-lg border px-2.5 py-2 flex items-center gap-2", winnerRowTone(game.homeTeam.teamId)].join(" ")}>
+        <div
+          className={[
+            "rounded-lg border px-2.5 py-2 flex items-center gap-2",
+            winnerRowTone(game.homeTeam.teamId),
+          ].join(" ")}
+        >
           <p className="text-sm font-semibold">{game.homeTeam.tricode}</p>
-          <p className="text-xs text-text/65 truncate">{game.homeTeam.displayName}</p>
-          <p className="ml-auto text-base font-display">{game.homeTeam.score ?? "-"}</p>
+          <p className="text-xs text-text/65 truncate">
+            {game.homeTeam.displayName}
+          </p>
+          <p className="ml-auto text-base font-display">
+            {game.homeTeam.score ?? "-"}
+          </p>
         </div>
       </div>
 
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-[11px] text-text/55">{formatDate(game.scheduledAt)}</p>
+        <p className="text-[11px] text-text/55">
+          {formatDate(game.scheduledAt)}
+        </p>
         <Link
           href={`/game/${game.gameId}`}
           className="text-[11px] uppercase tracking-[0.12em] text-primary hover:text-primary/80"
@@ -141,7 +194,8 @@ function GameCard({
 
       {game.winnerTeamId && game.status === "completed" && (
         <p className="mt-1 text-[11px] text-text/55">
-          Winner: {game.winnerTeamId === topTeamId ? "Higher Seed" : "Lower Seed"}
+          Winner:{" "}
+          {game.winnerTeamId === topTeamId ? "Higher Seed" : "Lower Seed"}
         </p>
       )}
     </div>
@@ -170,9 +224,15 @@ function TeamStatsTables({ team }: { team: SeriesStatsTeam }) {
       const min = Number(player.MIN ?? player.minutes ?? 0);
       const stl = Number(player.STL ?? player.steals ?? 0);
       const blk = Number(player.BLK ?? player.blocks ?? 0);
-      const fg = Number(player.FG_PCT ?? player.fgPct ?? 0) * (Number(player.FG_PCT ?? player.fgPct ?? 0) <= 1 ? 100 : 1);
-      const tp = Number(player.FG3_PCT ?? player.threePtPct ?? 0) * (Number(player.FG3_PCT ?? player.threePtPct ?? 0) <= 1 ? 100 : 1);
-      const ft = Number(player.FT_PCT ?? player.ftPct ?? 0) * (Number(player.FT_PCT ?? player.ftPct ?? 0) <= 1 ? 100 : 1);
+      const fg =
+        Number(player.FG_PCT ?? player.fgPct ?? 0) *
+        (Number(player.FG_PCT ?? player.fgPct ?? 0) <= 1 ? 100 : 1);
+      const tp =
+        Number(player.FG3_PCT ?? player.threePtPct ?? 0) *
+        (Number(player.FG3_PCT ?? player.threePtPct ?? 0) <= 1 ? 100 : 1);
+      const ft =
+        Number(player.FT_PCT ?? player.ftPct ?? 0) *
+        (Number(player.FT_PCT ?? player.ftPct ?? 0) <= 1 ? 100 : 1);
 
       return {
         id: Number(player.playerId ?? player.PLAYER_ID ?? 0),
@@ -196,20 +256,31 @@ function TeamStatsTables({ team }: { team: SeriesStatsTeam }) {
     <div className="rounded-2xl glass-card p-4 sm:p-5">
       <div className="flex items-center gap-3 mb-4">
         {team.logoUrl ? (
-          <img src={team.logoUrl} alt={team.displayName} className="w-8 h-8 object-contain" />
+          <img
+            src={team.logoUrl}
+            alt={team.displayName}
+            className="w-8 h-8 object-contain"
+          />
         ) : (
           <div className="w-8 h-8 rounded-full border border-white/30" />
         )}
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-text/60">{team.tricode}</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-text/60">
+            {team.tricode}
+          </p>
           <h4 className="text-lg font-semibold">{team.displayName}</h4>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-5">
         {summary.map((entry) => (
-          <div key={`${team.teamId}-${entry.label}`} className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-2 text-center">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-text/55">{entry.label}</p>
+          <div
+            key={`${team.teamId}-${entry.label}`}
+            className="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-2 text-center"
+          >
+            <p className="text-[10px] uppercase tracking-[0.14em] text-text/55">
+              {entry.label}
+            </p>
             <p className="text-sm font-semibold text-text">{entry.value}</p>
           </div>
         ))}
@@ -234,18 +305,41 @@ function TeamStatsTables({ team }: { team: SeriesStatsTeam }) {
           </thead>
           <tbody>
             {topPlayers.map((player) => (
-              <tr key={`${team.teamId}-${player.id}-${player.name}`} className="border-b border-white/5">
-                <td className="py-2 pr-2 font-medium text-text">{player.name}</td>
+              <tr
+                key={`${team.teamId}-${player.id}-${player.name}`}
+                className="border-b border-white/5"
+              >
+                <td className="py-2 pr-2 font-medium text-text">
+                  {player.name}
+                </td>
                 <td className="py-2 pr-2 text-text/80">{player.gp}</td>
-                <td className="py-2 pr-2 text-text/80">{player.min.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.pts.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.reb.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.ast.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.stl.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.blk.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.fg.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.tp.toFixed(1)}</td>
-                <td className="py-2 pr-2 text-text/80">{player.ft.toFixed(1)}</td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.min.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.pts.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.reb.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.ast.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.stl.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.blk.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.fg.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.tp.toFixed(1)}
+                </td>
+                <td className="py-2 pr-2 text-text/80">
+                  {player.ft.toFixed(1)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -270,7 +364,10 @@ function SeriesSkeleton() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <Skeleton key={`series-skel-${idx}`} className="h-[168px] w-full rounded-xl" />
+            <Skeleton
+              key={`series-skel-${idx}`}
+              className="h-[168px] w-full rounded-xl"
+            />
           ))}
         </div>
       </div>
@@ -292,15 +389,22 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
       setError(null);
 
       try {
-        const payload = await fetchSeriesPayload(`/api/playoffs/series/${seriesId}`);
+        const payload = await fetchSeriesPayload(
+          `/api/playoffs/series/${seriesId}`,
+        );
         if (!isActive) return;
         setData(payload);
       } catch (fetchError) {
         if (!isActive) return;
 
         const code =
-          typeof fetchError === "object" && fetchError !== null && "code" in fetchError
-            ? String((fetchError as { code?: string }).code ?? "PLAYOFF_SERIES_FAILED")
+          typeof fetchError === "object" &&
+          fetchError !== null &&
+          "code" in fetchError
+            ? String(
+                (fetchError as { code?: string }).code ??
+                  "PLAYOFF_SERIES_FAILED",
+              )
             : "PLAYOFF_SERIES_FAILED";
         const message =
           fetchError instanceof Error
@@ -344,7 +448,8 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
             <div className="rounded-2xl glass-card border border-accent/25 p-5 text-accent text-sm space-y-3">
               <p>{error.message}</p>
               <p className="text-accent/80">
-                This matchup has not been locked in yet. Check the live bracket for updates.
+                This matchup has not been locked in yet. Check the live bracket
+                for updates.
               </p>
               <Link
                 href="/playoffs"
@@ -367,9 +472,15 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
             <section className="rounded-3xl glass-card border-none px-5 py-6 sm:px-7 sm:py-7">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-text/60">
-                  {data.series.roundLabel} • {data.series.conference ? `${data.series.conference.toUpperCase()}ERN` : "NBA"}
+                  {data.series.roundLabel} •{" "}
+                  {data.series.conference
+                    ? `${data.series.conference.toUpperCase()}ERN`
+                    : "NBA"}
                 </p>
-                <Link href="/playoffs" className="text-xs uppercase tracking-[0.13em] text-primary hover:text-primary/80">
+                <Link
+                  href="/playoffs"
+                  className="text-xs uppercase tracking-[0.13em] text-primary hover:text-primary/80"
+                >
                   Back to bracket
                 </Link>
               </div>
@@ -378,7 +489,9 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
                 {topTeam ? <TeamBadge team={topTeam} /> : <div />}
 
                 <div className="text-center px-3">
-                  <p className="text-xs uppercase tracking-[0.15em] text-text/55">Best of {data.series.bestOf}</p>
+                  <p className="text-xs uppercase tracking-[0.15em] text-text/55">
+                    Best of {data.series.bestOf}
+                  </p>
                   <p className="font-display text-4xl sm:text-5xl text-primary leading-none mt-1">
                     {topTeam?.seriesWins ?? 0} - {bottomTeam?.seriesWins ?? 0}
                   </p>
@@ -420,27 +533,47 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
               </div>
 
               {activeTab === "games" ? (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {data.tabs.games.items.map((game) => (
-                      <GameCard key={game.gameId} game={game} topTeamId={topTeam?.teamId ?? 0} />
+                      <GameCard
+                        key={game.gameId}
+                        game={game}
+                        topTeamId={topTeam?.teamId ?? 0}
+                      />
                     ))}
 
                     {data.tabs.games.items.length === 0 && (
-                      <p className="text-sm text-text/70">No games scheduled for this series yet.</p>
+                      <p className="text-sm text-text/70">
+                        No games scheduled for this series yet.
+                      </p>
                     )}
                   </div>
                 </motion.div>
               ) : (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
                   <div className="rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2.5">
-                    <p className="text-xs uppercase tracking-[0.14em] text-text/60">{data.statsContext.label}</p>
-                    <p className="text-sm text-text/78 mt-1">{data.statsContext.description}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-text/60">
+                      {data.statsContext.label}
+                    </p>
+                    <p className="text-sm text-text/78 mt-1">
+                      {data.statsContext.description}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                     {data.tabs.stats.teams.map((team) => (
-                      <TeamStatsTables key={`${team.slot}-${team.teamId}`} team={team} />
+                      <TeamStatsTables
+                        key={`${team.slot}-${team.teamId}`}
+                        team={team}
+                      />
                     ))}
                   </div>
                 </motion.div>
