@@ -10,10 +10,13 @@ import GameCard from "./GameCard";
 import Standings from "./Standings";
 import CalendarPicker from "./CalendarPicker";
 import { Skeleton } from "./skeleton";
+import PlayoffsBracketView from "./PlayoffsBracketView";
 
 interface HeroProps {
   onGameSelect: (gameId: string) => void;
 }
+
+type HomeTab = "scores" | "standings" | "playoffs";
 
 const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
   const searchParams = useSearchParams();
@@ -42,7 +45,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
   };
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"scores" | "standings">("scores");
+  const [activeTab, setActiveTab] = useState<HomeTab>("scores");
 
   useEffect(() => {
     if (activeTab !== "scores") return;
@@ -121,10 +124,10 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
       {/* Tabs */}
       <div className="flex justify-center mb-6 md:mb-4">
         <div className="glass rounded-xl p-1 flex gap-2 md:gap-1.5 relative">
-          {["scores", "standings"].map((tab) => (
+          {(["scores", "standings", "playoffs"] as HomeTab[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as "scores" | "standings")}
+              onClick={() => setActiveTab(tab)}
               className={`relative px-6 py-2 md:px-8 md:py-2.5 rounded-lg font-display text-sm md:text-base transition-colors duration-300 tracking-wide z-10 ${activeTab === tab ? "text-text" : "text-text/60 hover:text-text"}`}
             >
               {activeTab === tab && (
@@ -209,7 +212,7 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
               </motion.div>
             )}
           </motion.div>
-        ) : (
+        ) : activeTab === "standings" ? (
           <motion.div
             key="standings"
             initial={{ opacity: 0, x: 20 }}
@@ -218,6 +221,16 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
             transition={{ duration: 0.3 }}
           >
             <Standings />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="playoffs"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <PlayoffsBracketView showTitle={false} />
           </motion.div>
         )}
       </AnimatePresence>
