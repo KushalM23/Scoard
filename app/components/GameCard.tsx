@@ -26,9 +26,19 @@ interface Game {
 interface GameCardProps {
   game: Game;
   onClick: () => void;
+  scheduledDisplay?: {
+    label?: string;
+    value?: string;
+    dateText?: string;
+    timeText?: string;
+  };
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
+const GameCard: React.FC<GameCardProps> = ({
+  game,
+  onClick,
+  scheduledDisplay,
+}) => {
   const homeScore = Number(game.homeTeam.score);
   const awayScore = Number(game.awayTeam.score);
   const hasScores = homeScore > 0 || awayScore > 0;
@@ -81,6 +91,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
       return statusText;
     }
   };
+
+  const scheduledLabel = scheduledDisplay?.label ?? "TIPOFF (IST)";
+  const scheduledValue =
+    scheduledDisplay?.value ?? formatToIST(game.gameEt, game.gameStatusText);
+  const scheduledDateText = scheduledDisplay?.dateText;
+  const scheduledTimeText = scheduledDisplay?.timeText ?? scheduledValue;
+  const hasDateTimeSplit =
+    typeof scheduledDateText === "string" ||
+    typeof scheduledDisplay?.timeText === "string";
 
   return (
     <motion.div
@@ -136,12 +155,18 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
         <div className="flex flex-col items-center justify-center min-w-[100px]">
           {isScheduled ? (
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[8px] md:text-[10px] font-bold text-text/50 tracking-widest uppercase">
-                TIPOFF (IST)
-              </span>
+              {hasDateTimeSplit ? (
+                <span className="text-[10px] md:text-xs font-medium text-text/70 whitespace-nowrap">
+                  {scheduledDateText}
+                </span>
+              ) : (
+                <span className="text-[8px] md:text-[10px] font-bold text-text/50 tracking-widest uppercase">
+                  {scheduledLabel}
+                </span>
+              )}
               <div className="bg-white/5 rounded-lg px-1.5 py-0.5 border border-white/5">
                 <span className="text-xl md:text-base font-mono font-medium text-text whitespace-nowrap">
-                  {formatToIST(game.gameEt, game.gameStatusText)}
+                  {scheduledTimeText}
                 </span>
               </div>
             </div>

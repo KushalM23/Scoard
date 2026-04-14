@@ -101,7 +101,11 @@ async function fetchTeamSection<T>(
   return section as T;
 }
 
-function buildGamesTab(actualSeries: NonNullable<Awaited<ReturnType<typeof getSeriesById>>["actualSeries"]>) {
+function buildGamesTab(
+  actualSeries: NonNullable<
+    Awaited<ReturnType<typeof getSeriesById>>["actualSeries"]
+  >,
+) {
   const items = actualSeries.games.map((game) => ({
     gameId: game.gameId,
     gameNumber: game.seriesGameNumber,
@@ -175,37 +179,29 @@ async function buildSeriesPayload(
   const statsSeasonType: "Regular Season" | "Playoffs" =
     statsMode === "playoff_context" ? "Playoffs" : "Regular Season";
 
-  const [topOverview, bottomOverview, topStats, bottomStats] = await Promise.all([
-    fetchTeamSection<TeamApiOverview>(request, topTeamId, {
-      season,
-      seasonType: "Regular Season",
-      include: "overview",
-    }),
-    fetchTeamSection<TeamApiOverview>(request, bottomTeamId, {
-      season,
-      seasonType: "Regular Season",
-      include: "overview",
-    }),
-    fetchTeamSection<TeamApiStats>(request, topTeamId, {
-      season,
-      seasonType: statsSeasonType,
-      include: "stats",
-    }),
-    fetchTeamSection<TeamApiStats>(request, bottomTeamId, {
-      season,
-      seasonType: statsSeasonType,
-      include: "stats",
-    }),
-  ]);
-
-  const contextLabel =
-    statsMode === "playoff_context"
-      ? "Playoff run to date"
-      : "Regular season preview";
-  const contextDescription =
-    statsMode === "playoff_context"
-      ? "The series has started, so team and player stats reflect each club's playoff run to date."
-      : "The series has not started yet, so team and player stats use regular-season performance as the preview context.";
+  const [topOverview, bottomOverview, topStats, bottomStats] =
+    await Promise.all([
+      fetchTeamSection<TeamApiOverview>(request, topTeamId, {
+        season,
+        seasonType: "Regular Season",
+        include: "overview",
+      }),
+      fetchTeamSection<TeamApiOverview>(request, bottomTeamId, {
+        season,
+        seasonType: "Regular Season",
+        include: "overview",
+      }),
+      fetchTeamSection<TeamApiStats>(request, topTeamId, {
+        season,
+        seasonType: statsSeasonType,
+        include: "stats",
+      }),
+      fetchTeamSection<TeamApiStats>(request, bottomTeamId, {
+        season,
+        seasonType: statsSeasonType,
+        include: "stats",
+      }),
+    ]);
 
   const detailedTeams = [
     {
@@ -278,8 +274,6 @@ async function buildSeriesPayload(
     statsContext: {
       mode: statsMode,
       seasonType: statsSeasonType,
-      label: contextLabel,
-      description: contextDescription,
     },
     overview: {
       teams: detailedTeams.map((team) => ({
@@ -298,12 +292,12 @@ async function buildSeriesPayload(
       })),
     },
     tabs: {
-      games: actualSeries ? buildGamesTab(actualSeries) : { totalGames: 0, completedGames: 0, items: [] },
+      games: actualSeries
+        ? buildGamesTab(actualSeries)
+        : { totalGames: 0, completedGames: 0, items: [] },
       stats: {
         mode: statsMode,
         seasonType: statsSeasonType,
-        label: contextLabel,
-        description: contextDescription,
         teams: detailedTeams,
       },
     },

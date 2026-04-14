@@ -163,7 +163,7 @@ function BracketRoundColumn({
 
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-[0.18em] text-text/62 font-semibold text-center">
+      <p className="text-xs uppercase tracking-[0.18em] text-text/62 font-semibold text-center">
         {label}
       </p>
 
@@ -204,7 +204,7 @@ function PlayInConferenceCard({
       <div className="rounded-2xl p-4 sm:p-5 bg-[#2c2c2f]/78">
         <h3
           className={[
-            "text-sm uppercase tracking-[0.15em] mb-3 text-center",
+            "text-sm uppercase font-black tracking-[0.15em] mb-3 text-center",
             headingTone,
           ].join(" ")}
         >
@@ -316,7 +316,7 @@ export default function PlayoffsBracketView({
   const generatedText = formatDate(data.generatedAt);
   const bracketColumns = [
     {
-      label: "West First",
+      label: "West 1st Round",
       cards: data.playoffs.west.firstRound,
       tone: "west" as const,
       roundLevel: 0 as const,
@@ -421,21 +421,10 @@ export default function PlayoffsBracketView({
       </section>
 
       <section className="rounded-2xl bg-[#27272b]/82 p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-10">
           <h2 className="font-display tracking-wide text-2xl text-text">
-            Championship Bracket
+            Playoff Bracket
           </h2>
-          <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.14em]">
-            <span className="rounded-full bg-accent/20 px-2 py-1 text-accent">
-              West
-            </span>
-            <span className="rounded-full bg-white/[0.08] px-2 py-1 text-text/65">
-              Finals
-            </span>
-            <span className="rounded-full bg-secondary/20 px-2 py-1 text-secondary">
-              East
-            </span>
-          </div>
         </div>
 
         <div className="overflow-x-auto pb-1">
