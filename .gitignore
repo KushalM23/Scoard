@@ -77,3 +77,12 @@ Thumbs.db
 .turbo
 
 INTERVIEW_PREP.md
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
