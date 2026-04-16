@@ -11,6 +11,6 @@
   // Environment variables for internal API routing
   // In production, Cloudflare automatically resolves the current domain
   "vars": {
-    "API_BASE_URL": ""
+    "API_BASE_URL": "https://scoard.kusham2301.workers.dev"
   }
 }
