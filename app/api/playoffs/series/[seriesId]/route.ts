@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 function getApiBaseUrl(request: NextRequest): string {
   // Try to get from environment variable first (useful for Cloudflare Workers)
   if (process.env.API_BASE_URL) {
+    console.log("[getApiBaseUrl] Using API_BASE_URL from env:", process.env.API_BASE_URL);
     return process.env.API_BASE_URL;
   }
 
@@ -21,14 +22,19 @@ function getApiBaseUrl(request: NextRequest): string {
                    (request.url.startsWith("https") ? "https" : "http");
 
   if (host) {
-    return `${protocol}://${host}`;
+    const url = `${protocol}://${host}`;
+    console.log("[getApiBaseUrl] Using URL from headers:", url);
+    return url;
   }
 
   // Fallback to request.url origin (for Node.js local development)
   try {
-    return new URL(request.url).origin;
+    const origin = new URL(request.url).origin;
+    console.log("[getApiBaseUrl] Using origin from request.url:", origin);
+    return origin;
   } catch {
     // Last resort - shouldn't happen normally
+    console.warn("[getApiBaseUrl] Falling back to localhost:3000");
     return "http://localhost:3000";
   }
 }
@@ -114,34 +120,67 @@ async function fetchTeamSection<T>(
   url.searchParams.set("seasonType", options.seasonType);
   url.searchParams.set("include", options.include);
 
+  console.log(
+    `[fetchTeamSection] Fetching team ${teamId} (${options.include}) from: ${url.toString()}`,
+  );
+
   try {
     const response = await fetch(url.toString(), {
       cache: "no-store",
       signal: AbortSignal.timeout(TEAM_SECTION_TIMEOUT_MS),
     });
 
+    console.log(
+      `[fetchTeamSection] Response status for ${teamId} (${options.include}): ${response.status}`,
+    );
+
     if (!response.ok) {
-      console.warn(
-        `[playoff-series] Team API request failed for ${teamId} (${options.include}) with ${response.status}`,
+      const responseText = await response.text().catch(() => "(no body)");
+      console.error(
+        `[playoff-series] Team API request failed for ${teamId} (${options.include}) with ${response.status}. Body: ${responseText.substring(0, 500)}`,
       );
       return null;
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch((parseError) => {
+      console.error(
+        `[fetchTeamSection] Failed to parse JSON for ${teamId} (${options.include}):`,
+        parseError,
+      );
+      return null;
+    });
+
+    if (!payload) {
+      console.warn(
+        `[fetchTeamSection] Empty payload for ${teamId} (${options.include})`,
+      );
+      return null;
+    }
+
     const section = payload?.[options.include];
 
-    if (!section || section?.code === "TEAM_SECTION_FAILED") {
+    if (!section) {
       console.warn(
-        `[playoff-series] Team API section unavailable for ${teamId} (${options.include})`,
+        `[fetchTeamSection] Missing section "${options.include}" in payload for ${teamId}. Available keys: ${Object.keys(payload).join(", ")}`,
       );
       return null;
     }
 
+    if (section?.code === "TEAM_SECTION_FAILED") {
+      console.warn(
+        `[playoff-series] Team API section unavailable for ${teamId} (${options.include}): ${section?.message}`,
+      );
+      return null;
+    }
+
+    console.log(
+      `[fetchTeamSection] Successfully fetched ${teamId} (${options.include})`,
+    );
     return section as T;
   } catch (error) {
-    console.warn(
-      `[playoff-series] Team API request threw for ${teamId} (${options.include})`,
-      error,
+    console.error(
+      `[playoff-series] Team API request threw for ${teamId} (${options.include}):`,
+      error instanceof Error ? error.message : String(error),
     );
     return null;
   }
