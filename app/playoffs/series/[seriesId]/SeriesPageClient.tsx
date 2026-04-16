@@ -414,7 +414,6 @@ function TeamPlayerStatsTable({
                 row.name
               )}
             </p>
-            j
             <div className="grid grid-cols-3 gap-2 md:gap-3 w-full sm:w-auto sm:min-w-[270px]">
               <div className="rounded-lg bg-white/[0.04] px-2 py-2 text-center">
                 <p className="text-[10px] uppercase tracking-[0.1em] text-text/58">

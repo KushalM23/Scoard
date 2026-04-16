@@ -1,12 +1,11 @@
 import axios from 'axios';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import { fetchStatsApi } from '@/app/lib/statsApi';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-const PROXY_URL = process.env.STATS_PROXY_URL || 'http://localhost:3001';
 
 type StreamController = ReadableStreamDefaultController<Uint8Array>;
 
@@ -28,9 +27,14 @@ function hashData(data: any): string {
 
 function computeDelay(data: any): number {
     const DEFAULT_DELAY = 5000;   // 5s
+    const SCHEDULED_DELAY = 30000; // 30s before tipoff
     const TIMEOUT_DELAY = 30000;  // 30s during timeouts
     const BREAK_DELAY = 45000;    // 45s for period breaks
     const HALFTIME_DELAY = 120000; // 2 minutes for halftime
+
+    if (Number(data?.gameStatus ?? 0) <= 1) {
+        return SCHEDULED_DELAY;
+    }
 
     const actions = Array.isArray(data?.pbpActions) ? data.pbpActions : [];
     const last = actions[actions.length - 1];
@@ -56,6 +60,10 @@ async function fetchPbpData(gameId: string): Promise<any[]> {
         console.log(`PBP fetch failed for ${gameId}, returning empty actions.`);
         return [];
     }
+}
+
+function shouldFetchPbp(gameStatus: unknown): boolean {
+    return Number(gameStatus ?? 0) > 1;
 }
 
 // Broadcast data to all clients watching a specific game
@@ -91,7 +99,9 @@ async function fetchGameData(gameId: string): Promise<any> {
             
             const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;
             
-            const pbpActions = await fetchPbpData(gameId);
+            const pbpActions = shouldFetchPbp(data.gameStatus)
+                ? await fetchPbpData(gameId)
+                : [];
 
             return {
                 gameId: data.gameId,
@@ -137,11 +147,14 @@ async function fetchGameData(gameId: string): Promise<any> {
         }
 
         // 2. Fallback to Stats API
-        const summaryResponse = await axios.get(`${PROXY_URL}/api/boxscore/${gameId}`, {
-            timeout: 35000
-        });
+        const summaryData = await fetchStatsApi(
+            'boxscoresummaryv2',
+            { GameID: gameId },
+            3,
+            5,
+        );
 
-        const summarySets = summaryResponse.data.resultSets;
+        const summarySets = summaryData.resultSets;
         const gameSummary = summarySets[0].rowSet[0];
         const lineScore = summarySets[5].rowSet;
 
@@ -163,7 +176,9 @@ async function fetchGameData(gameId: string): Promise<any> {
 
         const gameStatus = getValue(gameSummary, summaryHeaders, 'GAME_STATUS_ID');
 
-        const pbpActions = await fetchPbpData(gameId);
+        const pbpActions = shouldFetchPbp(gameStatus)
+            ? await fetchPbpData(gameId)
+            : [];
 
         return {
             gameId: getValue(gameSummary, summaryHeaders, 'GAME_ID'),

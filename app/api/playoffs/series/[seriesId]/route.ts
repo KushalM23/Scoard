@@ -59,6 +59,8 @@ type TeamApiStats = {
   tables: Record<string, unknown>;
 };
 
+const TEAM_SECTION_TIMEOUT_MS = 20000;
+
 function jsonResponse(payload: unknown) {
   return NextResponse.json(payload, {
     headers: {
@@ -75,30 +77,98 @@ async function fetchTeamSection<T>(
     seasonType: "Regular Season" | "Playoffs";
     include: "overview" | "stats";
   },
-): Promise<T> {
+): Promise<T | null> {
   const origin = request.nextUrl.origin;
   const url = new URL(`/api/teams/${teamId}`, origin);
   url.searchParams.set("season", options.season);
   url.searchParams.set("seasonType", options.seasonType);
   url.searchParams.set("include", options.include);
 
-  const response = await fetch(url.toString(), {
-    cache: "no-store",
-    signal: AbortSignal.timeout(12000),
-  });
+  try {
+    const response = await fetch(url.toString(), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(TEAM_SECTION_TIMEOUT_MS),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed team lookup for ${teamId}`);
+    if (!response.ok) {
+      console.warn(
+        `[playoff-series] Team API request failed for ${teamId} (${options.include}) with ${response.status}`,
+      );
+      return null;
+    }
+
+    const payload = await response.json().catch(() => null);
+    const section = payload?.[options.include];
+
+    if (!section || section?.code === "TEAM_SECTION_FAILED") {
+      console.warn(
+        `[playoff-series] Team API section unavailable for ${teamId} (${options.include})`,
+      );
+      return null;
+    }
+
+    return section as T;
+  } catch (error) {
+    console.warn(
+      `[playoff-series] Team API request threw for ${teamId} (${options.include})`,
+      error,
+    );
+    return null;
   }
+}
 
-  const payload = await response.json();
-  const section = payload?.[options.include];
+function buildFallbackOverview(team: {
+  teamId: number;
+  tricode: string;
+  displayName: string;
+  logoUrl: string | null;
+}): TeamApiOverview {
+  return {
+    teamId: team.teamId,
+    logoUrl: team.logoUrl ?? "",
+    city: "",
+    name: team.displayName,
+    tricode: team.tricode,
+    record: {
+      wins: 0,
+      losses: 0,
+      winPct: 0,
+    },
+    ranks: {
+      conferenceRank: 0,
+      divisionRank: 0,
+    },
+    streak: "N/A",
+    standingsSnapshot: {
+      conference: [],
+      division: [],
+    },
+  };
+}
 
-  if (!section || section?.code === "TEAM_SECTION_FAILED") {
-    throw new Error(`Failed team ${options.include} lookup for ${teamId}`);
-  }
-
-  return section as T;
+function buildFallbackStats(
+  record: TeamApiOverview["record"],
+): TeamApiStats {
+  return {
+    teamMetrics: {
+      gamesPlayed: record.wins + record.losses,
+      wins: record.wins,
+      losses: record.losses,
+      pointsPerGame: 0,
+      reboundsPerGame: 0,
+      assistsPerGame: 0,
+      netRating: 0,
+      offRating: 0,
+      defRating: 0,
+      pace: 0,
+    },
+    homeAwaySplits: {
+      home: { wins: 0, losses: 0 },
+      away: { wins: 0, losses: 0 },
+    },
+    playerStats: [],
+    tables: {},
+  };
 }
 
 function buildGamesTab(
@@ -179,7 +249,12 @@ async function buildSeriesPayload(
   const statsSeasonType: "Regular Season" | "Playoffs" =
     statsMode === "playoff_context" ? "Playoffs" : "Regular Season";
 
-  const [topOverview, bottomOverview, topStats, bottomStats] =
+  const [
+    topOverviewResult,
+    bottomOverviewResult,
+    topStatsResult,
+    bottomStatsResult,
+  ] =
     await Promise.all([
       fetchTeamSection<TeamApiOverview>(request, topTeamId, {
         season,
@@ -202,6 +277,26 @@ async function buildSeriesPayload(
         include: "stats",
       }),
     ]);
+
+  const topOverview =
+    topOverviewResult ??
+    buildFallbackOverview({
+      teamId: topTeamId,
+      tricode: series.teams.top.tricode,
+      displayName: series.teams.top.displayName,
+      logoUrl: series.teams.top.logoUrl,
+    });
+  const bottomOverview =
+    bottomOverviewResult ??
+    buildFallbackOverview({
+      teamId: bottomTeamId,
+      tricode: series.teams.bottom.tricode,
+      displayName: series.teams.bottom.displayName,
+      logoUrl: series.teams.bottom.logoUrl,
+    });
+  const topStats = topStatsResult ?? buildFallbackStats(topOverview.record);
+  const bottomStats =
+    bottomStatsResult ?? buildFallbackStats(bottomOverview.record);
 
   const detailedTeams = [
     {

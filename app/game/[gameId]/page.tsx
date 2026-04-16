@@ -34,15 +34,22 @@ export default function Game() {
     let isMounted = true;
 
     const fetchData = async () => {
-      if (!gameId) return;
+      let finishedCoreLoad = false;
+
+      if (!gameId) {
+        if (isMounted) {
+          setError("Invalid game id.");
+          setLoading(false);
+        }
+        return;
+      }
 
       try {
         const bustCache = retryTrigger > 0;
         const cacheParam = bustCache ? "?bustCache=true" : "";
-        const [boxRes, pbpRes] = await Promise.all([
-          axios.get(`/api/games/${gameId}${cacheParam}`),
-          axios.get(`/api/games/${gameId}/pbp${cacheParam}`),
-        ]);
+        const boxRes = await axios.get(`/api/games/${gameId}${cacheParam}`, {
+          timeout: 30000,
+        });
 
         if (!isMounted) return;
 
@@ -157,16 +164,29 @@ export default function Game() {
 
           setPlayers(allPlayers);
         }
-
-        if (pbpRes.data && pbpRes.data.game && pbpRes.data.game.actions) {
-          setPbpData(pbpRes.data.game.actions);
-        }
         setError(null);
+
+        // Render game page as soon as core game data is ready.
+        finishedCoreLoad = true;
+        setLoading(false);
+
+        // Fetch PBP in the background so scheduled/slow PBP doesn't block page load.
+        void axios
+          .get(`/api/games/${gameId}/pbp${cacheParam}`, { timeout: 20000 })
+          .then((pbpRes) => {
+            if (!isMounted) return;
+            if (pbpRes.data && pbpRes.data.game && pbpRes.data.game.actions) {
+              setPbpData(pbpRes.data.game.actions);
+            }
+          })
+          .catch((pbpError) => {
+            console.warn("PBP fetch failed; continuing without PBP", pbpError);
+          });
       } catch (error) {
         console.error("Error fetching game data:", error);
         setError("Failed to load game data. Please try again later.");
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted && !finishedCoreLoad) setLoading(false);
       }
     };
 

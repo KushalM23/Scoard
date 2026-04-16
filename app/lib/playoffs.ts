@@ -993,8 +993,10 @@ async function buildBracketDataset() {
     sourceSeason: CURRENT_SEASON,
     generatedAt: new Date().toISOString(),
     source: SCHEDULE_URL,
-    seriesById: new Map(allSeries.map((series) => [series.id, series])),
-    actualSeriesById: actualSeries,
+    seriesById: Object.fromEntries(
+      allSeries.map((series) => [series.id, series]),
+    ),
+    actualSeriesById: Object.fromEntries(actualSeries.entries()),
     bracket: {
       playIn: {
         east: playInEast,
@@ -1034,7 +1036,7 @@ async function buildBracketDataset() {
 
 export const getCachedPlayoffDataset = unstable_cache(
   buildBracketDataset,
-  ["playoff-bracket-dataset-v2"],
+  ["playoff-bracket-dataset-v3"],
   { revalidate: 900 },
 );
 
@@ -1060,8 +1062,8 @@ export async function getPlayoffBracketPayload(
 
 export async function getSeriesById(seriesId: string) {
   const dataset = await getCachedPlayoffDataset();
-  const series = dataset.seriesById.get(seriesId) ?? null;
-  const actualSeries = dataset.actualSeriesById.get(seriesId) ?? null;
+  const series = dataset.seriesById[seriesId] ?? null;
+  const actualSeries = dataset.actualSeriesById[seriesId] ?? null;
 
   return {
     sourceSeason: dataset.sourceSeason,
