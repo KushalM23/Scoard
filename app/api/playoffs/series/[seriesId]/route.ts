@@ -4,6 +4,35 @@ import { CURRENT_SEASON, parseSeason } from "@/app/lib/teams";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Get the API base URL for internal requests.
+ * Handles both Node.js environments and Cloudflare Workers.
+ */
+function getApiBaseUrl(request: NextRequest): string {
+  // Try to get from environment variable first (useful for Cloudflare Workers)
+  if (process.env.API_BASE_URL) {
+    return process.env.API_BASE_URL;
+  }
+
+  // Try to construct from request headers (works in most environments)
+  const host = request.headers.get("x-forwarded-host") || 
+               request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || 
+                   (request.url.startsWith("https") ? "https" : "http");
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  // Fallback to request.url origin (for Node.js local development)
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    // Last resort - shouldn't happen normally
+    return "http://localhost:3000";
+  }
+}
+
 type TeamApiOverview = {
   teamId: number;
   logoUrl: string;
@@ -78,8 +107,9 @@ async function fetchTeamSection<T>(
     include: "overview" | "stats";
   },
 ): Promise<T | null> {
-  const origin = request.nextUrl.origin;
-  const url = new URL(`/api/teams/${teamId}`, origin);
+  // Use helper to get proper API base URL for internal requests
+  const baseUrl = getApiBaseUrl(request);
+  const url = new URL(`/api/teams/${teamId}`, baseUrl);
   url.searchParams.set("season", options.season);
   url.searchParams.set("seasonType", options.seasonType);
   url.searchParams.set("include", options.include);
