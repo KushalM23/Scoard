@@ -1,0 +1,16 @@
+{
+  "title": "Scoard",
+  "description": "![Scoard logo](public/logo.png)\n\n![Scoard logo](public/logo.png)\n\nA modern, multi-sport score app with data visualization to simulate the feeling of watching the game without watching it\n\n**Live:** [scoard.onrender.com]([https://scoard.onrender.com])\n\n![Scoard Preview](preview.png)",
+  "techStack": [
+    "Next.js",
+    "React",
+    "TypeScript",
+    "Tailwind CSS",
+    "Framer Motion",
+    "Lucide React",
+    "shadcn/ui",
+    "Vercel"
+  ],
+  "screenshots": [],
+  "githubUrl": "https://github.com/KushalM23/Scoard"
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchStatsApi } from "@/app/lib/statsApi";
+import { fetchStatsApi, CDN_HEADERS } from "@/app/lib/statsApi";
 
 export async function GET(
   request: NextRequest,
@@ -13,6 +13,7 @@ export async function GET(
       const cdnResponse = await fetch(
         "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
         {
+          headers: CDN_HEADERS,
           next: { revalidate: 5 },
         },
       );
@@ -42,6 +43,7 @@ export async function GET(
     const scheduleResponse = await fetch(
       "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
       {
+        headers: CDN_HEADERS,
         cache: "no-store",
       },
     );
@@ -131,6 +133,7 @@ export async function GET(
           const boxResponse = await fetch(
             `https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${game.gameId}.json`,
             {
+              headers: CDN_HEADERS,
               next: { revalidate: 5 }, // 5 seconds for live updates
               signal: AbortSignal.timeout(3000),
             },

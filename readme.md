@@ -6,6 +6,32 @@ A modern, multi-sport score app with data visualization to simulate the feeling 
 
 ![Scoard Preview](preview.png)
 
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#tech-stack">Tech Stack</a></li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#running-the-application">Running the Application</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#api-routes">API Routes</a>
+      <ul>
+        <li><a href="#live-updates-sse">Live updates (SSE)</a></li>
+      </ul>
+    </li>
+    <li><a href="#project-structure">Project Structure</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+  </ol>
+</details>
+
 ## Features
 
 -   **Live Scoreboard:** Real-time updates for all NBA games with live scores, game clock, and quarter information (SSE-powered for live games).

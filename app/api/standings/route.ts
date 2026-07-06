@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchStatsApi } from '@/app/lib/statsApi';
+import { fetchStatsApi, CDN_HEADERS } from '@/app/lib/statsApi';
 
 // Force dynamic rendering - don't try to build this at build time
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
         // Check if any games are currently live
         let hasLiveGames = false;
         try {
-            const cdnResponse = await fetch('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json');
+            const cdnResponse = await fetch('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json', {
+                headers: CDN_HEADERS
+            });
             if (cdnResponse.ok) {
                 const scoreboardData = await cdnResponse.json();
                 hasLiveGames = scoreboardData.scoreboard.games.some((g: any) => g.gameStatus === 2);

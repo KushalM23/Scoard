@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { fetchStatsApi } from '@/app/lib/statsApi';
+import { fetchStatsApi, CDN_HEADERS } from '@/app/lib/statsApi';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,9 @@ function computeDelay(data: any): number {
 
 async function fetchPbpData(gameId: string): Promise<any[]> {
     try {
-        const pbpResp = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`);
+        const pbpResp = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`, {
+            headers: CDN_HEADERS
+        });
         return pbpResp.data?.game?.actions || [];
     } catch (error) {
         console.log(`PBP fetch failed for ${gameId}, returning empty actions.`);
@@ -94,7 +96,9 @@ async function fetchGameData(gameId: string): Promise<any> {
     try {
         // 1. Try CDN first
         try {
-            const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
+            const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`, {
+                headers: CDN_HEADERS
+            });
             const data = cdnResponse.data.game;
             
             const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;

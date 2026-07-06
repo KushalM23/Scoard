@@ -5,6 +5,8 @@ import {
   type PostseasonRound,
 } from "@/app/lib/postseason";
 import { CURRENT_SEASON, TEAM_META } from "@/app/lib/teams";
+import { CDN_HEADERS } from "@/app/lib/statsApi";
+
 
 export type ConferenceKey = "east" | "west";
 export type BracketStatus =
@@ -879,6 +881,7 @@ function buildConnections(season: string): {
 
 async function buildBracketDataset() {
   const scheduleResponse = await fetch(SCHEDULE_URL, {
+    headers: CDN_HEADERS,
     cache: "no-store",
     signal: AbortSignal.timeout(12000),
   });

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchStatsApi } from '@/app/lib/statsApi';
+import { fetchStatsApi, CDN_HEADERS } from '@/app/lib/statsApi';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -49,7 +49,9 @@ export async function GET(
             });
         }
 
-        const response = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`);
+        const response = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`, {
+            headers: CDN_HEADERS
+        });
         return NextResponse.json(response.data);
     } catch (error) {
         console.log(`PBP fetch failed for ${gameId}, returning empty.`);

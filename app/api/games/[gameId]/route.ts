@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchStatsApi } from '@/app/lib/statsApi';
+import { fetchStatsApi, CDN_HEADERS } from '@/app/lib/statsApi';
 
 // Force dynamic rendering to prevent build-time Stats API calls
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,9 @@ export async function GET(
     try {
         // 1. Try CDN (Best for Live/Finished games)
         try {
-            const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`);
+            const cdnResponse = await axios.get(`https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`, {
+                headers: CDN_HEADERS
+            });
             const data = cdnResponse.data.game;
             
             const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;

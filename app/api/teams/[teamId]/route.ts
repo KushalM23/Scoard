@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchStatsApi } from "@/app/lib/statsApi";
+import { fetchStatsApi, CDN_HEADERS } from "@/app/lib/statsApi";
 import {
   CURRENT_SEASON,
   TEAM_META,
@@ -779,6 +779,7 @@ async function buildStatsFromCdn(
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
     {
+      headers: CDN_HEADERS,
       cache: "no-store",
       signal: AbortSignal.timeout(12000),
     },
@@ -825,6 +826,7 @@ async function buildStatsFromCdn(
       const boxscoreResponse = await fetch(
         `https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`,
         {
+          headers: CDN_HEADERS,
           next: { revalidate: 300 },
           signal: AbortSignal.timeout(8000),
         },
@@ -1396,6 +1398,7 @@ async function buildSchedule(
   const scheduleResponse = await fetch(
     "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
     {
+      headers: CDN_HEADERS,
       cache: "no-store",
       signal: AbortSignal.timeout(12000),
     },
