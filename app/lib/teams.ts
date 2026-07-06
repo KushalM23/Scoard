@@ -145,3 +145,23 @@ export function parseRange(raw: string | null): TeamRange {
   const parsed = Number(raw);
   return TEAM_RANGES.includes(parsed as TeamRange) ? (parsed as TeamRange) : 10;
 }
+
+export function getSeasonFromDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed: 0 = Jan, 9 = Oct
+  const startYear = month >= 9 ? year : year - 1;
+  return formatSeasonId(startYear);
+}
+
+export function shiftDateToSeason(date: Date, targetSeason: string): Date {
+  const targetStartYear = parseSeasonStart(targetSeason);
+  const month = date.getMonth();
+  const day = date.getDate();
+  const targetYear = month >= 9 ? targetStartYear : targetStartYear + 1;
+  // Handle Feb 29 leap years safely
+  const targetDate = new Date(targetYear, month, day);
+  if (targetDate.getMonth() !== month) {
+    return new Date(targetYear, month, day - 1);
+  }
+  return targetDate;
+}

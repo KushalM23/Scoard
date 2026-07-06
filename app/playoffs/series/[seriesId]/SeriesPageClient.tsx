@@ -10,6 +10,7 @@ import GameCard from "@/app/components/GameCard";
 import TeamLink from "@/app/components/TeamLink";
 import PlayerLink from "@/app/components/PlayerLink";
 import { Skeleton } from "@/app/components/skeleton";
+import { useSeason } from "@/app/components/SeasonContext";
 import type {
   PlayoffSeriesPayload,
   SeriesStatsTeam,
@@ -583,6 +584,7 @@ function RosterSection({
 
 export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
   const router = useRouter();
+  const { setIsDropdownDisabled, setActiveSeasonContext } = useSeason();
   const [activeTab, setActiveTab] = useState<SeriesTab>("stats");
   const [data, setData] = useState<PlayoffSeriesPayload | null>(null);
   const [rostersByTeam, setRostersByTeam] = useState<
@@ -591,6 +593,20 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
   const [isRosterLoading, setIsRosterLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<SeriesErrorPayload | null>(null);
+
+  useEffect(() => {
+    setIsDropdownDisabled(true);
+    return () => {
+      setIsDropdownDisabled(false);
+      setActiveSeasonContext(null);
+    };
+  }, [seriesId]);
+
+  useEffect(() => {
+    if (data && data.season) {
+      setActiveSeasonContext(data.season);
+    }
+  }, [data]);
 
   useEffect(() => {
     let isActive = true;

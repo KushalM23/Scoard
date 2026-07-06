@@ -8,6 +8,7 @@ import Image from "next/image";
 import TeamLink from "./TeamLink";
 import { Skeleton } from "./skeleton";
 import StatTooltip from "./StatTooltip";
+import { useSeason } from "./SeasonContext";
 
 const TEAM_CODES: Record<number, string> = {
   1610612737: "ATL",
@@ -67,6 +68,7 @@ interface TeamStanding {
 }
 
 const Standings: React.FC = () => {
+  const { season: globalSeason } = useSeason();
   const [standings, setStandings] = useState<TeamStanding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -195,9 +197,9 @@ const Standings: React.FC = () => {
   const fetchStandings = async (bustCache = false) => {
     try {
       setLoading(true);
-      const url = bustCache
-        ? `/api/standings?bustCache=true`
-        : `/api/standings`;
+      const url = `/api/standings?season=${globalSeason}${
+        bustCache ? "&bustCache=true" : ""
+      }`;
       const response = await axios.get(url);
 
       if (Array.isArray(response.data) && response.data.length > 0) {
@@ -216,7 +218,7 @@ const Standings: React.FC = () => {
 
   useEffect(() => {
     fetchStandings();
-  }, []);
+  }, [globalSeason]);
 
   const renderSortableHeader = (
     label: string,

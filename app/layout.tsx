@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Parkinsans, Bungee, Jersey_15 } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SeasonProvider } from "@/app/components/SeasonContext";
 
 const parkinsans = Parkinsans({
   subsets: ["latin"],
@@ -41,7 +42,9 @@ export default function RootLayout({
       <body
         className={`${parkinsans.variable} ${bungee.variable} ${jersey15.variable} font-sans antialiased`}
       >
-        {children}
+        <SeasonProvider>
+          {children}
+        </SeasonProvider>
       </body>
     </html>
   );

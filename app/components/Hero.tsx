@@ -11,6 +11,8 @@ import Standings from "./Standings";
 import CalendarPicker from "./CalendarPicker";
 import { Skeleton } from "./skeleton";
 import PlayoffsBracketView from "./PlayoffsBracketView";
+import { useSeason } from "./SeasonContext";
+import { CURRENT_SEASON, getSeasonFromDate, shiftDateToSeason } from "@/app/lib/teams";
 
 interface HeroProps {
   onGameSelect: (gameId: string) => void;
@@ -19,6 +21,7 @@ interface HeroProps {
 type HomeTab = "scores" | "standings" | "playoffs";
 
 const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
+  const { season: globalSeason, setSeason } = useSeason();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [games, setGames] = useState<any[]>([]);
@@ -46,6 +49,33 @@ const Hero: React.FC<HeroProps> = ({ onGameSelect }) => {
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<HomeTab>("scores");
+
+  useEffect(() => {
+    if (activeTab === "scores") {
+      setSeason(getSeasonFromDate(selectedDate));
+    } else {
+      setSeason(CURRENT_SEASON);
+    }
+  }, [activeTab, setSeason, selectedDate]);
+
+  // Sync global season when selectedDate changes (tandem: calendar -> season dropdown)
+  useEffect(() => {
+    if (activeTab !== "scores") return;
+    const computedSeason = getSeasonFromDate(selectedDate);
+    if (computedSeason !== globalSeason) {
+      setSeason(computedSeason);
+    }
+  }, [selectedDate, activeTab, globalSeason, setSeason]);
+
+  // Sync selectedDate when global season changes (tandem: season dropdown -> calendar)
+  useEffect(() => {
+    if (activeTab !== "scores") return;
+    const computedSeason = getSeasonFromDate(selectedDate);
+    if (computedSeason !== globalSeason) {
+      const shifted = shiftDateToSeason(selectedDate, globalSeason);
+      setSelectedDate(shifted);
+    }
+  }, [globalSeason, activeTab, selectedDate]);
 
   useEffect(() => {
     if (activeTab !== "scores") return;

@@ -15,6 +15,7 @@ import PreviousMatchups from "../../components/PreviousMatchups";
 import WinProbability from "../../components/WinProbability";
 import Loading from "../../components/Loading";
 import type { GameData, PlayByPlayEvent, Player } from "../../types";
+import { useSeason } from "../../components/SeasonContext";
 
 export default function Game() {
   const params = useParams();
@@ -22,12 +23,35 @@ export default function Game() {
   const searchParams = useSearchParams();
   const gameId = params.gameId as string;
 
+  const { setIsDropdownDisabled, setActiveSeasonContext } = useSeason();
+
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [pbpData, setPbpData] = useState<PlayByPlayEvent[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
+
+  useEffect(() => {
+    setIsDropdownDisabled(true);
+    return () => {
+      setIsDropdownDisabled(false);
+      setActiveSeasonContext(null);
+    };
+  }, [gameId]);
+
+  useEffect(() => {
+    if (gameData && gameData.gameId) {
+      const yrPart = gameData.gameId.substring(3, 5);
+      const yrNum = Number(yrPart);
+      if (!isNaN(yrNum)) {
+        const startYear = yrNum >= 96 ? 1900 + yrNum : 2000 + yrNum;
+        const endYear = (startYear + 1) % 100;
+        const gameSeason = `${startYear}-${String(endYear).padStart(2, "0")}`;
+        setActiveSeasonContext(gameSeason);
+      }
+    }
+  }, [gameData]);
 
   // Initial data fetch
   useEffect(() => {

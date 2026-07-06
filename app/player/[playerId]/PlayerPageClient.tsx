@@ -9,6 +9,8 @@ import StatTooltip from "@/app/components/StatTooltip";
 import TeamLink from "@/app/components/TeamLink";
 import { Skeleton } from "@/app/components/skeleton";
 import { parsePlayerTab } from "@/app/lib/players";
+import { useSeason } from "@/app/components/SeasonContext";
+import { CURRENT_SEASON } from "@/app/lib/teams";
 import { trackEvent } from "@/app/lib/analytics";
 import type {
   PlayerApiError,
@@ -1048,7 +1050,17 @@ export default function PlayerPageClient({
   initialTab,
   initialHeader,
 }: PlayerPageClientProps) {
+  const { setIsDropdownDisabled, setActiveSeasonContext } = useSeason();
   const [activeTab, setActiveTab] = useState<PlayerTab>(initialTab);
+
+  useEffect(() => {
+    setIsDropdownDisabled(true);
+    setActiveSeasonContext(CURRENT_SEASON);
+    return () => {
+      setIsDropdownDisabled(false);
+      setActiveSeasonContext(null);
+    };
+  }, [playerId]);
 
   const [header, setHeader] = useState<SectionState<PlayerHeaderData>>({
     data: initialHeader,

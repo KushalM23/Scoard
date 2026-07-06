@@ -1,30 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchStatsApi, CDN_HEADERS } from '@/app/lib/statsApi';
+import { parseSeason, CURRENT_SEASON } from '@/app/lib/teams';
 
 // Force dynamic rendering - don't try to build this at build time
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     try {
-        const season = '2025-26';
+        const { searchParams } = new URL(request.url);
+        const seasonInput = searchParams.get('season');
+        const season = parseSeason(seasonInput);
+        const isCurrentSeason = season === CURRENT_SEASON;
         
-        // Check if any games are currently live
-        let hasLiveGames = false;
-        try {
-            const cdnResponse = await fetch('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json', {
-                headers: CDN_HEADERS
-            });
-            if (cdnResponse.ok) {
-                const scoreboardData = await cdnResponse.json();
-                hasLiveGames = scoreboardData.scoreboard.games.some((g: any) => g.gameStatus === 2);
+        // Dynamic cache: 5 minutes if live games, 2 hours if no live games, 7 days if historical season
+        let cacheTime = 7200;
+        
+        if (isCurrentSeason) {
+            // Check if any games are currently live
+            let hasLiveGames = false;
+            try {
+                const cdnResponse = await fetch('https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json', {
+                    headers: CDN_HEADERS
+                });
+                if (cdnResponse.ok) {
+                    const scoreboardData = await cdnResponse.json();
+                    hasLiveGames = scoreboardData.scoreboard.games.some((g: any) => g.gameStatus === 2);
+                }
+            } catch (e) {
+                console.log('Failed to check live games, defaulting to 5 min cache');
             }
-        } catch (e) {
-            console.log('Failed to check live games, defaulting to 5 min cache');
+            cacheTime = hasLiveGames ? 300 : 7200;
+            console.log(`Standings cache: ${hasLiveGames ? 'Live games detected' : 'No live games'} - using ${cacheTime}s cache`);
+        } else {
+            cacheTime = 86400 * 7; // 7 days cache for historical seasons
+            console.log(`Standings cache: Historical season ${season} - using ${cacheTime}s cache`);
         }
-
-        // Dynamic cache: 5 minutes if live games, 2 hours if no live games
-        const cacheTime = hasLiveGames ? 300 : 7200;
-        console.log(`Standings cache: ${hasLiveGames ? 'Live games detected' : 'No live games'} - using ${cacheTime}s cache`);
         
         const data = await fetchStatsApi('leaguestandingsv3', {
             LeagueID: '00',

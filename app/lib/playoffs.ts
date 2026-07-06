@@ -5,7 +5,7 @@ import {
   type PostseasonRound,
 } from "@/app/lib/postseason";
 import { CURRENT_SEASON, TEAM_META } from "@/app/lib/teams";
-import { CDN_HEADERS } from "@/app/lib/statsApi";
+import { CDN_HEADERS, STATS_HEADERS } from "@/app/lib/statsApi";
 
 
 export type ConferenceKey = "east" | "west";
@@ -161,7 +161,7 @@ export interface PlayoffBracketPayload {
     east: BracketSeriesCard[];
     west: BracketSeriesCard[];
     connections: BracketConnection[];
-  };
+  } | null;
   playoffs: {
     west: {
       firstRound: BracketSeriesCard[];
@@ -879,15 +879,20 @@ function buildConnections(season: string): {
   return { playIn, playoffs };
 }
 
-async function buildBracketDataset() {
-  const scheduleResponse = await fetch(SCHEDULE_URL, {
-    headers: CDN_HEADERS,
+async function buildBracketDataset(season: string) {
+  const isCurrent = season === CURRENT_SEASON;
+  const url = isCurrent
+    ? SCHEDULE_URL
+    : `https://stats.nba.com/stats/scheduleleaguev2?Season=${season}&LeagueID=00`;
+
+  const scheduleResponse = await fetch(url, {
+    headers: isCurrent ? CDN_HEADERS : STATS_HEADERS,
     cache: "no-store",
     signal: AbortSignal.timeout(12000),
   });
 
   if (!scheduleResponse.ok) {
-    throw new Error("Failed to fetch NBA schedule");
+    throw new Error(`Failed to fetch NBA schedule for season ${season}`);
   }
 
   const scheduleData = await scheduleResponse.json();
@@ -897,6 +902,7 @@ async function buildBracketDataset() {
   const postseasonGames = allGames
     .map(normalizeBracketGame)
     .filter((game) => game.phase !== "regular");
+  const hasPlayIn = postseasonGames.some((game) => game.round === "play_in");
   const actualSeries = new Map<string, ActualSeriesRecord>();
 
   const grouped = new Map<string, NormalizedBracketGame[]>();
@@ -908,62 +914,62 @@ async function buildBracketDataset() {
   }
 
   grouped.forEach((games) => {
-    const series = buildActualSeries(CURRENT_SEASON, games);
+    const series = buildActualSeries(season, games);
     if (!series) return;
     actualSeries.set(series.id, series);
   });
 
   const playInEast = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "east",
     "play_in",
     PLAY_IN_ORDER,
     actualSeries,
   );
   const playInWest = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "west",
     "play_in",
     PLAY_IN_ORDER,
     actualSeries,
   );
   const westFirstRound = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "west",
     "first_round",
     FIRST_ROUND_ORDER,
     actualSeries,
   );
   const eastFirstRound = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "east",
     "first_round",
     FIRST_ROUND_ORDER,
     actualSeries,
   );
   const westSemis = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "west",
     "conf_semis",
     SEMIS_ORDER,
     actualSeries,
   );
   const eastSemis = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "east",
     "conf_semis",
     SEMIS_ORDER,
     actualSeries,
   );
   const westFinals = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "west",
     "conf_finals",
     ["conference-finals"],
     actualSeries,
   );
   const eastFinals = buildConferenceSeries(
-    CURRENT_SEASON,
+    season,
     "east",
     "conf_finals",
     ["conference-finals"],
@@ -971,8 +977,8 @@ async function buildBracketDataset() {
   );
   const finals =
     overlaySeries(
-      buildPlaceholderSeries(CURRENT_SEASON, null, "finals", "nba-finals"),
-      actualSeries.get(buildSeriesId(CURRENT_SEASON, null, "finals", "nba-finals")),
+      buildPlaceholderSeries(season, null, "finals", "nba-finals"),
+      actualSeries.get(buildSeriesId(season, null, "finals", "nba-finals")),
     );
 
   const allSeries = [
@@ -990,22 +996,22 @@ async function buildBracketDataset() {
     (series) => !series.pageAvailable && series.status !== "pending",
   ).length;
   const availableSeriesPages = allSeries.filter((series) => series.pageAvailable).length;
-  const connections = buildConnections(CURRENT_SEASON);
+  const connections = buildConnections(season);
 
   return {
-    sourceSeason: CURRENT_SEASON,
+    sourceSeason: season,
     generatedAt: new Date().toISOString(),
-    source: SCHEDULE_URL,
+    source: url,
     seriesById: Object.fromEntries(
       allSeries.map((series) => [series.id, series]),
     ),
     actualSeriesById: Object.fromEntries(actualSeries.entries()),
     bracket: {
-      playIn: {
+      playIn: hasPlayIn ? {
         east: playInEast,
         west: playInWest,
         connections: connections.playIn,
-      },
+      } : null,
       playoffs: {
         west: {
           firstRound: westFirstRound,
@@ -1037,26 +1043,25 @@ async function buildBracketDataset() {
   };
 }
 
-export const getCachedPlayoffDataset = unstable_cache(
-  buildBracketDataset,
-  ["playoff-bracket-dataset-v3"],
-  { revalidate: 900 },
-);
+export function getCachedPlayoffDataset(season: string) {
+  return unstable_cache(
+    async () => buildBracketDataset(season),
+    [`playoff-bracket-dataset-${season}-v3`],
+    { revalidate: season === CURRENT_SEASON ? 900 : 86400 }
+  )();
+}
 
 export async function getPlayoffBracketPayload(
   season: string,
 ): Promise<PlayoffBracketPayload> {
-  const dataset = await getCachedPlayoffDataset();
+  const dataset = await getCachedPlayoffDataset(season);
 
   return {
     season,
     sourceSeason: dataset.sourceSeason,
     generatedAt: dataset.generatedAt,
     source: dataset.source,
-    note:
-      season === CURRENT_SEASON
-        ? null
-        : "The NBA CDN schedule feed used here is the current-season feed, so historical bracket data may be empty or unavailable.",
+    note: null,
     playIn: dataset.bracket.playIn,
     playoffs: dataset.bracket.playoffs,
     meta: dataset.bracket.meta,
@@ -1064,7 +1069,8 @@ export async function getPlayoffBracketPayload(
 }
 
 export async function getSeriesById(seriesId: string) {
-  const dataset = await getCachedPlayoffDataset();
+  const season = seriesId.slice(0, 7);
+  const dataset = await getCachedPlayoffDataset(season);
   const series = dataset.seriesById[seriesId] ?? null;
   const actualSeries = dataset.actualSeriesById[seriesId] ?? null;
 

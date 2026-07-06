@@ -16,6 +16,8 @@ import { getOrBuildSearchIndex } from "@/app/lib/search/bootstrapClient";
 import { querySearchIndex } from "@/app/lib/search/index";
 import { normalizeForSearch } from "@/app/lib/search/normalize";
 import { Skeleton } from "@/app/components/skeleton";
+import { useSeason } from "@/app/components/SeasonContext";
+import { getTeamSeasonOptions } from "@/app/lib/teams";
 
 const SEARCH_LISTBOX_ID = "global-header-search-listbox";
 const SEARCH_INPUT_ID = "global-header-search-input";
@@ -44,6 +46,36 @@ const Header: React.FC = () => {
   const hasPreloadedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const seasonDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    season: globalSeason,
+    setSeason,
+    isDropdownDisabled,
+    activeSeasonContext,
+  } = useSeason();
+
+  const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+
+  const displayedSeason =
+    isDropdownDisabled && activeSeasonContext ? activeSeasonContext : globalSeason;
+
+  const seasonOptions = useMemo(() => getTeamSeasonOptions(), []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        seasonDropdownRef.current &&
+        !seasonDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSeasonDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const hasTypedQuery = useMemo(
     () => normalizeForSearch(query).length > 0,
@@ -413,27 +445,87 @@ const Header: React.FC = () => {
           </motion.h1>
         </Link>
 
-        <div className="order-3 flex-1 basis-full relative min-w-0 md:order-2 md:basis-auto md:flex-1 md:min-w-[260px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/45 pointer-events-none" />
-          {isLoadingBootstrap && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent animate-spin" />
-          )}
+        <div className="order-3 flex items-center gap-3 flex-1 basis-full md:order-2 md:basis-auto md:flex-1 md:min-w-[400px]">
+          {/* Search Input Container */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/45 pointer-events-none" />
+            {isLoadingBootstrap && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent animate-spin" />
+            )}
 
-          <input
-            id={SEARCH_INPUT_ID}
-            type="text"
-            value={query}
-            placeholder="Search"
-            onFocus={handleInputFocus}
-            onChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
-            role="combobox"
-            aria-expanded={shouldShowSearchDropdown}
-            aria-controls={SEARCH_LISTBOX_ID}
-            aria-activedescendant={activeDescendantId}
-            aria-autocomplete="list"
-            className="w-full h-10 md:h-11 pl-10 pr-10 rounded-xl glass bg-white/5 border border-white/10 focus:outline-none text-sm md:text-base text-text placeholder:text-text/45"
-          />
+            <input
+              id={SEARCH_INPUT_ID}
+              type="text"
+              value={query}
+              placeholder="Search"
+              onFocus={handleInputFocus}
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
+              role="combobox"
+              aria-expanded={shouldShowSearchDropdown}
+              aria-controls={SEARCH_LISTBOX_ID}
+              aria-activedescendant={activeDescendantId}
+              aria-autocomplete="list"
+              className="w-full h-10 md:h-11 pl-10 pr-10 rounded-xl glass bg-white/5 border border-white/10 focus:outline-none text-sm md:text-base text-text placeholder:text-text/45"
+            />
+          </div>
+
+          {/* Season Dropdown */}
+          <div className="relative" ref={seasonDropdownRef}>
+            <motion.button
+              type="button"
+              disabled={isDropdownDisabled}
+              whileTap={isDropdownDisabled ? {} : { scale: 0.985 }}
+              onClick={() => setIsSeasonDropdownOpen((prev) => !prev)}
+              className={`flex items-center justify-between gap-2 h-10 md:h-11 px-3 md:px-4 rounded-xl border transition-all duration-300 font-display text-xs md:text-sm font-semibold tracking-wide ${
+                isDropdownDisabled
+                  ? "bg-white/[0.02] border-white/5 text-text/30 cursor-not-allowed"
+                  : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-accent/40 text-text/80 hover:text-text cursor-pointer"
+              }`}
+            >
+              <span>{displayedSeason}</span>
+              {!isDropdownDisabled && (
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-text/50 transition-transform duration-200 ${
+                    isSeasonDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              )}
+            </motion.button>
+
+            <AnimatePresence>
+              {isSeasonDropdownOpen && !isDropdownDisabled && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 top-full mt-2 w-40 max-h-60 overflow-y-auto rounded-xl bg-[#171313] border border-[#352e2e] shadow-2xl py-1 z-50 origin-top no-scrollbar"
+                >
+                  {seasonOptions.map((opt) => {
+                    const isActive = opt === displayedSeason;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setSeason(opt);
+                          setIsSeasonDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs md:text-sm transition-colors ${
+                          isActive
+                            ? "bg-white/5 border-l-2 border-accent text-text font-semibold"
+                            : "text-text/70 hover:bg-white/5 hover:text-text border-l-2 border-transparent"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </header>

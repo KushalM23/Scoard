@@ -87,7 +87,7 @@ export interface PlayoffBracketPayload {
     east: BracketSeriesCard[];
     west: BracketSeriesCard[];
     connections: BracketConnection[];
-  };
+  } | null;
   playoffs: {
     west: {
       firstRound: BracketSeriesCard[];

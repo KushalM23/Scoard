@@ -16,6 +16,7 @@ import PlayerLink from "@/app/components/PlayerLink";
 import TeamLink from "@/app/components/TeamLink";
 import StatTooltip from "@/app/components/StatTooltip";
 import { Skeleton } from "@/app/components/skeleton";
+import { useSeason } from "@/app/components/SeasonContext";
 import { trackEvent } from "@/app/lib/analytics";
 import {
   CURRENT_SEASON,
@@ -584,74 +585,6 @@ function TeamOverviewInline({
                 </div>
               </div>
 
-              <div
-                className="w-full max-w-[420px] sm:col-span-2 md:col-span-2"
-                ref={seasonMenuRef}
-              >
-                <span className="text-[10px] uppercase tracking-[0.28em] text-text/50">
-                  Season
-                </span>
-                <div className="relative mt-2">
-                  <motion.button
-                    type="button"
-                    onClick={() => setIsSeasonMenuOpen((prev) => !prev)}
-                    whileTap={{ scale: 0.985 }}
-                    disabled={seasonLoading}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl hover:bg-white/5 hover:text-accent transition-all duration-300 border border-white/10 group px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <span className="text-base font-display tracking-wide text-text group-hover:text-accent transition-colors">
-                      {selectedSeason}
-                    </span>
-                    <motion.div
-                      animate={{ rotate: isSeasonMenuOpen ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="h-4 w-4 text-text/55" />
-                    </motion.div>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {isSeasonMenuOpen ? (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-xl bg-background border border-white/10 shadow-2xl ring-1 ring-white/5 origin-top"
-                      >
-                        <div className="max-h-[20rem] overflow-y-auto py-2">
-                          {seasonOptions.map((season) => {
-                            const isActive = season === selectedSeason;
-
-                            return (
-                              <button
-                                key={season}
-                                type="button"
-                                onClick={() => {
-                                  onSeasonChange(season);
-                                  setIsSeasonMenuOpen(false);
-                                }}
-                                className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${
-                                  isActive
-                                    ? "bg-white/5 border-l-2 border-accent text-text"
-                                    : "text-text/72 hover:bg-white/5 hover:text-text border-l-2 border-transparent hover:border-accent"
-                                }`}
-                              >
-                                <span className="text-base font-display tracking-wide">
-                                  {season}
-                                </span>
-                                {isActive ? (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.45)]" />
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1223,8 +1156,9 @@ export default function TeamPageClient({
   initialSeason,
   initialOverview,
 }: TeamPageClientProps) {
+  const { season: globalSeason, setSeason } = useSeason();
   const [activeTab, setActiveTab] = useState<TeamTab>(initialTab);
-  const [selectedSeason, setSelectedSeason] = useState(initialSeason);
+  const [selectedSeason, setSelectedSeason] = useState(globalSeason || initialSeason);
   const seasonOptions = useMemo(
     () => getTeamSeasonOptions(selectedSeason),
     [selectedSeason],
@@ -1459,6 +1393,16 @@ export default function TeamPageClient({
       fetchTeamPagePayload(["stats"], true);
     }
   }, [activeTab, stats.data, stats.loading, roster.data, roster.loading]);
+
+  // Synchronize global season context with initial page state and subsequent changes
+  useEffect(() => {
+    // Sync the initial URL season to the global context on mount
+    setSeason(initialSeason);
+  }, []);
+
+  useEffect(() => {
+    handleSeasonChange(globalSeason);
+  }, [globalSeason]);
 
   const seasonLoading =
     overview.loading ||

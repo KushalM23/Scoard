@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/app/components/skeleton";
 import PlayoffSeriesCard from "@/app/components/PlayoffSeriesCard";
+import { useSeason } from "./SeasonContext";
 import type {
   BracketSeriesCard,
   PlayoffBracketPayload,
@@ -14,17 +15,18 @@ interface PlayoffsBracketViewProps {
 }
 
 const BRACKET_CACHE_TTL_MS = 5 * 60 * 1000;
-let bracketClientCache: {
+const bracketClientCache: Record<string, {
   payload: PlayoffBracketPayload;
   cachedAt: number;
-} | null = null;
+}> = {};
 
-const fetchBracket = async (url: string) => {
+const fetchBracket = async (url: string, season: string) => {
+  const cached = bracketClientCache[season];
   if (
-    bracketClientCache &&
-    Date.now() - bracketClientCache.cachedAt < BRACKET_CACHE_TTL_MS
+    cached &&
+    Date.now() - cached.cachedAt < BRACKET_CACHE_TTL_MS
   ) {
-    return bracketClientCache.payload;
+    return cached.payload;
   }
 
   const res = await fetch(url, { cache: "default" });
@@ -38,7 +40,7 @@ const fetchBracket = async (url: string) => {
   }
 
   const parsed = payload as PlayoffBracketPayload;
-  bracketClientCache = { payload: parsed, cachedAt: Date.now() };
+  bracketClientCache[season] = { payload: parsed, cachedAt: Date.now() };
   return parsed;
 };
 
@@ -264,6 +266,7 @@ function PlayInConferenceCard({
 export default function PlayoffsBracketView({
   showTitle = true,
 }: PlayoffsBracketViewProps) {
+  const { season: globalSeason } = useSeason();
   const [data, setData] = useState<PlayoffBracketPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,7 +279,10 @@ export default function PlayoffsBracketView({
       setError(null);
 
       try {
-        const payload = await fetchBracket("/api/playoffs/bracket");
+        const payload = await fetchBracket(
+          `/api/playoffs/bracket?season=${globalSeason}`,
+          globalSeason
+        );
         if (!isActive) return;
         setData(payload);
       } catch (fetchError) {
@@ -299,7 +305,7 @@ export default function PlayoffsBracketView({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [globalSeason]);
 
   if (isLoading) {
     return <BracketSkeleton />;
@@ -398,27 +404,29 @@ export default function PlayoffsBracketView({
         </section>
       )}
 
-      <section className="rounded-2xl bg-[#27272b]/82 p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display tracking-wide text-2xl text-text">
-            Play-In Tournament *
-          </h2>
-        </div>
+      {data.playIn && (
+        <section className="rounded-2xl bg-[#27272b]/82 p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display tracking-wide text-2xl text-text">
+              Play-In Tournament *
+            </h2>
+          </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <PlayInConferenceCard
-            title="Western Conference"
-            tone="west"
-            cards={data.playIn.west}
-          />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <PlayInConferenceCard
+              title="Western Conference"
+              tone="west"
+              cards={data.playIn.west}
+            />
 
-          <PlayInConferenceCard
-            title="Eastern Conference"
-            tone="east"
-            cards={data.playIn.east}
-          />
-        </div>
-      </section>
+            <PlayInConferenceCard
+              title="Eastern Conference"
+              tone="east"
+              cards={data.playIn.east}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl bg-[#27272b]/82 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-10">
@@ -445,23 +453,25 @@ export default function PlayoffsBracketView({
         </div>
       </section>
 
-      <section className="rounded-2xl bg-[#252529]/82 p-4 sm:p-6">
-        <h3 className="mt-1 text-left font-display text-xl tracking-wide text-text">
-          * Play-In Tournament Rules
-        </h3>
+      {data.playIn && (
+        <section className="rounded-2xl bg-[#252529]/82 p-4 sm:p-6">
+          <h3 className="mt-1 text-left font-display text-xl tracking-wide text-text">
+            * Play-In Tournament Rules
+          </h3>
 
-        <ul className="mt-4 space-y-2.5 list-disc pl-5 text-sm sm:text-[15px] text-text/78">
-          <li>
-            Each conference runs a play-in with two opening games: 7 vs 8 and 9
-            vs 10.
-          </li>
-          <li>The winner of 7 vs 8 locks the No. 7 seed in that conference.</li>
-          <li>
-            The loser of 7 vs 8 plays the winner of 9 vs 10 for the No. 8 seed.
-          </li>
-          <li>The loser of 9 vs 10 is eliminated immediately.</li>
-        </ul>
-      </section>
+          <ul className="mt-4 space-y-2.5 list-disc pl-5 text-sm sm:text-[15px] text-text/78">
+            <li>
+              Each conference runs a play-in with two opening games: 7 vs 8 and 9
+              vs 10.
+            </li>
+            <li>The winner of 7 vs 8 locks the No. 7 seed in that conference.</li>
+            <li>
+              The loser of 7 vs 8 plays the winner of 9 vs 10 for the No. 8 seed.
+            </li>
+            <li>The loser of 9 vs 10 is eliminated immediately.</li>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
