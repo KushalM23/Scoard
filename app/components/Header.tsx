@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Loader2, Search, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { SearchSuggestion } from "@/app/types/search";
@@ -34,6 +34,11 @@ function getSuggestionId(index: number): string {
 
 const Header: React.FC = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const navLabel = useMemo(() => {
+    const month = new Date().getMonth(); // 0 = Jan, 6 = July
+    return month >= 6 && month <= 8 ? "Offseason" : "Transactions";
+  }, []);
   const [isSportOpen, setIsSportOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -445,6 +450,19 @@ const Header: React.FC = () => {
           </motion.h1>
         </Link>
 
+        <nav className="flex items-center gap-4 order-2">
+          <Link
+            href="/transactions"
+            className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
+              pathname === "/transactions"
+                ? "text-primary"
+                : "text-text/60 hover:text-text"
+            }`}
+          >
+            {navLabel}
+          </Link>
+        </nav>
+
         <div className="order-3 flex items-center gap-3 flex-1 basis-full md:order-2 md:basis-auto md:flex-1 md:min-w-[400px]">
           {/* Search Input Container */}
           <div className="relative flex-1 min-w-[200px]">
@@ -468,6 +486,20 @@ const Header: React.FC = () => {
               aria-autocomplete="list"
               className="w-full h-10 md:h-11 pl-10 pr-10 rounded-xl glass bg-white/5 border border-white/10 focus:outline-none text-sm md:text-base text-text placeholder:text-text/45"
             />
+
+            <AnimatePresence>
+              {shouldShowSearchDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-0 right-0 top-full mt-2 z-50 origin-top"
+                >
+                  {renderDropdownContent()}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Season Dropdown */}
