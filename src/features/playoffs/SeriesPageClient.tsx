@@ -277,7 +277,7 @@ function SeriesScoreboard({ payload }: { payload: PlayoffSeriesPayload }) {
           <TeamLink
             teamId={team.teamId}
             sourceComponent={source}
-            className="block text-2xl md:text-[2.4rem] leading-none font-display font-black uppercase tracking-[0.04em] hover:text-accent transition-colors truncate"
+            className="block text-xl sm:text-2xl md:text-[2.4rem] leading-none font-display font-black uppercase tracking-[0.04em] hover:text-accent transition-colors truncate"
           >
             {lines.bottom}
           </TeamLink>
@@ -812,7 +812,7 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="max-w-7xl mx-auto px-6 md:px-4 py-8 md:py-6"
+        className="max-w-7xl mx-auto px-3 sm:px-6 md:px-4 py-5 sm:py-8 md:py-6"
       >
         <button
           type="button"
@@ -871,7 +871,7 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative px-6 py-2 rounded-lg font-display text-sm transition-colors duration-300 tracking-wide z-10 ${
+                      className={`relative px-5 py-2 rounded-lg font-display text-xs sm:px-6 sm:text-sm transition-colors duration-300 tracking-wide z-10 ${
                         activeTab === tab.id
                           ? "text-text"
                           : "text-text/60 hover:text-text"

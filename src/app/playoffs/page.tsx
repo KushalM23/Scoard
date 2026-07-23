@@ -12,7 +12,7 @@ export default function PlayoffsPage() {
   return (
     <Layout>
       <Header />
-      <main className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <main className="w-full max-w-[1840px] mx-auto px-3 sm:px-6 lg:px-8 pb-10 sm:pb-12">
         <PlayoffsBracketView showTitle />
       </main>
     </Layout>

@@ -93,11 +93,11 @@ function CalendarPicker({
     <div ref={containerRef} className="relative">
       <motion.button
         onClick={() => setIsOpen((value) => !value)}
-        className={`p-2 lg:p-6 rounded-xl transition-colors ${
+        className={`p-1.5 sm:p-2 lg:p-6 rounded-xl transition-colors ${
           isOpen ? "bg-accent text-text" : "text-text/60 hover:text-text"
         }`}
       >
-        <Calendar className="w-8 h-8 lg:w-8 lg:h-8" />
+        <Calendar className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8" />
       </motion.button>
 
       {mounted &&
@@ -110,7 +110,7 @@ function CalendarPicker({
                 animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
                 exit={{ opacity: 0, y: 20, scale: 0.95, x: "-50%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed bottom-28 left-1/2 z-[9999] w-[340px] rounded-2xl border border-white/10 bg-background p-5 shadow-2xl shadow-black/50 md:w-[400px] lg:bottom-40"
+                className="fixed bottom-24 left-1/2 z-[9999] w-[min(100vw-2rem,340px)] rounded-2xl border border-white/10 bg-background p-3.5 shadow-2xl shadow-black/50 sm:p-5 md:w-[400px] lg:bottom-40"
               >
                 <div className="mb-4 flex items-center justify-between">
                   <motion.button
@@ -126,7 +126,7 @@ function CalendarPicker({
                     key={format(viewMonth, "yyyy-MM")}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="font-display text-xl font-bold tracking-wide text-text"
+                    className="font-display text-base font-bold tracking-wide text-text sm:text-xl"
                   >
                     {format(viewMonth, "MMMM yyyy")}
                   </motion.h3>
@@ -177,7 +177,7 @@ function CalendarPicker({
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDateClick(date)}
                         className={[
-                          "relative flex h-10 w-10 items-center justify-center rounded-lg font-sans text-sm font-bold transition-colors duration-200 md:h-12 md:w-12",
+                          "relative flex h-9 w-9 items-center justify-center rounded-lg font-sans text-xs font-bold transition-colors duration-200 md:h-12 md:w-12 md:text-sm",
                           isSelected
                             ? "bg-accent text-text shadow-lg shadow-accent/30"
                             : isCurrentMonth
@@ -203,7 +203,7 @@ function CalendarPicker({
                     onDateSelect(today);
                     setIsOpen(false);
                   }}
-                  className="mt-4 w-full rounded-xl bg-white/5 py-2.5 font-mono text-xl uppercase tracking-wider text-text/60 transition-colors hover:bg-white/10 hover:text-text"
+                  className="mt-3 w-full rounded-xl bg-white/5 py-2 font-mono text-sm uppercase tracking-wider text-text/60 transition-colors hover:bg-white/10 hover:text-text sm:mt-4 sm:py-2.5 sm:text-xl"
                 >
                   Today
                 </motion.button>
@@ -357,14 +357,14 @@ export default function HomeScreen() {
   return (
     <Layout>
       <Header />
-      <div className="mx-auto w-full px-2 py-4 pb-32 md:w-full md:px-8 md:py-6 md:pb-24">
-        <div className="mb-6 flex justify-center md:mb-4">
-          <div className="glass relative flex gap-2 rounded-xl p-1 md:gap-1.5">
+      <div className="mx-auto w-full px-3 py-3 pb-32 sm:px-5 sm:py-4 md:px-8 md:py-6 md:pb-24">
+        <div className="mb-4 flex justify-center md:mb-4">
+          <div className="glass flex w-full max-w-md gap-0.5 rounded-xl p-0.5 sm:w-auto sm:gap-1.5 sm:p-1">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative z-10 rounded-lg px-6 py-2 font-display text-sm tracking-wide transition-colors duration-300 md:px-8 md:py-2.5 md:text-base ${
+                className={`relative z-10 flex-1 rounded-lg px-2 py-2 font-display text-[10px] tracking-wide transition-colors duration-300 sm:flex-none sm:px-6 sm:py-2.5 sm:text-sm md:px-8 md:text-base ${
                   activeTab === tab
                     ? "text-text"
                     : "text-text/60 hover:text-text"
@@ -449,7 +449,7 @@ export default function HomeScreen() {
                 </motion.div>
               ) : (
                 <motion.div
-                  className="mb-12 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3"
+                className="mb-12 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3"
                   initial="hidden"
                   animate="visible"
                   variants={{
@@ -495,22 +495,22 @@ export default function HomeScreen() {
 
         <AnimatePresence>
           {activeTab === "scores" && (
-            <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 flex w-full -translate-x-1/2 items-center justify-center gap-2">
+            <div className="pointer-events-none fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex w-full -translate-x-1/2 items-center justify-center gap-2">
               <motion.div
                 key="datepicker"
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
                 transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                className="glass pointer-events-auto no-scrollbar flex max-w-[calc(100vw-80px)] items-center gap-1 overflow-x-auto rounded-2xl px-2 py-2 shadow-2xl shadow-black/50 md:max-w-[85vw]"
+                className="glass pointer-events-auto no-scrollbar flex max-w-[calc(100vw-1rem)] items-center gap-0 overflow-x-auto rounded-2xl px-1 py-1 shadow-2xl shadow-black/50 sm:gap-1 sm:px-2 sm:py-2 md:max-w-[85vw]"
               >
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-                  className="group shrink-0 rounded-xl p-2 transition-colors hover:bg-white/10"
+                  className="group shrink-0 rounded-xl p-1.5 transition-colors hover:bg-white/10 sm:p-2"
                 >
-                  <ChevronLeft className="h-6 w-6 text-text/60 group-hover:text-text lg:h-8 lg:w-8" />
+                  <ChevronLeft className="h-5 w-5 text-text/60 group-hover:text-text sm:h-6 sm:w-6 lg:h-8 lg:w-8" />
                 </motion.button>
 
                 <div className="flex items-center gap-1">
@@ -525,7 +525,7 @@ export default function HomeScreen() {
                         onClick={() => setSelectedDate(date)}
                         className={`${
                           isHiddenOnMobile ? "hidden md:flex" : "flex"
-                        } h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl transition-colors duration-300 lg:h-20 lg:w-20 ${
+                        } h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl transition-colors duration-300 sm:h-12 sm:w-12 lg:h-20 lg:w-20 ${
                           isSelected
                             ? "bg-accent text-text shadow-lg shadow-accent/20"
                             : "text-text/60 hover:bg-white/5 hover:text-text"
@@ -535,14 +535,14 @@ export default function HomeScreen() {
                           opacity: isSelected ? 1 : 0.7,
                         }}
                       >
-                        <span className="font-mono text-[10px] uppercase tracking-wider lg:text-lg">
+                          <span className="font-mono text-[9px] uppercase tracking-wider lg:text-lg">
                           {format(date, "EEE")}
                         </span>
                         <span
                           className={`font-mono font-bold ${
                             isSelected
-                              ? "text-xl lg:text-4xl"
-                              : "text-base lg:text-2xl"
+                              ? "text-base sm:text-xl lg:text-4xl"
+                              : "text-sm sm:text-base lg:text-2xl"
                           }`}
                         >
                           {format(date, "d")}
@@ -556,9 +556,9 @@ export default function HomeScreen() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                  className="group shrink-0 rounded-xl p-2 transition-colors hover:bg-white/10"
+                  className="group shrink-0 rounded-xl p-1.5 transition-colors hover:bg-white/10 sm:p-2"
                 >
-                  <ChevronRight className="h-6 w-6 text-text/60 group-hover:text-text lg:h-8 lg:w-8" />
+                  <ChevronRight className="h-5 w-5 text-text/60 group-hover:text-text sm:h-6 sm:w-6 lg:h-8 lg:w-8" />
                 </motion.button>
               </motion.div>
 

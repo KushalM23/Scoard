@@ -234,7 +234,7 @@ const Standings: React.FC = () => {
 
     return (
       <th
-        className={`px-4 py-3 text-sm md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${alignClass} cursor-pointer hover:text-text transition-colors group select-none`}
+        className={`px-2 py-2 text-xs md:px-4 md:py-3 md:text-base font-semibold font-mono tracking-[0.05em] whitespace-nowrap ${alignClass} cursor-pointer hover:text-text transition-colors group select-none`}
         onClick={() => handleSort(key)}
       >
         <div
@@ -266,7 +266,7 @@ const Standings: React.FC = () => {
           <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
             <tr>
               <th className="p-0 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[140px] md:min-w-[200px]">
-                <div className="px-4 py-3 text-md md:text-base font-semibold font-mono tracking-[0.05em] text-center">
+                <div className="px-2 py-2 text-sm md:px-4 md:py-3 md:text-base font-semibold font-mono tracking-[0.05em] text-center">
                   Team
                 </div>
               </th>
@@ -289,7 +289,7 @@ const Standings: React.FC = () => {
                 key={team.teamId}
                 className="border-t border-white/10 hover:bg-white/5 transition-colors duration-200"
               >
-                <td className="px-5 py-4 font-semibold text-text/90 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] text-left whitespace-nowrap">
+                <td className="px-2 py-2 font-semibold text-text/90 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] text-left whitespace-nowrap md:px-5 md:py-4">
                   <div className="flex items-center gap-2 md:gap-3">
                     <span className="text-text/50 w-4 text-right font-mono text-sm">
                       {/* Rank Logic: If sorted, show order index. If default sort, show official rank. */}
@@ -328,7 +328,7 @@ const Standings: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.wins}
                 </td>
                 <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">

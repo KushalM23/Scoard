@@ -111,7 +111,7 @@ const GameCard: React.FC<GameCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={twMerge(
-        "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center p-4 md:p-4",
+        "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center p-2.5 sm:p-3 md:p-4",
         isLive && "border-accent/50 shadow-[0_0_30px_rgba(69,126,172,0.15)]",
       )}
     >
@@ -122,7 +122,7 @@ const GameCard: React.FC<GameCardProps> = ({
       <div className="flex justify-between items-center w-full">
         <div
           className={clsx(
-            "flex flex-col items-center gap-2 md:gap-1.5 flex-1 transition-all duration-300",
+            "flex min-w-0 flex-col items-center gap-1.5 sm:gap-2 md:gap-1.5 flex-1 transition-all duration-300",
             getTeamOpacity(homeHigh),
           )}
         >
@@ -131,7 +131,7 @@ const GameCard: React.FC<GameCardProps> = ({
               whileHover={{ scale: 1.1, rotate: -5 }}
               src={`https://cdn.nba.com/logos/nba/${game.homeTeam.teamId}/primary/L/logo.svg`}
               alt={game.homeTeam.teamTricode}
-              className="w-12 h-12 md:w-14 md:h-14 object-contain drop-shadow-xl transition-transform duration-300"
+            className="h-10 w-10 object-contain drop-shadow-xl transition-transform duration-300 sm:h-12 sm:w-12 md:h-14 md:w-14"
             />
           </div>
           <div className="text-center">
@@ -140,7 +140,7 @@ const GameCard: React.FC<GameCardProps> = ({
               sourceComponent="game_card"
               stopPropagation
               className={clsx(
-                "text-base md:text-lg font-display tracking-wider block leading-none hover:text-accent transition-colors",
+                "text-xs sm:text-base md:text-lg font-display tracking-wider block leading-none hover:text-accent transition-colors",
                 homeHigh ? "text-text font-bold" : "text-text/80",
               )}
             >
@@ -152,7 +152,7 @@ const GameCard: React.FC<GameCardProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center min-w-[100px]">
+        <div className="flex flex-col items-center justify-center min-w-[76px] sm:min-w-[100px]">
           {isScheduled ? (
             <div className="flex flex-col items-center gap-1">
               {hasDateTimeSplit ? (
@@ -185,7 +185,7 @@ const GameCard: React.FC<GameCardProps> = ({
               <div className="flex items-center gap-2 md:gap-2">
                 <span
                   className={clsx(
-                    "text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
+                    "text-2xl sm:text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
                     homeHigh
                       ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                       : "text-text/30",
@@ -198,7 +198,7 @@ const GameCard: React.FC<GameCardProps> = ({
                 </span>
                 <span
                   className={clsx(
-                    "text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
+                    "text-2xl sm:text-3xl md:text-3xl font-mono font-medium transition-colors duration-300",
                     awayHigh
                       ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                       : "text-text/30",
@@ -213,7 +213,7 @@ const GameCard: React.FC<GameCardProps> = ({
 
         <div
           className={clsx(
-            "flex flex-col items-center gap-2 md:gap-1.5 flex-1 transition-all duration-300",
+            "flex min-w-0 flex-col items-center gap-1.5 sm:gap-2 md:gap-1.5 flex-1 transition-all duration-300",
             getTeamOpacity(awayHigh),
           )}
         >
@@ -222,7 +222,7 @@ const GameCard: React.FC<GameCardProps> = ({
               whileHover={{ scale: 1.1, rotate: 5 }}
               src={`https://cdn.nba.com/logos/nba/${game.awayTeam.teamId}/primary/L/logo.svg`}
               alt={game.awayTeam.teamTricode}
-              className="w-12 h-12 md:w-14 md:h-14 object-contain drop-shadow-xl transition-transform duration-300"
+            className="h-10 w-10 object-contain drop-shadow-xl transition-transform duration-300 sm:h-12 sm:w-12 md:h-14 md:w-14"
             />
           </div>
           <div className="text-center">
@@ -231,7 +231,7 @@ const GameCard: React.FC<GameCardProps> = ({
               sourceComponent="game_card"
               stopPropagation
               className={clsx(
-                "text-base md:text-lg font-display tracking-wider block leading-none hover:text-accent transition-colors",
+                "text-xs sm:text-base md:text-lg font-display tracking-wider block leading-none hover:text-accent transition-colors",
                 awayHigh ? "text-text font-bold" : "text-text/80",
               )}
             >

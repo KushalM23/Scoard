@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Menu, Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { SearchSuggestion } from "@/types/search";
 import { getOrBuildSearchIndex } from "@/lib/search/bootstrapClient";
@@ -39,6 +39,7 @@ function getSuggestionId(index: number): string {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoadingBootstrap, setIsLoadingBootstrap] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const requestIdRef = useRef(0);
   const hasPreloadedRef = useRef(false);
@@ -183,6 +184,21 @@ function getSuggestionId(index: number): string {
     scrollHighlightedIntoView,
     suggestions.length,
   ]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileMenuOpen(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileMenuOpen]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextValue = event.target.value;
@@ -406,10 +422,10 @@ function getSuggestionId(index: number): string {
   return (
     <header
       ref={rootRef}
-      className="sticky top-1 z-50 bg-transparent px-4 py-3 backdrop-blur-md sm:px-5 md:px-6"
+      className="sticky top-0 z-50 bg-background/90 px-3 py-3 backdrop-blur-md sm:px-5 md:px-6"
     >
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
           <Link
             href="/"
             aria-label="Go to home page"
@@ -419,13 +435,23 @@ function getSuggestionId(index: number): string {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, type: "spring" }}
-              className="text-[2.35rem] sm:text-[3rem] md:text-[4.2rem] lg:text-[5rem] font-mono tracking-wider text-primary drop-shadow-sm cursor-pointer leading-[0.86]"
+              className="text-[1.85rem] leading-[0.86] tracking-wider font-mono text-primary drop-shadow-sm cursor-pointer sm:text-[3rem] md:text-[4.2rem] lg:text-[5rem]"
             >
               SCOARD!
             </motion.h1>
           </Link>
 
-          <nav className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-5">
+          <button
+            type="button"
+            aria-label="Open navigation menu"
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-text transition-colors hover:bg-white/10 sm:hidden"
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+
+          <nav className="ml-auto hidden items-center justify-end gap-x-4 text-right sm:flex sm:gap-x-5">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -441,6 +467,43 @@ function getSuggestionId(index: number): string {
             ))}
           </nav>
         </div>
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              <motion.button
+                type="button"
+                aria-label="Close navigation menu"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 z-40 bg-black/60 sm:hidden"
+              />
+              <motion.nav
+                aria-label="Primary navigation"
+                initial={{ opacity: 0, x: "100%" }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 260 }}
+                className="fixed right-0 top-0 z-50 flex h-dvh w-[min(82vw,21rem)] flex-col border-l border-white/10 bg-[#211c1c] px-5 pb-8 pt-5 shadow-2xl sm:hidden"
+              >
+                <div className="mb-8 flex items-center justify-between">
+                  <span className="font-display text-xs uppercase tracking-[0.22em] text-text/45">Navigate</span>
+                  <button type="button" aria-label="Close navigation menu" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg p-2 text-text/60 hover:bg-white/10 hover:text-text">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {navItems.map((item) => (
+                    <Link key={item.href} href={item.href} className={`rounded-xl px-4 py-3.5 font-display text-base font-bold uppercase tracking-wider transition-colors ${pathname === item.href ? "bg-primary text-text" : "text-text/70 hover:bg-white/10 hover:text-text"}`}>
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </motion.nav>
+            </>
+          )}
+        </AnimatePresence>
         <div className="w-full">
           <div className="relative w-full">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/45" />
@@ -461,7 +524,7 @@ function getSuggestionId(index: number): string {
               aria-controls={SEARCH_LISTBOX_ID}
               aria-activedescendant={activeDescendantId}
               aria-autocomplete="list"
-              className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-text placeholder:text-text/45 focus:outline-none md:h-11 md:text-base"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-text placeholder:text-text/45 outline-none transition-colors focus:border-primary/60 md:h-11 md:text-base"
             />
 
             <AnimatePresence>

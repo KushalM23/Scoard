@@ -140,7 +140,7 @@ function PreviousMatchupCard({ matchup }: { matchup: Matchup }) {
             teamId={homeTeam.teamId}
             sourceComponent="previous_matchups"
             stopPropagation
-            className={`w-1/3 text-left font-display text-2xl transition-colors hover:text-accent ${
+            className={`w-1/3 text-left font-display text-base sm:text-2xl transition-colors hover:text-accent ${
               isHomeWinner ? "text-text" : "text-text/40"
             }`}
           >
@@ -148,7 +148,7 @@ function PreviousMatchupCard({ matchup }: { matchup: Matchup }) {
           </TeamLink>
 
           <span
-            className={`w-1/3 text-center font-mono text-4xl font-bold ${
+            className={`w-1/3 text-center font-mono text-2xl sm:text-4xl font-bold ${
               isHomeWinner
                 ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                 : "text-text/40"
@@ -157,12 +157,12 @@ function PreviousMatchupCard({ matchup }: { matchup: Matchup }) {
             {homeTeam.score}
           </span>
 
-          <span className="w-1/3 text-center font-mono text-4xl font-bold">
+          <span className="w-1/3 text-center font-mono text-2xl sm:text-4xl font-bold">
             -
           </span>
 
           <span
-            className={`w-1/3 text-center font-mono text-4xl font-bold ${
+            className={`w-1/3 text-center font-mono text-2xl sm:text-4xl font-bold ${
               !isHomeWinner
                 ? "text-text drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
                 : "text-text/40"
@@ -175,7 +175,7 @@ function PreviousMatchupCard({ matchup }: { matchup: Matchup }) {
             teamId={awayTeam.teamId}
             sourceComponent="previous_matchups"
             stopPropagation
-            className={`w-1/3 text-right font-display text-2xl transition-colors hover:text-accent ${
+            className={`w-1/3 text-right font-display text-base sm:text-2xl transition-colors hover:text-accent ${
               !isHomeWinner ? "text-text" : "text-text/40"
             }`}
           >
@@ -663,7 +663,7 @@ export default function Game() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-5xl mx-auto px-6 md:px-4 py-8 md:py-6"
+        className="max-w-5xl mx-auto px-3 sm:px-6 md:px-4 py-5 sm:py-8 md:py-6"
       >
         <button
           onClick={() => {

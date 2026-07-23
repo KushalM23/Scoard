@@ -27,6 +27,8 @@ const jersey15 = Jersey_15({
 export const metadata: Metadata = {
   title: "Scoard!",
   description: "NBA Scores and Statistics",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#1a1616",
   icons: {
     icon: "/logo.png",
   },

@@ -22,12 +22,12 @@ function PlayerCard({ player }: { player: SearchPlayerRecord }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="group bg-white/5 rounded-lg border border-surface-borderLight flex h-[92px] text-text hover:text-accent min-w-0 items-center gap-3 overflow-hidden p-2.5 transition-colors"
+    className="group bg-white/5 rounded-lg border border-surface-borderLight flex h-[78px] text-text hover:text-accent min-w-0 items-center gap-2 overflow-hidden p-2 transition-colors sm:h-[92px] sm:gap-3 sm:p-2.5"
     >
       <PlayerLink
         playerId={player.id}
         sourceComponent="players_grid"
-        className="relative flex h-[68px] w-[76px] border border-surface-border shrink-0 items-end justify-center bg-white/10 overflow-hidden rounded-lg"
+        className="relative flex h-[58px] w-[62px] border border-surface-border shrink-0 items-end justify-center bg-white/10 overflow-hidden rounded-lg sm:h-[68px] sm:w-[76px]"
       >
         <div className="absolute inset-x-0 bottom-0 h-8" />
         <img
@@ -38,11 +38,11 @@ function PlayerCard({ player }: { player: SearchPlayerRecord }) {
         />
       </PlayerLink>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 sm:gap-2">
         <PlayerLink
           playerId={player.id}
           sourceComponent="players_grid"
-          className="min-w-0 font-display text-md uppercase leading-tight tracking-wide transition-colors hover:text-accent"
+          className="min-w-0 font-display text-sm uppercase leading-tight tracking-wide transition-colors hover:text-accent sm:text-md"
         >
           <span className="block truncate">{player.displayName}</span>
         </PlayerLink>
@@ -50,9 +50,9 @@ function PlayerCard({ player }: { player: SearchPlayerRecord }) {
         <TeamLink
           teamId={player.teamId}
           sourceComponent="players_grid"
-          className="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-text/55 transition-colors hover:text-accent"
+          className="flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text/55 transition-colors hover:text-accent sm:gap-1.5 sm:text-xs sm:tracking-[0.18em]"
         >
-          <img src={teamLogo} alt="" className="h-5 w-5 shrink-0 object-contain" />
+          <img src={teamLogo} alt="" className="h-4 w-4 shrink-0 object-contain sm:h-5 sm:w-5" />
           <span className="truncate">{player.teamTricode || "FA"}</span>
         </TeamLink>
       </div>
@@ -62,8 +62,8 @@ function PlayerCard({ player }: { player: SearchPlayerRecord }) {
 
 function PlayerCardSkeleton() {
   return (
-    <div className="glass-card flex h-[92px] items-center gap-3 overflow-hidden p-2.5">
-      <Skeleton className="h-[68px] w-[76px] shrink-0 rounded-lg" />
+    <div className="glass-card flex h-[78px] items-center gap-2 overflow-hidden p-2 sm:h-[92px] sm:gap-3 sm:p-2.5">
+      <Skeleton className="h-[58px] w-[62px] shrink-0 rounded-lg sm:h-[68px] sm:w-[76px]" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/3" />
@@ -122,17 +122,17 @@ export default function PlayersPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
-      <nav aria-label="Filter players by first-name initial" className="mb-8 space-y-2">
+    <main className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+      <nav aria-label="Filter players by first-name initial" className="mb-5 space-y-1.5 sm:mb-8 sm:space-y-2">
         {[ALPHABET.slice(0, 13), ALPHABET.slice(13)].map((row, rowIndex) => (
-          <div key={rowIndex} className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-1.5 sm:gap-2">
+          <div key={rowIndex} className="grid grid-cols-7 gap-1 sm:grid-cols-[repeat(13,minmax(0,1fr))] sm:gap-2">
             {row.map((letter) => (
               <button
                 key={letter}
                 type="button"
                 onClick={() => changeLetter(letter)}
                 aria-pressed={selectedLetter === letter}
-                className={`flex h-9 items-center justify-center rounded-md border font-display text-sm transition-colors sm:h-10 sm:text-base ${
+                className={`flex h-8 items-center justify-center rounded-md border font-display text-xs transition-colors sm:h-10 sm:text-base ${
                   selectedLetter === letter
                     ? "border-accent bg-accent"
                     : "border-white/10 bg-white/[0.06] text-text/65 hover:border-white/30 hover:text-text"
@@ -146,13 +146,13 @@ export default function PlayersPage() {
       </nav>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5 lg:gap-4 xl:grid-cols-5">
           {Array.from({ length: PAGE_SIZE }).map((_, index) => <PlayerCardSkeleton key={index} />)}
         </div>
       ) : error ? (
         <div className="glass-card p-8 text-center text-red-300">{error}</div>
       ) : visiblePlayers.length ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5 lg:gap-4 xl:grid-cols-5">
           {visiblePlayers.map((player) => <PlayerCard key={player.id} player={player} />)}
         </div>
       ) : (
@@ -162,7 +162,7 @@ export default function PlayersPage() {
         </div>
       )}
 
-      <div className="mt-8 grid grid-cols-3 items-center border-t border-white/10 pt-5">
+      <div className="mt-6 grid grid-cols-3 items-center border-t border-white/10 pt-4 sm:mt-8 sm:pt-5">
         <div />
         <div className="flex items-center justify-self-center gap-1">
           <button

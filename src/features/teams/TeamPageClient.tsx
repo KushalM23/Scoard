@@ -511,18 +511,18 @@ function TeamOverviewInline({
 
   return (
     <section className="mb-4 md:mb-6">
-      <div className="glass-card p-4 md:p-5 lg:p-6">
+      <div className="glass-card p-3 sm:p-4 md:p-5 lg:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-3 md:gap-5">
           <div className="min-w-0">
             <div className="grid grid-cols-1 sm:grid-cols-[116px_minmax(0,1fr)] md:grid-cols-[128px_minmax(0,1fr)] gap-3 sm:gap-4 items-start">
-              <div className="shrink-0 rounded-2xl border border-white/10 bg-background/25 w-[116px] h-[116px] md:w-[128px] md:h-[128px] flex items-center justify-center">
+              <div className="shrink-0 rounded-2xl border border-white/10 bg-background/25 w-[88px] h-[88px] sm:w-[116px] sm:h-[116px] md:w-[128px] md:h-[128px] flex items-center justify-center">
                 <img
                   src={
                     data.logoUrl ??
                     `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
                   }
                   alt={`${data.city} ${data.name}`}
-                  className="w-[82px] h-[82px] md:w-[94px] md:h-[94px] object-contain"
+                  className="w-[62px] h-[62px] sm:w-[82px] sm:h-[82px] md:w-[94px] md:h-[94px] object-contain"
                 />
               </div>
 
@@ -531,7 +531,7 @@ function TeamOverviewInline({
                   {data.city}
                 </h1>
                 <div className="mt-1 flex items-center gap-2.5 min-w-0">
-                  <h2 className="text-3xl sm:text-5xl md:text-[3.6rem] font-display leading-none truncate uppercase">
+                  <h2 className="text-2xl sm:text-5xl md:text-[3.6rem] font-display leading-none truncate uppercase">
                     {data.name}
                   </h2>
                   {isChampion ? (

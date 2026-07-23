@@ -44,26 +44,26 @@ function getTeamLogoUrl(teamId: number) {
 
 export default function TeamsGrid() {
   return (
-    <section className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
         {CONFERENCES.map((conference) => (
           <section
             key={conference.name}
-            className="space-y-10 p-5"
+            className="space-y-5 rounded-2xl p-1 sm:space-y-10 sm:p-5"
           >
-            <h2 className="font-display text-2xl uppercase text-center tracking-[0.2em] text-text sm:text-3xl">
+            <h2 className="font-display text-lg uppercase text-center tracking-[0.14em] text-text sm:text-3xl sm:tracking-[0.2em]">
               {conference.name}
             </h2>
 
-            <div className="space-y-8">
+            <div className="space-y-5 sm:space-y-8">
               {conference.divisions.map((division) => (
                 <section key={division.name} className="space-y-2">
-                  <h3 className="font-display text-sm mb-4 uppercase tracking-[0.3em] text-text/60">
+                  <h3 className="font-display mb-3 text-xs uppercase tracking-[0.22em] text-text/60 sm:mb-4 sm:text-sm sm:tracking-[0.3em]">
                     {division.name}
                   </h3>
 
-                  <div className="flex flex-wrap gap-x-4 gap-y-4">
+                  <div className="grid grid-cols-1 gap-1.5 sm:flex sm:flex-wrap sm:gap-x-4 sm:gap-y-4">
                     {division.teamIds.map((teamId) => {
                       const team = TEAM_META[teamId];
 
@@ -72,12 +72,12 @@ export default function TeamsGrid() {
                           key={teamId}
                           teamId={teamId}
                           sourceComponent="teams_grid"
-                          className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-4 py-2 max-w-[200px] text-md text-text transition-colors hover:text-accent"
+                          className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-2.5 py-2 text-xs text-text transition-colors hover:text-accent sm:max-w-[200px] sm:px-4 sm:py-2 sm:text-md"
                         >
                           <img
                             src={getTeamLogoUrl(teamId)}
                             alt={`${team.city} ${team.name} logo`}
-                            className="h-10 w-10 shrink-0"
+                            className="h-8 w-8 shrink-0 sm:h-10 sm:w-10"
                           />
                           <span className="truncate font-bold">
                             {team.city} {team.name}
