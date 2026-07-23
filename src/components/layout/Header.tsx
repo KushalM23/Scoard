@@ -298,7 +298,7 @@ function getSuggestionId(index: number): string {
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={`search-suggestion-skeleton-${index}`}
-              className="h-[60px] rounded-lg border border-surface-borderLight bg-surface-hover px-3 flex items-center gap-3"
+              className="relative z-0 flex h-[60px] items-center gap-3 rounded-lg border border-surface-border bg-surface-hover px-3 shadow-xl"
             >
               <Skeleton className="w-10 h-10 rounded-full bg-white/10" />
               <div className="flex-1 space-y-2">
@@ -354,7 +354,11 @@ function getSuggestionId(index: number): string {
               <img
                 src={suggestion.imageUrl}
                 alt={suggestion.displayName}
-                className="w-11 h-11 rounded-full object-cover bg-white/10"
+                className={`h-11 w-11 object-cover ${
+                  suggestion.type === "player"
+                    ? "rounded-md border border-surface-borderLight bg-white/5"
+                    : ""
+                }`}
                 onError={(event) => {
                   event.currentTarget.onerror = null;
                   event.currentTarget.src =
@@ -373,7 +377,7 @@ function getSuggestionId(index: number): string {
                 </p>
               </div>
 
-              <span className="text-[10px] font-display tracking-wider px-2 py-1 rounded-full bg-surface-elevated text-text/70">
+              <span className="text-[10px] font-display tracking-wider px-2 py-1 text-text/70">
                 {suggestion.type === "team" ? "TEAM" : "PLAYER"}
               </span>
             </li>
