@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useRef,
   useEffect,
   useMemo,
   useState,
@@ -11,19 +10,13 @@ import {
 import axios from "axios";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import PlayerLink from "@/components/links/PlayerLink";
 import TeamLink from "@/components/links/TeamLink";
 import StatTooltip from "@/components/ui/StatTooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSeason } from "@/providers/SeasonProvider";
 import { trackEvent } from "@/lib/analytics";
-import {
-  CURRENT_SEASON,
-  getTeamSeasonOptions,
-  parseSeason,
-  parseTab,
-} from "@/lib/teams";
+import { CURRENT_SEASON, parseTab } from "@/lib/teams";
 import type {
   TeamOverviewData,
   TeamRosterData,
@@ -42,7 +35,6 @@ import type {
 interface TeamPageClientProps {
   teamId: number;
   initialTab: TeamTab;
-  initialSeason: string;
   initialOverview: TeamOverviewData | null;
 }
 
@@ -245,23 +237,15 @@ function TeamOverviewInline({
   results,
   snapshotLoading,
   selectedSeason,
-  seasonOptions,
-  onSeasonChange,
-  seasonLoading,
 }: {
   data: TeamOverviewData;
   schedule: SectionState<TeamScheduleData>;
   results: SectionState<TeamResultsData>;
   snapshotLoading: boolean;
   selectedSeason: string;
-  seasonOptions: string[];
-  onSeasonChange: (season: string) => void;
-  seasonLoading: boolean;
 }) {
   const panelHeightClass = "h-[210px] md:h-[372px]";
   const snapshotPanelHeightClass = "h-[292px] md:h-[372px]";
-  const [isSeasonMenuOpen, setIsSeasonMenuOpen] = useState(false);
-  const seasonMenuRef = useRef<HTMLDivElement | null>(null);
 
   const renderGamesPanelSkeleton = () => (
     <div className="space-y-3">
@@ -308,33 +292,6 @@ function TeamOverviewInline({
     { label: "Conference", value: `#${data.ranks.conferenceRank}` },
     { label: "Division", value: `#${data.ranks.divisionRank}` },
   ];
-
-  useEffect(() => {
-    if (!isSeasonMenuOpen) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (
-        seasonMenuRef.current &&
-        !seasonMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsSeasonMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsSeasonMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [isSeasonMenuOpen]);
 
   const formatScoreLine = (game: TeamResultsData["games"][number]) => {
     if (
@@ -1153,16 +1110,10 @@ const isSectionError = (payload: unknown): payload is TeamApiError => {
 export default function TeamPageClient({
   teamId,
   initialTab,
-  initialSeason,
   initialOverview,
 }: TeamPageClientProps) {
-  const { season: globalSeason, setSeason } = useSeason();
   const [activeTab, setActiveTab] = useState<TeamTab>(initialTab);
-  const [selectedSeason, setSelectedSeason] = useState(globalSeason || initialSeason);
-  const seasonOptions = useMemo(
-    () => getTeamSeasonOptions(selectedSeason),
-    [selectedSeason],
-  );
+  const selectedSeason = CURRENT_SEASON;
 
   const [overview, setOverview] = useState<SectionState<TeamOverviewData>>({
     data: initialOverview,
@@ -1191,17 +1142,13 @@ export default function TeamPageClient({
     error: null,
   });
 
-  const syncStateToUrl = (tab: TeamTab, season: string) => {
+  const syncStateToUrl = (tab: TeamTab) => {
     if (typeof window === "undefined") return;
 
     const currentScrollY = window.scrollY;
     const params = new URLSearchParams(window.location.search);
     params.set("tab", tab);
-    if (season === CURRENT_SEASON) {
-      params.delete("season");
-    } else {
-      params.set("season", season);
-    }
+    params.delete("season");
     window.history.replaceState(
       window.history.state,
       "",
@@ -1219,9 +1166,7 @@ export default function TeamPageClient({
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const tab = parseTab(params.get("tab"));
-      const season = parseSeason(params.get("season"));
       setActiveTab(tab);
-      setSelectedSeason(season);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -1280,7 +1225,7 @@ export default function TeamPageClient({
 
     try {
       const response = await axios.get<TeamPagePayload>(
-        `/api/teams/${teamId}?tab=${activeTab}&season=${selectedSeason}&include=${include.join(",")}`,
+        `/api/teams/${teamId}?tab=${activeTab}&season=${CURRENT_SEASON}&include=${include.join(",")}`,
       );
       const payload = response.data;
 
@@ -1347,8 +1292,7 @@ export default function TeamPageClient({
 
   useEffect(() => {
     setActiveTab(initialTab);
-    setSelectedSeason(initialSeason);
-  }, [teamId, initialSeason, initialTab]);
+  }, [teamId, initialTab]);
 
   useEffect(() => {
     trackEvent("team_page_view", {
@@ -1358,12 +1302,9 @@ export default function TeamPageClient({
   }, [selectedSeason, teamId]);
 
   useEffect(() => {
-    const seededOverview =
-      selectedSeason === initialSeason ? initialOverview : null;
-
     setOverview({
-      data: seededOverview,
-      loading: !seededOverview,
+      data: initialOverview,
+      loading: !initialOverview,
       error: null,
     });
     setSchedule({ data: null, loading: true, error: null });
@@ -1378,8 +1319,8 @@ export default function TeamPageClient({
       include.push("stats");
     }
 
-    fetchTeamPagePayload(include, Boolean(seededOverview), false);
-  }, [teamId, initialOverview, initialSeason, selectedSeason]);
+    fetchTeamPagePayload(include, Boolean(initialOverview), false);
+  }, [teamId, initialOverview, selectedSeason]);
 
   useEffect(() => {
     if (activeTab === "roster") {
@@ -1394,37 +1335,12 @@ export default function TeamPageClient({
     }
   }, [activeTab, stats.data, stats.loading, roster.data, roster.loading]);
 
-  // Synchronize global season context with initial page state and subsequent changes
-  useEffect(() => {
-    // Sync the initial URL season to the global context on mount
-    setSeason(initialSeason);
-  }, []);
-
-  useEffect(() => {
-    handleSeasonChange(globalSeason);
-  }, [globalSeason]);
-
-  const seasonLoading =
-    overview.loading ||
-    stats.loading ||
-    roster.loading ||
-    schedule.loading ||
-    results.loading;
-
   const handleTabChange = (tab: TeamTab) => {
     if (tab === activeTab) return;
 
     setActiveTab(tab);
-    syncStateToUrl(tab, selectedSeason);
+    syncStateToUrl(tab);
     trackEvent("team_tab_change", { teamId, tab, season: selectedSeason });
-  };
-
-  const handleSeasonChange = (season: string) => {
-    if (season === selectedSeason) return;
-
-    setSelectedSeason(season);
-    syncStateToUrl(activeTab, season);
-    trackEvent("team_season_change", { teamId, tab: activeTab, season });
   };
 
   return (
@@ -1446,9 +1362,6 @@ export default function TeamPageClient({
           results={results}
           snapshotLoading={overview.loading}
           selectedSeason={selectedSeason}
-          seasonOptions={seasonOptions}
-          onSeasonChange={handleSeasonChange}
-          seasonLoading={seasonLoading}
         />
       )}
 

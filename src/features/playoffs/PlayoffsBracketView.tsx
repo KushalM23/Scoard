@@ -333,7 +333,7 @@ function PlayInConferenceCard({
 
   if (cards.length < 3) {
     return (
-      <div className="rounded-2xl p-4 sm:p-5 bg-surface-panel/80">
+      <div className="rounded-2xl p-4 sm:p-5">
         <h3
           className={[
             "text-sm uppercase font-black tracking-[0.15em] mb-3 text-center",
@@ -506,36 +506,20 @@ export default function PlayoffsBracketView({
     <div className="space-y-7 sm:space-y-8">
       {showTitle && (
         <section className="mb-4 sm:mb-5">
-          <div className="rounded-3xl bg-surface-card/90 px-5 py-6 sm:px-8 sm:py-8">
+          <div className="rounded-3xl px-5 py-6 sm:px-8 sm:py-8">
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="font-display text-3xl sm:text-5xl tracking-wide text-text text-center"
             >
-              NBA Playoff Picture
+              NBA Playoffs
             </motion.h1>
-            <p className="mt-2 text-text/70 text-sm sm:text-base max-w-3xl mx-auto text-center">
-              A cleaner bracket view designed to match Scoard cards, spacing,
-              and typography.
-            </p>
-
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 text-[11px] uppercase tracking-[0.14em]">
-              <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-text/70">
-                Season {data.sourceSeason || data.season}
-              </span>
-              <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-text/70">
-                Updated {generatedText}
-              </span>
-              <span className="rounded-full bg-accent/20 px-2.5 py-1 text-accent">
-                {data.meta.availableSeriesPages} Live Series Pages
-              </span>
-            </div>
           </div>
         </section>
       )}
 
       {data.playIn && (
-        <section className="rounded-2xl bg-surface-card/80 p-4 sm:p-5">
+        <section className="rounded-2xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display tracking-wide text-2xl text-text">
               Play-In Tournament *
@@ -558,7 +542,7 @@ export default function PlayoffsBracketView({
         </section>
       )}
 
-      <section className="rounded-2xl bg-surface-card/80 p-4 sm:p-5">
+      <section className="rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between mb-10">
           <h2 className="font-display tracking-wide text-2xl text-text">
             Playoff Bracket

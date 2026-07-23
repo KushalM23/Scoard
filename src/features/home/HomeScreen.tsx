@@ -29,6 +29,7 @@ import Standings from "@/features/home/Standings";
 import PlayoffsBracketView from "@/features/playoffs/PlayoffsBracketView";
 import { useSeason } from "@/providers/SeasonProvider";
 import { getSeasonFromDate, shiftDateToSeason } from "@/lib/teams";
+import type { PlayoffBracketPayload } from "@/types/playoffs";
 
 type HomeTab = "scores" | "standings" | "playoffs";
 
@@ -220,6 +221,7 @@ export default function HomeScreen() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [games, setGames] = useState<any[]>([]);
+  const [hasPlayoffSeries, setHasPlayoffSeries] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<HomeTab>("scores");
   const pollIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -256,6 +258,36 @@ export default function HomeScreen() {
       setSelectedDate(shiftDateToSeason(selectedDate, globalSeason));
     }
   }, [activeTab, globalSeason, selectedDate]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlayoffAvailability = async () => {
+      try {
+        const response = await axios.get<PlayoffBracketPayload>(
+          `/api/playoffs/bracket?season=${globalSeason}`,
+        );
+        if (!isMounted) return;
+        setHasPlayoffSeries(response.data.meta.availableSeriesPages > 0);
+      } catch (error) {
+        if (!isMounted) return;
+        console.error("Failed to fetch playoff availability", error);
+        setHasPlayoffSeries(false);
+      }
+    };
+
+    void loadPlayoffAvailability();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [globalSeason]);
+
+  useEffect(() => {
+    if (activeTab === "playoffs" && !hasPlayoffSeries) {
+      setActiveTab("scores");
+    }
+  }, [activeTab, hasPlayoffSeries]);
 
   useEffect(() => {
     if (activeTab !== "scores") return;
@@ -318,13 +350,17 @@ export default function HomeScreen() {
     router.push(fromDate ? `/game/${gameId}?fromDate=${fromDate}` : `/game/${gameId}`);
   };
 
+  const tabs: HomeTab[] = hasPlayoffSeries
+    ? ["scores", "standings", "playoffs"]
+    : ["scores", "standings"];
+
   return (
     <Layout>
       <Header />
       <div className="mx-auto w-full px-2 py-4 pb-32 md:w-full md:px-8 md:py-6 md:pb-24">
         <div className="mb-6 flex justify-center md:mb-4">
           <div className="glass relative flex gap-2 rounded-xl p-1 md:gap-1.5">
-            {(["scores", "standings", "playoffs"] as HomeTab[]).map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}

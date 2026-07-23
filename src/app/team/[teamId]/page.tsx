@@ -5,8 +5,8 @@ import Layout from "@/components/layout/AppShell";
 import TeamPageClient from "@/features/teams/TeamPageClient";
 import { fetchStatsApi } from "@/lib/statsApi";
 import {
+  CURRENT_SEASON,
   TEAM_META,
-  parseSeason,
   parseTab,
   parseTeamId,
 } from "@/lib/teams";
@@ -142,13 +142,7 @@ export default async function TeamPage({
       ? resolvedSearchParams.tab
       : null,
   );
-  const initialSeason = parseSeason(
-    typeof resolvedSearchParams.season === "string"
-      ? resolvedSearchParams.season
-      : null,
-  );
-
-  const initialOverview = await getInitialOverview(parsedTeamId, initialSeason);
+  const initialOverview = await getInitialOverview(parsedTeamId, CURRENT_SEASON);
 
   return (
     <Layout>
@@ -157,7 +151,6 @@ export default async function TeamPage({
         <TeamPageClient
           teamId={parsedTeamId}
           initialTab={initialTab}
-          initialSeason={initialSeason}
           initialOverview={initialOverview}
         />
       </div>

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import React, { createContext, useContext } from "react";
 import { CURRENT_SEASON } from "@/lib/teams";
 
 interface SeasonContextType {
@@ -18,27 +17,19 @@ const SeasonContext = createContext<SeasonContextType | undefined>(undefined);
 export const SeasonProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [season, setSeason] = useState<string>(CURRENT_SEASON);
-  const [isDropdownDisabled, setIsDropdownDisabled] = useState<boolean>(false);
-  const [activeSeasonContext, setActiveSeasonContext] = useState<string | null>(null);
-
-  const pathname = usePathname();
-
-  useEffect(() => {
-    setSeason(CURRENT_SEASON);
-    setIsDropdownDisabled(false);
-    setActiveSeasonContext(null);
-  }, [pathname]);
+  const noopSetSeason = (_season: string) => {};
+  const noopSetDropdownDisabled = (_disabled: boolean) => {};
+  const noopSetActiveSeasonContext = (_season: string | null) => {};
 
   return (
     <SeasonContext.Provider
       value={{
-        season,
-        setSeason,
-        isDropdownDisabled,
-        setIsDropdownDisabled,
-        activeSeasonContext,
-        setActiveSeasonContext,
+        season: CURRENT_SEASON,
+        setSeason: noopSetSeason,
+        isDropdownDisabled: false,
+        setIsDropdownDisabled: noopSetDropdownDisabled,
+        activeSeasonContext: null,
+        setActiveSeasonContext: noopSetActiveSeasonContext,
       }}
     >
       {children}
