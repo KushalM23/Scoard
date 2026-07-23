@@ -1,6 +1,6 @@
 # SCOARD: See the game blind
 
-A modern, multi-sport score app with data visualization to simulate the feeling of watching the game without watching it
+A modern NBA score app with data visualization to simulate the feeling of watching the game without watching it
 
 **Live:** [scoard.onrender.com]([https://scoard.onrender.com])
 
