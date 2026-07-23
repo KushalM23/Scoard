@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2, Search, User } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { SearchSuggestion } from "@/types/search";
 import { getOrBuildSearchIndex } from "@/lib/search/bootstrapClient";
@@ -30,10 +30,9 @@ function getSuggestionId(index: number): string {
   return `global-search-option-${index}`;
 }
 
-const Header: React.FC = () => {
+  const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [isSportOpen, setIsSportOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -157,7 +156,6 @@ const Header: React.FC = () => {
       }
 
       closeSearch();
-      setIsSportOpen(false);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -396,63 +394,53 @@ const Header: React.FC = () => {
   return (
     <header
       ref={rootRef}
-      className="sticky flex top-1 z-50 px-4 sm:px-5 md:px-6 py-3 md:py-3 bg-transparent backdrop-blur-md"
+      className="sticky top-1 z-50 bg-transparent px-4 py-3 backdrop-blur-md sm:px-5 md:px-6"
     >
-      <div className="w-full max-w-[1600px] mx-auto flex flex-wrap items-center gap-3 sm:gap-4 md:gap-7">
-        <Link
-          href="/"
-          aria-label="Go to home page"
-          className="flex-none order-1"
-        >
-          <motion.h1
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, type: "spring" }}
-            className="text-[2.35rem] sm:text-[3rem] md:text-[4.2rem] lg:text-[5rem] font-mono tracking-wider text-primary drop-shadow-sm cursor-pointer leading-[0.86]"
-          >
-            SCOARD!
-          </motion.h1>
-        </Link>
-
-        <nav className="flex items-center gap-3 sm:gap-5 order-2">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
           <Link
             href="/"
-            className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
-              pathname === "/"
-                ? "text-primary"
-                : "text-text/60 hover:text-text"
-            }`}
+            aria-label="Go to home page"
+            className="shrink-0"
           >
-            Scores
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, type: "spring" }}
+              className="text-[2.35rem] sm:text-[3rem] md:text-[4.2rem] lg:text-[5rem] font-mono tracking-wider text-primary drop-shadow-sm cursor-pointer leading-[0.86]"
+            >
+              SCOARD!
+            </motion.h1>
           </Link>
-          <Link
-            href="/playoffs"
-            className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
-              pathname?.startsWith("/playoffs")
-                ? "text-primary"
-                : "text-text/60 hover:text-text"
-            }`}
-          >
-            Playoffs
-          </Link>
-          <Link
-            href="/transactions"
-            className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
-              pathname === "/transactions"
-                ? "text-primary"
-                : "text-text/60 hover:text-text"
-            }`}
-          >
-            Transactions
-          </Link>
-        </nav>
 
-        <div className="order-3 flex items-center gap-3 flex-1 basis-full md:order-2 md:basis-auto md:flex-1 md:min-w-[400px]">
-          {/* Search Input Container */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/45 pointer-events-none" />
+          <nav className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-5">
+            <Link
+              href="/"
+              className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
+                pathname === "/"
+                  ? "text-primary"
+                  : "text-text/60 hover:text-text"
+              }`}
+            >
+              HOME
+            </Link>
+            <Link
+              href="/playoffs"
+              className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
+                pathname?.startsWith("/playoffs")
+                  ? "text-primary"
+                  : "text-text/60 hover:text-text"
+              }`}
+            >
+              Playoffs
+            </Link>
+          </nav>
+        </div>
+        <div className="w-full">
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/45" />
             {isLoadingBootstrap && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent animate-spin" />
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-accent" />
             )}
 
             <input
@@ -468,7 +456,7 @@ const Header: React.FC = () => {
               aria-controls={SEARCH_LISTBOX_ID}
               aria-activedescendant={activeDescendantId}
               aria-autocomplete="list"
-              className="w-full h-10 md:h-11 pl-10 pr-10 rounded-xl glass bg-white/5 border border-white/10 focus:outline-none text-sm md:text-base text-text placeholder:text-text/45"
+              className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-text placeholder:text-text/45 focus:outline-none md:h-11 md:text-base"
             />
 
             <AnimatePresence>
@@ -478,14 +466,13 @@ const Header: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute left-0 right-0 top-full mt-2 z-50 origin-top"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 origin-top"
                 >
                   {renderDropdownContent()}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-
         </div>
       </div>
     </header>

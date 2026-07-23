@@ -10,7 +10,6 @@ small: it owns route metadata/params and renders a feature screen.
 | `src/features/playoffs` | Playoff bracket and series screens |
 | `src/features/players` | Player-detail client screen |
 | `src/features/teams` | Team-detail client screen |
-| `src/features/transactions` | Transactions screen |
 | `src/components` | Cross-feature layout, navigation links, and reusable UI primitives |
 | `src/providers` | App-wide React providers |
 | `src/lib` | Framework-independent domain/API helpers |

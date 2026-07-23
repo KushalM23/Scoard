@@ -439,12 +439,6 @@ export default function HomeScreen() {
                     >
                       Playoffs
                     </Link>
-                    <Link
-                      href="/transactions"
-                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-display uppercase tracking-wide transition-all hover:text-accent"
-                    >
-                      Transactions
-                    </Link>
                   </div>
                 </motion.div>
               ) : (

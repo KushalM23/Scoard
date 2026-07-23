@@ -23,9 +23,6 @@ const Footer: React.FC = () => {
           <Link href="/playoffs" className="hover:text-text transition-colors">
             Playoffs
           </Link>
-          <Link href="/transactions" className="hover:text-text transition-colors">
-            Transactions
-          </Link>
         </div>
 
         <div className="flex flex-col items-center md:items-end gap-1 text-xs text-text/50">
