@@ -434,10 +434,16 @@ export default function HomeScreen() {
                   </div>
                   <div className="flex flex-wrap justify-center gap-3">
                     <Link
-                      href="/playoffs"
+                      href="/teams"
                       className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-display uppercase tracking-wide transition-all hover:text-accent"
                     >
-                      Playoffs
+                      Teams
+                    </Link>
+                    <Link
+                      href="/players"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-display uppercase tracking-wide transition-all hover:text-accent"
+                    >
+                      Players
                     </Link>
                   </div>
                 </motion.div>
