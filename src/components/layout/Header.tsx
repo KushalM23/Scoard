@@ -391,6 +391,14 @@ function getSuggestionId(index: number): string {
       ? getSuggestionId(highlightedIndex)
       : undefined;
 
+      const navItems = [
+        { name: "Home", href: "/" },
+        { name: "Teams", href: "/teams" },
+        { name: "Players", href: "/players" },
+        { name: "Leaders", href: "/leaders"},
+        { name: "Playoffs", href: "/playoffs" },
+      ];
+
   return (
     <header
       ref={rootRef}
@@ -414,26 +422,19 @@ function getSuggestionId(index: number): string {
           </Link>
 
           <nav className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-right sm:gap-x-5">
-            <Link
-              href="/"
-              className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
-                pathname === "/"
-                  ? "text-primary"
-                  : "text-text/60 hover:text-text"
-              }`}
-            >
-              HOME
-            </Link>
-            <Link
-              href="/playoffs"
-              className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
-                pathname?.startsWith("/playoffs")
-                  ? "text-primary"
-                  : "text-text/60 hover:text-text"
-              }`}
-            >
-              Playoffs
-            </Link>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-display text-xs sm:text-sm font-bold tracking-wider transition-colors duration-200 uppercase ${
+                  pathname === item.href
+                    ? "text-primary"
+                    : "text-text/60 hover:text-text"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
           </nav>
         </div>
         <div className="w-full">
