@@ -225,12 +225,7 @@ const Standings: React.FC = () => {
     key: keyof TeamStanding | "gb",
     align: "left" | "center" | "right" = "center",
   ) => {
-    const alignClass =
-      align === "left"
-        ? "text-left"
-        : align === "right"
-          ? "text-right"
-          : "text-center";
+    const alignClass = "text-center";
 
     return (
       <th
@@ -260,27 +255,41 @@ const Standings: React.FC = () => {
   };
 
   const renderTable = (teams: TeamStanding[]) => (
-    <div className="mb-8 bg-white/5 overflow-hidden rounded-2xl">
+    <div className="mb-8 bg-white/5 overflow-hidden border border-white/10 rounded-2xl">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-center whitespace-nowrap">
+        <table className="w-max min-w-[944px] table-fixed text-center whitespace-nowrap md:min-w-[1248px]">
+          <colgroup>
+            <col className="w-24 sm:w-20 md:w-48" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+            <col className="w-20 md:w-24" />
+          </colgroup>
           <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
             <tr>
-              <th className="p-0 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[140px] md:min-w-[200px]">
-                <div className="px-2 py-2 text-sm md:px-4 md:py-3 md:text-base font-semibold font-mono tracking-[0.05em] text-center">
+              <th className="sticky left-0 z-20 w-16 sm:w-20 md:w-48 border-r-2 border-white/10 bg-[#262222] p-0 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                <div className="px-1 py-2 text-center font-mono text-sm font-semibold tracking-[0.05em] md:px-4 md:py-3 md:text-base">
                   Team
                 </div>
               </th>
-              {renderSortableHeader("W", "wins")}
-              {renderSortableHeader("L", "losses")}
-              {renderSortableHeader("GB", "gb")}
-              {renderSortableHeader("Pct", "winPct")}
-              {renderSortableHeader("Home", "homeRecord")}
-              {renderSortableHeader("Road", "roadRecord")}
-              {renderSortableHeader("L10", "l10")}
-              {renderSortableHeader("Strk", "streak")}
-              {renderSortableHeader("PPG", "pointsPg")}
-              {renderSortableHeader("OPPG", "oppPointsPg")}
-              {renderSortableHeader("+/-", "diffPointsPg")}
+              {renderSortableHeader("W", "wins", "center")}
+              {renderSortableHeader("L", "losses","center")}
+              {renderSortableHeader("GB", "gb", "center")}
+              {renderSortableHeader("Pct", "winPct", "center")}
+              {renderSortableHeader("Home", "homeRecord", "center")}
+              {renderSortableHeader("Road", "roadRecord", "center")}
+              {renderSortableHeader("L10", "l10", "center")}
+              {renderSortableHeader("Strk", "streak", "center")}
+              {renderSortableHeader("PPG", "pointsPg", "center")}
+              {renderSortableHeader("OPPG", "oppPointsPg", "center")}
+              {renderSortableHeader("+/-", "diffPointsPg", "center")}
             </tr>
           </thead>
           <tbody>
@@ -289,9 +298,9 @@ const Standings: React.FC = () => {
                 key={team.teamId}
                 className="border-t border-white/10 hover:bg-white/5 transition-colors duration-200"
               >
-                <td className="px-2 py-2 font-semibold text-text/90 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] text-left whitespace-nowrap md:px-5 md:py-4">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <span className="text-text/50 w-4 text-right font-mono text-sm">
+                <td className="sticky left-0 z-20 w-16 sm:w-20 md:w-48 border-r-2 border-white/10 bg-[#262222] px-1.5 py-2 text-left font-semibold text-text/90 shadow-[2px_0_5px_rgba(0,0,0,0.3)] whitespace-nowrap sm:px-2 md:px-5 md:py-4">
+                  <div className="flex min-w-0 items-center gap-1.5 overflow-hidden md:gap-3">
+                    <span className="w-3 shrink-0 text-right text-xs text-text/50 sm:w-4 sm:text-sm">
                       {/* Rank Logic: If sorted, show order index. If default sort, show official rank. */}
                       {sortConfig.key
                         ? teams.findIndex((t) => t.teamId === team.teamId) + 1
@@ -302,7 +311,7 @@ const Standings: React.FC = () => {
                             : teams.findIndex((t) => t.teamId === team.teamId) +
                               1}
                     </span>
-                    <div className="relative w-6 h-6 flex-shrink-0">
+                    <div className="relative h-4 w-4 flex-shrink-0 sm:h-5 sm:w-5 md:h-6 md:w-6">
                       <Image
                         src={`https://cdn.nba.com/logos/nba/${team.teamId}/primary/L/logo.svg`}
                         alt={team.teamName}
@@ -310,7 +319,7 @@ const Standings: React.FC = () => {
                         className="object-contain"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <TeamLink
                         teamId={team.teamId}
                         sourceComponent="standings"
@@ -321,7 +330,7 @@ const Standings: React.FC = () => {
                       <TeamLink
                         teamId={team.teamId}
                         sourceComponent="standings"
-                        className="sm:hidden font-mono tracking-wider text-xs hover:text-accent transition-colors"
+                        className="sm:hidden block max-w-full truncate font-display text-[10px] tracking-wider hover:text-accent transition-colors"
                       >
                         {TEAM_CODES[team.teamId] || team.teamName}
                       </TeamLink>
@@ -331,41 +340,41 @@ const Standings: React.FC = () => {
                 <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.wins}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.losses}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {viewMode === "Conference"
                     ? team.conferenceGamesBack
                     : viewMode === "Division"
                       ? team.divgamesback
                       : team.leagueGamesBack}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {(team.winPct * 100).toFixed(1)}%
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.homeRecord}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.roadRecord}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.l10}
                 </td>
                 <td
-                  className={`px-5 py-4 text-center font-semibold whitespace-nowrap ${team.streak.startsWith("W") ? "text-green-400" : "text-red-400"}`}
+                  className={`px-2 py-2 text-center font-semibold whitespace-nowrap md:px-5 md:py-4 ${team.streak.startsWith("W") ? "text-green-400" : "text-red-400"}`}
                 >
                   {team.streak}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.pointsPg}
                 </td>
-                <td className="px-5 py-4 text-center font-semibold text-text/90 whitespace-nowrap">
+                <td className="px-2 py-2 text-center font-semibold text-text/90 whitespace-nowrap md:px-5 md:py-4">
                   {team.oppPointsPg}
                 </td>
                 <td
-                  className={`px-5 py-4 text-center font-semibold whitespace-nowrap ${team.diffPointsPg > 0 ? "text-green-400" : "text-red-400"}`}
+                  className={`px-2 py-2 text-center font-semibold whitespace-nowrap md:px-5 md:py-4 ${team.diffPointsPg > 0 ? "text-green-400" : "text-red-400"}`}
                 >
                   {team.diffPointsPg > 0 ? "+" : ""}
                   {team.diffPointsPg}
@@ -420,7 +429,7 @@ const Standings: React.FC = () => {
       className="container mx-auto px-4 py-6"
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-4xl font-bold text-text font-mono tracking-wide">
+        <h2 className="text-2xl sm:text-4xl font-bold text-text font-mono tracking-wide">
           Standings
         </h2>
 
@@ -429,9 +438,9 @@ const Standings: React.FC = () => {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg glass hover:bg-white/5 transition-all duration-300 border border-white/10 hover:border-accent/50 group"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 transition-all duration-300 border border-white/10 group"
           >
-            <span className="font-medium text-sm font-display group-hover:text-accent transition-colors">
+            <span className="font-medium text-xs sm:text-sm font-display group-hover:text-accent transition-colors">
               {viewMode}
             </span>
             <motion.div
@@ -449,23 +458,20 @@ const Standings: React.FC = () => {
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="absolute top-full right-0 mt-2 w-48 bg-background border border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden ring-1 ring-white/5"
+                className="absolute top-full right-0 mt-2 bg-background border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden ring-1 ring-white/5"
               >
                 <button
                   onClick={() => {
                     setViewMode("Conference");
                     setIsDropdownOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
+                  className="w-full text-right px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5"
                 >
                   <span
-                    className={`font-medium text-sm font-display transition-colors ${viewMode === "Conference" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
+                    className={`font-medium text-xs sm:text-sm font-display transition-colors ${viewMode === "Conference" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
                   >
                     Conference
                   </span>
-                  {viewMode === "Conference" && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>
-                  )}
                 </button>
 
                 <button
@@ -473,16 +479,13 @@ const Standings: React.FC = () => {
                     setViewMode("Division");
                     setIsDropdownOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
+                  className="w-full text-right px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5"
                 >
                   <span
-                    className={`font-medium text-sm font-display transition-colors ${viewMode === "Division" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
+                    className={`font-medium text-xs sm:text-sm font-display transition-colors ${viewMode === "Division" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
                   >
                     Division
                   </span>
-                  {viewMode === "Division" && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>
-                  )}
                 </button>
 
                 <button
@@ -490,16 +493,13 @@ const Standings: React.FC = () => {
                     setViewMode("League");
                     setIsDropdownOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5 border-l-2 border-transparent hover:border-accent"
+                  className="w-full text-right px-4 py-3 flex items-center justify-between group transition-colors hover:bg-white/5"
                 >
                   <span
-                    className={`font-medium text-sm font-display transition-colors ${viewMode === "League" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
+                    className={`font-medium text-xs sm:text-sm font-display transition-colors ${viewMode === "League" ? "text-accent" : "text-text/70 group-hover:text-text"}`}
                   >
                     League
                   </span>
-                  {viewMode === "League" && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(69,126,172,0.5)]"></span>
-                  )}
                 </button>
               </motion.div>
             )}
@@ -516,13 +516,13 @@ const Standings: React.FC = () => {
           {viewMode !== "League" && (
             <div className="flex justify-center w-full">
               <div
-                className={`glass rounded-xl p-1 grid ${viewMode === "Conference" ? "grid-cols-2 w-full md:w-auto" : "grid-cols-6 w-full md:w-auto"} gap-1 relative`}
+                className={`bg-white/5 border border-white/10 rounded-xl p-1 grid ${viewMode === "Conference" ? "grid-cols-2 w-full md:w-auto" : "grid-cols-6 w-full md:w-auto"} gap-1 relative`}
               >
                 {currentTabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative px-1 md:px-6 py-2 rounded-lg font-bold text-[10px] md:text-sm transition-colors duration-300 font-display tracking-wide z-10 ${activeTab === tab.id ? "text-text" : "text-text/60 hover:text-text"}`}
+                    className={`relative px-1 md:px-8 py-2 rounded-lg font-bold text-xs md:text-sm transition-colors duration-300 font-display tracking-wide z-10 ${activeTab === tab.id ? "text-text" : "text-text/60 hover:text-text"}`}
                   >
                     {activeTab === tab.id && (
                       <motion.div

@@ -422,7 +422,7 @@ function getSuggestionId(index: number): string {
   return (
     <header
       ref={rootRef}
-      className="sticky top-0 z-50 bg-background/90 px-3 py-3 backdrop-blur-md sm:px-5 md:px-6"
+      className="sticky top-0 z-[100] bg-background/90 px-4 py-3 backdrop-blur-md sm:px-5 md:px-6"
     >
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -446,9 +446,9 @@ function getSuggestionId(index: number): string {
             aria-label="Open navigation menu"
             aria-expanded={isMobileMenuOpen}
             onClick={() => setIsMobileMenuOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-text transition-colors hover:bg-white/10 sm:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center text-text transition-colors sm:hidden"
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <Menu className="h-5 w-5" />
           </button>
 
           <nav className="ml-auto hidden items-center justify-end gap-x-4 text-right sm:flex sm:gap-x-5">
@@ -477,7 +477,7 @@ function getSuggestionId(index: number): string {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 z-40 bg-black/60 sm:hidden"
+                className="fixed inset-0 z-[10000] sm:hidden"
               />
               <motion.nav
                 aria-label="Primary navigation"
@@ -485,17 +485,16 @@ function getSuggestionId(index: number): string {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: "100%" }}
                 transition={{ type: "spring", damping: 28, stiffness: 260 }}
-                className="fixed right-0 top-0 z-50 flex h-dvh w-[min(82vw,21rem)] flex-col border-l border-white/10 bg-[#211c1c] px-5 pb-8 pt-5 shadow-2xl sm:hidden"
+                className="fixed right-0 top-0 z-[10001] flex h-dvh w-[min(82vw,21rem)] flex-col border-l border-white/10 bg-[#211c1c] px-5 pb-8 pt-5 shadow-2xl sm:hidden"
               >
-                <div className="mb-8 flex items-center justify-between">
-                  <span className="font-display text-xs uppercase tracking-[0.22em] text-text/45">Navigate</span>
-                  <button type="button" aria-label="Close navigation menu" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg p-2 text-text/60 hover:bg-white/10 hover:text-text">
+                <div className="mb-8 flex items-center justify-end">
+                  <button type="button" aria-label="Close navigation menu" onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-text">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-4">
                   {navItems.map((item) => (
-                    <Link key={item.href} href={item.href} className={`rounded-xl px-4 py-3.5 font-display text-base font-bold uppercase tracking-wider transition-colors ${pathname === item.href ? "bg-primary text-text" : "text-text/70 hover:bg-white/10 hover:text-text"}`}>
+                    <Link key={item.href} href={item.href} className={`rounded-xl px-4 py-3.5 font-display text-xs font-bold uppercase tracking-wider transition-colors ${pathname === item.href ? "bg-primary text-text" : "text-text/70 hover:bg-white/10 hover:text-text"}`}>
                       {item.name}
                     </Link>
                   ))}
@@ -524,7 +523,7 @@ function getSuggestionId(index: number): string {
               aria-controls={SEARCH_LISTBOX_ID}
               aria-activedescendant={activeDescendantId}
               aria-autocomplete="list"
-              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-text placeholder:text-text/45 outline-none transition-colors focus:border-primary/60 md:h-11 md:text-base"
+              className="h-8 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-text placeholder:text-text/45 outline-none transition-colors md:rounded-xl md:h-11 md:text-base"
             />
 
             <AnimatePresence>

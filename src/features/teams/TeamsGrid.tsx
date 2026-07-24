@@ -63,7 +63,7 @@ export default function TeamsGrid() {
                     {division.name}
                   </h3>
 
-                  <div className="grid grid-cols-1 gap-1.5 sm:flex sm:flex-wrap sm:gap-x-4 sm:gap-y-4">
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
                     {division.teamIds.map((teamId) => {
                       const team = TEAM_META[teamId];
 
@@ -72,14 +72,14 @@ export default function TeamsGrid() {
                           key={teamId}
                           teamId={teamId}
                           sourceComponent="teams_grid"
-                          className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-2.5 py-2 text-xs text-text transition-colors hover:text-accent sm:max-w-[200px] sm:px-4 sm:py-2 sm:text-md"
+                          className="inline-flex min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-1.5 text-[10px] text-text transition-colors hover:text-accent sm:gap-4 sm:px-3 sm:py-2 sm:text-sm"
                         >
                           <img
                             src={getTeamLogoUrl(teamId)}
                             alt={`${team.city} ${team.name} logo`}
-                            className="h-8 w-8 shrink-0 sm:h-10 sm:w-10"
+                            className="h-7 w-7 shrink-0 sm:h-8 sm:w-8"
                           />
-                          <span className="truncate font-bold">
+                          <span className="line-clamp-2 min-w-0 font-bold leading-tight sm:truncate sm:whitespace-nowrap sm:leading-normal">
                             {team.city} {team.name}
                           </span>
                         </TeamLink>

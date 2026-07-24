@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -319,6 +319,259 @@ function BracketRoundColumn({
   );
 }
 
+const MOBILE_BRACKET_COLUMN_WIDTH = 184;
+const MOBILE_BRACKET_COLUMN_GAP = 72;
+const MOBILE_BRACKET_CARD_HEIGHT = 124;
+const MOBILE_BRACKET_HEIGHT = 1180;
+
+type MobileBracketColumn = {
+  label: string;
+  cards: Array<{
+    card: BracketSeriesCard;
+    tone: "east" | "west" | "neutral";
+    top: number;
+    size?: SeriesSize;
+  }>;
+};
+
+function MobileBracketConnectors() {
+  const x = [
+    0,
+    MOBILE_BRACKET_COLUMN_WIDTH + MOBILE_BRACKET_COLUMN_GAP,
+    (MOBILE_BRACKET_COLUMN_WIDTH + MOBILE_BRACKET_COLUMN_GAP) * 2,
+    (MOBILE_BRACKET_COLUMN_WIDTH + MOBILE_BRACKET_COLUMN_GAP) * 3,
+  ];
+  const cardRight = (column: number) => x[column] + MOBILE_BRACKET_COLUMN_WIDTH;
+  const cardCenter = (top: number, height = MOBILE_BRACKET_CARD_HEIGHT) =>
+    top + height / 2;
+
+  const pairPaths = (
+    fromColumn: number,
+    fromTops: number[],
+    toColumn: number,
+    toTops: number[],
+    color: string,
+  ) =>
+    [0, 1].flatMap((pair) => {
+      const fromTop = fromTops[pair * 2];
+      const fromBottom = fromTops[pair * 2 + 1];
+      const target = toTops[pair];
+      const elbow = cardRight(fromColumn) + MOBILE_BRACKET_COLUMN_GAP / 2;
+
+      return [
+        <path
+          key={`${fromColumn}-${toColumn}-${pair}-top`}
+          d={`M ${cardRight(fromColumn)} ${cardCenter(fromTop)} H ${elbow} V ${cardCenter(target)}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+        />,
+        <path
+          key={`${fromColumn}-${toColumn}-${pair}-bottom`}
+          d={`M ${cardRight(fromColumn)} ${cardCenter(fromBottom)} H ${elbow} V ${cardCenter(target)}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+        />,
+        <path
+          key={`${fromColumn}-${toColumn}-${pair}-target`}
+          d={`M ${elbow} ${cardCenter(target)} H ${x[toColumn]}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+        />,
+      ];
+    });
+
+  const eastFirstRound = [0, 136, 272, 408];
+  const eastSemis = [68, 340];
+  const eastFinal = [204];
+  const westFirstRound = [544, 680, 816, 952];
+  const westSemis = [612, 884];
+  const westFinal = [748];
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
+      viewBox={`0 0 ${x[3] + MOBILE_BRACKET_COLUMN_WIDTH} ${MOBILE_BRACKET_HEIGHT}`}
+      preserveAspectRatio="none"
+    >
+      {pairPaths(0, eastFirstRound, 1, eastSemis, "rgba(213, 85, 85, 0.42)")}
+      {pairPaths(1, eastSemis, 2, eastFinal, "rgba(213, 85, 85, 0.42)")}
+      {pairPaths(0, westFirstRound, 1, westSemis, "rgba(111, 168, 255, 0.42)")}
+      {pairPaths(1, westSemis, 2, westFinal, "rgba(111, 168, 255, 0.42)")}
+      <path
+        d={`M ${cardRight(2)} ${cardCenter(eastFinal[0])} H ${x[3] - MOBILE_BRACKET_COLUMN_GAP / 2} V ${cardCenter(480, 164)}`}
+        fill="none"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth="1.5"
+      />
+      <path
+        d={`M ${cardRight(2)} ${cardCenter(westFinal[0])} H ${x[3] - MOBILE_BRACKET_COLUMN_GAP / 2} V ${cardCenter(480, 164)}`}
+        fill="none"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function MobileBracketColumnView({ column }: { column: MobileBracketColumn }) {
+  return (
+    <div className="absolute left-0 top-0 w-full">
+      <p className="absolute -top-8 w-full text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-text/50">
+        {column.label}
+      </p>
+      {column.cards.map(({ card, tone, top, size }) => (
+        <motion.div
+          key={card.id}
+          className="absolute left-0 w-full"
+          style={{ top }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <PlayoffSeriesCard card={card} tone={tone} size={size ?? "compact"} />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function MobileBracketRail({
+  columns,
+  height,
+  connectors,
+}: {
+  columns: MobileBracketColumn[];
+  height: number;
+  connectors: ReactNode;
+}) {
+  const columnStep = MOBILE_BRACKET_COLUMN_WIDTH + MOBILE_BRACKET_COLUMN_GAP;
+  const canvasWidth = columnStep * columns.length - MOBILE_BRACKET_COLUMN_GAP;
+
+  return (
+    <div className="md:hidden">
+      <div className="scrollbar-hide -mx-4 snap-x snap-mandatory overflow-x-auto px-4 scroll-smooth">
+        <div
+          className="relative mt-8"
+          style={{ width: canvasWidth, height }}
+        >
+          <div className="absolute left-0 top-0 z-10 flex h-full" style={{ gap: MOBILE_BRACKET_COLUMN_GAP }}>
+            {columns.map((column, index) => (
+              <div
+                key={`${column.label}-${index}`}
+                className="relative h-full shrink-0 snap-start"
+                style={{ width: MOBILE_BRACKET_COLUMN_WIDTH }}
+              >
+                <MobileBracketColumnView
+                  column={column}
+                />
+              </div>
+            ))}
+          </div>
+          {connectors}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileBracket({ columns }: { columns: MobileBracketColumn[] }) {
+  return (
+    <MobileBracketRail
+      columns={columns}
+      height={MOBILE_BRACKET_HEIGHT}
+      connectors={<MobileBracketConnectors />}
+    />
+  );
+}
+
+function MobilePlayInBracket({
+  playIn,
+}: {
+  playIn: NonNullable<PlayoffBracketPayload["playIn"]>;
+}) {
+  const canvasHeight = 700;
+  const firstRoundEastTops = [0, 136];
+  const firstRoundWestTops = [400, 536];
+  const decidingEastTop = 68;
+  const decidingWestTop = 468;
+  const cardRight = MOBILE_BRACKET_COLUMN_WIDTH;
+  const secondColumnX = MOBILE_BRACKET_COLUMN_WIDTH + MOBILE_BRACKET_COLUMN_GAP;
+  const elbowX = cardRight + MOBILE_BRACKET_COLUMN_GAP / 2;
+  const center = (top: number) => top + MOBILE_BRACKET_CARD_HEIGHT / 2;
+
+  const renderConnectors = (tops: number[], targetTop: number, color: string) => (
+    <>
+      {tops.map((top) => (
+        <path
+          key={`${targetTop}-${top}`}
+          d={`M ${cardRight} ${center(top)} H ${elbowX} V ${center(targetTop)}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+        />
+      ))}
+    </>
+  );
+
+  const columns: MobileBracketColumn[] = [
+    {
+      label: "Opening Games",
+      cards: [
+        ...playIn.east.slice(0, 2).map((card, index) => ({
+          card,
+          tone: "east" as const,
+          top: firstRoundEastTops[index] ?? index * 136,
+        })),
+        ...playIn.west.slice(0, 2).map((card, index) => ({
+          card,
+          tone: "west" as const,
+          top: firstRoundWestTops[index] ?? 400 + index * 136,
+        })),
+      ],
+    },
+    {
+      label: "Play-In Decider",
+      cards: [
+        playIn.east[2] && {
+          card: playIn.east[2],
+          tone: "east" as const,
+          top: decidingEastTop,
+        },
+        playIn.west[2] && {
+          card: playIn.west[2],
+          tone: "west" as const,
+          top: decidingWestTop,
+        },
+      ].filter(Boolean) as MobileBracketColumn["cards"],
+    },
+  ];
+
+  const canvasWidth = MOBILE_BRACKET_COLUMN_WIDTH * 2 + MOBILE_BRACKET_COLUMN_GAP;
+  const connectors = (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
+      viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+      preserveAspectRatio="none"
+    >
+      {renderConnectors(firstRoundEastTops, decidingEastTop, "rgba(213, 85, 85, 0.42)")}
+      {renderConnectors(firstRoundWestTops, decidingWestTop, "rgba(111, 168, 255, 0.42)")}
+    </svg>
+  );
+
+  return (
+    <MobileBracketRail
+      columns={columns}
+      height={canvasHeight}
+      connectors={connectors}
+    />
+  );
+}
+
 function PlayInConferenceCard({
   title,
   tone,
@@ -502,6 +755,60 @@ export default function PlayoffsBracketView({
     },
   ];
 
+  const mobileBracketColumns: MobileBracketColumn[] = [
+    {
+      label: "First Round",
+      cards: [
+        ...data.playoffs.east.firstRound.map((card, index) => ({
+          card,
+          tone: "east" as const,
+          top: [0, 136, 272, 408][index] ?? index * 136,
+        })),
+        ...data.playoffs.west.firstRound.map((card, index) => ({
+          card,
+          tone: "west" as const,
+          top: [544, 680, 816, 952][index] ?? 544 + index * 136,
+        })),
+      ],
+    },
+    {
+      label: "Conference Semifinals",
+      cards: [
+        ...data.playoffs.east.conferenceSemifinals.map((card, index) => ({
+          card,
+          tone: "east" as const,
+          top: [68, 340][index] ?? 68 + index * 272,
+        })),
+        ...data.playoffs.west.conferenceSemifinals.map((card, index) => ({
+          card,
+          tone: "west" as const,
+          top: [612, 884][index] ?? 612 + index * 272,
+        })),
+      ],
+    },
+    {
+      label: "Conference Finals",
+      cards: [
+        ...data.playoffs.east.conferenceFinals.map((card) => ({
+          card,
+          tone: "east" as const,
+          top: 204,
+        })),
+        ...data.playoffs.west.conferenceFinals.map((card) => ({
+          card,
+          tone: "west" as const,
+          top: 748,
+        })),
+      ],
+    },
+    {
+      label: "NBA Finals",
+      cards: [
+        { card: data.playoffs.finals, tone: "neutral" as const, top: 480, size: "finals" as const },
+      ],
+    },
+  ];
+
   return (
     <div className="space-y-7 sm:space-y-8">
       {showTitle && (
@@ -526,7 +833,7 @@ export default function PlayoffsBracketView({
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="hidden grid-cols-1 gap-5 xl:grid md:grid">
             <PlayInConferenceCard
               title="Western Conference"
               tone="west"
@@ -539,17 +846,16 @@ export default function PlayoffsBracketView({
               cards={data.playIn.east}
             />
           </div>
+
+          <MobilePlayInBracket playIn={data.playIn} />
         </section>
       )}
 
       <section className="rounded-2xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="font-display tracking-wide text-2xl text-text">
-            Playoff Bracket
-          </h2>
-        </div>
 
-        <div className="overflow-x-auto pb-1">
+        <MobileBracket columns={mobileBracketColumns} />
+
+        <div className="hidden overflow-x-auto pb-1 md:block">
           <div className="min-w-[1220px] relative">
             <div className="grid grid-cols-7 gap-4 relative">
               {bracketColumns.map((column) => (

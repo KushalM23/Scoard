@@ -67,7 +67,7 @@ function SectionError({
   onRetry?: () => void;
 }) {
   return (
-    <div className="glass-card p-5 flex flex-col gap-3">
+    <div className="bg-white/5 border border-white/10 p-5 flex flex-col gap-3">
       <p className="text-red-400 font-display text-sm tracking-wider uppercase">
         {title}
       </p>
@@ -89,7 +89,7 @@ function SectionError({
 
 function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="glass-card p-8 text-center">
+    <div className="bg-white/5 border border-white/10 p-8 text-center">
       <p className="text-text text-lg font-display tracking-wider uppercase">
         {title}
       </p>
@@ -101,7 +101,7 @@ function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
 function PlayerHeaderSkeleton() {
   return (
     <section className="space-y-3 md:space-y-4">
-      <div className="glass-card p-4 md:p-6">
+      <div className="bg-white/5 border border-white/10 p-4 md:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-start gap-4 lg:gap-7">
           <div className="w-full max-w-[160px] sm:max-w-[220px] mx-auto lg:mx-0">
             <Skeleton className="w-full h-[210px] sm:h-[280px] rounded-2xl" />
@@ -142,7 +142,7 @@ function PlayerSectionSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <div className="space-y-2">
       <Skeleton className="h-4 w-36 ml-1" />
-      <div className="glass-card rounded-2xl p-4 md:p-5 space-y-3 overflow-hidden">
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 space-y-3 overflow-hidden">
         <Skeleton className="h-8 w-full rounded-lg" />
         {Array.from({ length: rows }).map((_, index) => (
           <Skeleton
@@ -355,7 +355,7 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <div className="glass-card p-4 md:p-6">
+      <div className="bg-white/5 border border-white/10 rounded-lg p-4 md:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] items-center gap-4 lg:gap-7">
           <div className="w-full max-w-[160px] sm:max-w-[220px] mx-auto lg:mx-0">
             <img
@@ -371,25 +371,22 @@ function PlayerHeaderSection({ data }: { data: PlayerHeaderData }) {
 
           <div className="flex flex-col justify-between gap-3 md:gap-4 min-w-0">
             <div className="flex flex-col gap-2">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-display leading-tight break-words">
+              <h1 className="text-2xl text-center sm:text-left sm:text-3xl md:text-4xl font-display leading-tight break-words">
                 {data.displayName}
               </h1>
               <div className="flex flex-wrap items-center gap-2 text-sm text-text/80 mt-2">
                 <TeamLink
                   teamId={data.teamId}
-                  className="px-2.5 py-1 rounded-md bg-background/40 border border-white/10 hover:text-accent transition-colors"
+                  className="px-2.5 py-1 flex-1 truncate rounded-md bg-background/40 border border-white/10 hover:text-accent transition-colors"
                   sourceComponent="player_page_header"
                 >
                   {data.teamName}
                 </TeamLink>
-                <span className="px-2.5 py-1 rounded-md bg-background/40 border border-white/10">
+                <span className="px-2.5 py-1 flex-1 rounded-md bg-background/40 border border-white/10">
                   {data.position || "N/A"}
                 </span>
-                <span className="px-2.5 py-1 rounded-md bg-background/40 border border-white/10">
+                <span className="px-2.5 py-1 flex-1 rounded-md bg-background/40 border border-white/10">
                   #{data.jersey || "--"}
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-background/40 border border-white/10">
-                  {data.school || "N/A"}
                 </span>
               </div>
             </div>
@@ -499,7 +496,7 @@ function PlayerOverviewTab({
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
           Season
         </h3>
-        <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1200px] text-center">
               <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -536,7 +533,7 @@ function PlayerOverviewTab({
           Career
         </h3>
         {careerRows.length ? (
-          <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] text-center">
                 <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -579,7 +576,7 @@ function PlayerOverviewTab({
           Career Highs
         </h3>
         {data.careerHighs.length ? (
-          <div className="glass-card overflow-hidden rounded-2xl p-3 md:p-4">
+          <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl p-3 md:p-4">
             <ul className="grid grid-cols-2 lg:grid-cols-3 gap-2">
               {data.careerHighs.map((entry) => {
                 const context = formatCareerHighContext(
@@ -623,7 +620,7 @@ function PlayerOverviewTab({
           Teams
         </h3>
         {teamTimeline.length ? (
-          <div className="glass-card overflow-hidden rounded-2xl">
+          <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-left">
                 <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -681,7 +678,7 @@ function PlayerOverviewTab({
           Awards ({data.awards.total})
         </h3>
         {data.awards.grouped.length ? (
-          <div className="glass-card rounded-2xl divide-y divide-white/10 overflow-hidden">
+          <div className="bg-white/5 border border-white/10 rounded-2xl divide-y divide-white/10 overflow-hidden">
             {data.awards.grouped.map((award) => (
               <div
                 key={award.label}
@@ -695,7 +692,7 @@ function PlayerOverviewTab({
                     {formatAwardYears(award.years)}
                   </p>
                 </div>
-                <span className="inline-flex min-w-10 justify-center rounded-full bg-accent/20 border border-accent/30 px-3 py-1 text-sm font-semibold text-text shrink-0">
+                <span className="inline-flex min-w-10 justify-center rounded-lg bg-accent px-3 py-1 text-sm font-semibold text-text shrink-0">
                   {award.count}
                 </span>
               </div>
@@ -781,7 +778,7 @@ function SeasonStatsTable({
           subtitle="No rows available."
         />
       ) : (
-        <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1160px] text-center">
               <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -983,7 +980,7 @@ function PlayerGameLogTab({ data }: { data: PlayerGameLogData }) {
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
         Game Log
       </h3>
-      <div className="glass-card overflow-hidden rounded-2xl">
+      <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1620px] text-center">
             <thead className="text-sm uppercase text-text/70 bg-white/[0.03]">

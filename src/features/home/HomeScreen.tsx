@@ -110,7 +110,7 @@ function CalendarPicker({
                 animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
                 exit={{ opacity: 0, y: 20, scale: 0.95, x: "-50%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed bottom-24 left-1/2 z-[9999] w-[min(100vw-2rem,340px)] rounded-2xl border border-white/10 bg-background p-3.5 shadow-2xl shadow-black/50 sm:p-5 md:w-[400px] lg:bottom-40"
+                className="fixed bottom-24 left-1/2 z-40 w-[min(100vw-2rem,340px)] rounded-2xl border border-white/10 bg-background p-3.5 shadow-2xl shadow-black/50 sm:p-5 md:w-[400px] lg:bottom-40"
               >
                 <div className="mb-4 flex items-center justify-between">
                   <motion.button
@@ -357,14 +357,14 @@ export default function HomeScreen() {
   return (
     <Layout>
       <Header />
-      <div className="mx-auto w-full px-3 py-3 pb-32 sm:px-5 sm:py-4 md:px-8 md:py-6 md:pb-24">
+      <div className="mx-auto w-full px-4 py-3 pb-32 sm:px-5 sm:py-4 md:px-8 md:py-6 md:pb-24">
         <div className="mb-4 flex justify-center md:mb-4">
-          <div className="glass flex w-full max-w-md gap-0.5 rounded-xl p-0.5 sm:w-auto sm:gap-1.5 sm:p-1">
+          <div className="bg-white/5 border border-white/10 flex min-w-64 max-w-full gap-0.5 rounded-xl p-1 sm:w-auto sm:gap-1.5">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative z-10 flex-1 rounded-lg px-2 py-2 font-display text-[10px] tracking-wide transition-colors duration-300 sm:flex-none sm:px-6 sm:py-2.5 sm:text-sm md:px-8 md:text-base ${
+                className={`relative z-10 flex-1 rounded-xs px-2 py-2 font-display text-[12px] tracking-wide transition-colors duration-300 sm:flex-none sm:px-6 sm:py-2.5 sm:text-sm md:px-8 md:text-base ${
                   activeTab === tab
                     ? "text-text"
                     : "text-text/60 hover:text-text"
@@ -435,13 +435,13 @@ export default function HomeScreen() {
                   <div className="flex flex-wrap justify-center gap-3">
                     <Link
                       href="/teams"
-                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-display uppercase tracking-wide transition-all hover:text-accent"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-display uppercase tracking-wide transition-all hover:text-accent"
                     >
                       Teams
                     </Link>
                     <Link
                       href="/players"
-                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-display uppercase tracking-wide transition-all hover:text-accent"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-display uppercase tracking-wide transition-all hover:text-accent"
                     >
                       Players
                     </Link>
@@ -502,7 +502,7 @@ export default function HomeScreen() {
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
                 transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                className="glass pointer-events-auto no-scrollbar flex max-w-[calc(100vw-1rem)] items-center gap-0 overflow-x-auto rounded-2xl px-1 py-1 shadow-2xl shadow-black/50 sm:gap-1 sm:px-2 sm:py-2 md:max-w-[85vw]"
+                className="bg-white/5 backdrop-blur-xl border border-white/10 pointer-events-auto no-scrollbar flex max-w-[calc(100vw-1rem)] items-center gap-0 overflow-x-auto rounded-xl md:rounded-2xl px-2 py-2 shadow-2xl shadow-black/50 sm:gap-1 sm:px-2 sm:py-2 md:max-w-[85vw]"
               >
                 <motion.button
                   whileHover={{ scale: 1.1 }}
@@ -513,7 +513,7 @@ export default function HomeScreen() {
                   <ChevronLeft className="h-5 w-5 text-text/60 group-hover:text-text sm:h-6 sm:w-6 lg:h-8 lg:w-8" />
                 </motion.button>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   {calendarDays.map((date, index) => {
                     const isSelected = index === 3;
                     const isHiddenOnMobile = index < 2 || index > 4;
@@ -525,7 +525,7 @@ export default function HomeScreen() {
                         onClick={() => setSelectedDate(date)}
                         className={`${
                           isHiddenOnMobile ? "hidden md:flex" : "flex"
-                        } h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl transition-colors duration-300 sm:h-12 sm:w-12 lg:h-20 lg:w-20 ${
+                        } h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg transition-colors duration-300 sm:h-12 sm:w-12 lg:h-20 lg:w-20 ${
                           isSelected
                             ? "bg-accent text-text shadow-lg shadow-accent/20"
                             : "text-text/60 hover:bg-white/5 hover:text-text"
@@ -573,7 +573,7 @@ export default function HomeScreen() {
                   stiffness: 100,
                   delay: 0.05,
                 }}
-                className="glass pointer-events-auto rounded-2xl p-1 shadow-2xl shadow-black/50"
+                className="bg-white/5 backdrop-blur-xl border border-white/10 pointer-events-auto rounded-xl md:rounded-2xl p-1 shadow-2xl shadow-black/50"
               >
                 <CalendarPicker
                   selectedDate={selectedDate}

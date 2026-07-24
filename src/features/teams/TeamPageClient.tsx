@@ -93,7 +93,7 @@ function SectionError({
   onRetry?: () => void;
 }) {
   return (
-    <div className="glass-card p-5 flex flex-col gap-3">
+    <div className="bg-white/5 border border-white/10 p-5 flex flex-col gap-3">
       <p className="text-red-400 font-display text-sm tracking-wider uppercase">
         {title}
       </p>
@@ -115,7 +115,7 @@ function SectionError({
 
 function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="glass-card p-8 text-center">
+    <div className="bg-white/5 border border-white/10 p-8 text-center">
       <p className="text-text text-lg font-display tracking-wider uppercase">
         {title}
       </p>
@@ -127,7 +127,7 @@ function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
 function TeamOverviewSkeleton() {
   return (
     <section className="mb-4 md:mb-6">
-      <div className="glass-card p-4 md:p-6 space-y-4">
+      <div className="bg-white/5 border border-white/10 p-4 md:p-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
           <div className="flex items-center gap-4 min-w-0">
             <Skeleton className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full" />
@@ -190,7 +190,7 @@ function TeamStatsSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={`team-stat-metric-skeleton-${index}`}
-            className="glass-card p-4 text-center rounded-xl space-y-2"
+            className="bg-white/5 border border-white/10 p-4 text-center rounded-xl space-y-2"
           >
             <Skeleton className="h-3 w-14 mx-auto" />
             <Skeleton className="h-7 w-16 mx-auto" />
@@ -198,7 +198,7 @@ function TeamStatsSkeleton() {
         ))}
       </div>
 
-      <div className="glass-card overflow-hidden rounded-2xl p-4 md:p-5 space-y-3">
+      <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl p-4 md:p-5 space-y-3">
         <Skeleton className="h-5 w-36" />
         {Array.from({ length: 8 }).map((_, index) => (
           <Skeleton
@@ -217,7 +217,7 @@ function TeamRosterSkeleton() {
       {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={`team-roster-skeleton-${index}`}
-          className="glass-card p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
+          className="bg-white/5 border border-white/10 p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
         >
           <Skeleton className="w-12 h-12 md:w-14 md:h-14 rounded-full shrink-0" />
           <div className="min-w-0 flex-1 space-y-2">
@@ -354,7 +354,7 @@ function TeamOverviewInline({
     rows: TeamOverviewData["standingsSnapshot"]["conference"],
   ) => (
     <div
-      className={`rounded-2xl border border-white/10 bg-background/20 p-4 ${snapshotPanelHeightClass} flex flex-col`}
+      className={`rounded-lg border border-white/10 bg-background/20 p-4 ${snapshotPanelHeightClass} flex flex-col`}
     >
       <h3 className="text-sm uppercase tracking-wider text-text/70 mb-3 font-semibold">
         {title}
@@ -511,27 +511,27 @@ function TeamOverviewInline({
 
   return (
     <section className="mb-4 md:mb-6">
-      <div className="glass-card p-3 sm:p-4 md:p-5 lg:p-6">
+      <div className="bg-white/5 border border-white/10 p-3 rounded-lg sm:p-4 md:p-5 lg:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-3 md:gap-5">
           <div className="min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-[116px_minmax(0,1fr)] md:grid-cols-[128px_minmax(0,1fr)] gap-3 sm:gap-4 items-start">
-              <div className="shrink-0 rounded-2xl border border-white/10 bg-background/25 w-[88px] h-[88px] sm:w-[116px] sm:h-[116px] md:w-[128px] md:h-[128px] flex items-center justify-center">
+            <div className="flex min-w-0 items-center gap-3 lg:grid lg:grid-cols-[128px_minmax(0,1fr)] lg:items-start lg:gap-4">
+              <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-2xl sm:h-[116px] sm:w-[116px] lg:h-[128px] lg:w-[128px]">
                 <img
                   src={
                     data.logoUrl ??
                     `https://cdn.nba.com/logos/nba/${data.teamId}/primary/L/logo.svg`
                   }
                   alt={`${data.city} ${data.name}`}
-                  className="w-[62px] h-[62px] sm:w-[82px] sm:h-[82px] md:w-[94px] md:h-[94px] object-contain"
+                  className="h-[52px] w-[52px] object-contain sm:h-[82px] sm:w-[82px] lg:h-[94px] lg:w-[94px]"
                 />
               </div>
 
               <div className="min-w-0 self-center">
-                <h1 className="text-xs sm:text-base md:text-lg font-display leading-tight text-text/70 truncate uppercase tracking-[0.12em]">
+                <h1 className="text-[10px] font-display leading-tight text-text/70 truncate uppercase tracking-[0.12em] sm:text-base md:text-lg">
                   {data.city}
                 </h1>
                 <div className="mt-1 flex items-center gap-2.5 min-w-0">
-                  <h2 className="text-2xl sm:text-5xl md:text-[3.6rem] font-display leading-none truncate uppercase">
+                  <h2 className="line-clamp-2 min-w-0 text-xl font-display leading-none uppercase sm:text-5xl md:text-[3.6rem] lg:line-clamp-none lg:truncate">
                     {data.name}
                   </h2>
                   {isChampion ? (
@@ -704,7 +704,7 @@ function TeamStatsTable({
       <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
         {title}
       </h3>
-      <div className="glass-card overflow-hidden rounded-2xl">
+      <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
         <div className="overflow-x-auto">
           <table className="w-max min-w-full text-center whitespace-nowrap">
             <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -786,7 +786,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
         {metricLabels.map((metric) => (
           <div
             key={metric.label}
-            className="glass-card p-4 text-center rounded-xl"
+            className="bg-white/5 border border-white/10 p-4 text-center rounded-xl"
           >
             <p className="text-[11px] text-text/60 tracking-wider uppercase">
               <StatTooltip label={metric.label} />
@@ -797,7 +797,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-card p-5 rounded-xl">
+        <div className="bg-white/5 border border-white/10 p-5 rounded-xl">
           <h3 className="text-xs uppercase tracking-wider text-text/70 mb-2">
             Team Record
           </h3>
@@ -808,7 +808,7 @@ function TeamStatsInline({ data }: { data: TeamStatsData }) {
             Games Played: {data.teamMetrics.gamesPlayed}
           </p>
         </div>
-        <div className="glass-card p-5 rounded-xl">
+        <div className="bg-white/5 border border-white/10 p-5 rounded-xl">
           <h3 className="text-xs uppercase tracking-wider text-text/70 mb-2">
             Home / Away
           </h3>
@@ -900,7 +900,7 @@ function TeamPlayerStatsInline({ data }: { data: TeamStatsData }) {
         <h3 className="text-sm uppercase tracking-wider text-text/70 px-1 font-semibold">
           Player Stats - Per Game
         </h3>
-        <div className="glass-card overflow-hidden rounded-2xl">
+        <div className="bg-white/5 border border-white/10 overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="w-max min-w-full text-center whitespace-nowrap">
               <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -1012,12 +1012,12 @@ function TeamRosterInline({ data }: { data: TeamRosterData }) {
           return (
             <div
               key={player.playerId}
-              className="glass-card p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
+              className="bg-white/5 border border-white/10 rounded-lg p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 min-w-0"
             >
               <img
                 src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.playerId}.png`}
                 alt={player.playerName}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover bg-white/10"
+                className="w-12 h-12 md:w-14 md:h-14 rounded-lg object-cover bg-white/10"
                 onError={(event) => {
                   (event.target as HTMLImageElement).src =
                     "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png";
@@ -1071,7 +1071,7 @@ function TeamScheduleInline({
             key={game.gameId}
             href={`/game/${game.gameId}`}
             onClick={() => onGameClick?.(game.gameId)}
-            className="glass-card p-3 flex items-center justify-between hover:bg-white/10 transition-colors rounded-xl"
+            className="bg-white/5 border border-white/10 p-3 flex items-center justify-between hover:bg-white/10 transition-colors rounded-xl"
           >
             <div>
               <p className="text-sm font-semibold">
