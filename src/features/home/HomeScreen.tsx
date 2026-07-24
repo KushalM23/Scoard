@@ -397,7 +397,7 @@ export default function HomeScreen() {
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={`game-skeleton-${index}`}
-                      className="glass-card space-y-4 rounded-2xl p-4 md:p-5"
+                      className="bg-white/5 border border-white/10 rounded-lg space-y-4 rounded-2xl p-4 md:p-5"
                     >
                       <div className="flex items-center justify-between">
                         <Skeleton className="h-4 w-24" />

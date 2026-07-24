@@ -126,7 +126,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   );
 
   const renderRosterTable = (teamPlayers: Player[]) => (
-    <div className="glass-card overflow-hidden rounded-2xl">
+    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden rounded-2xl">
       <div className="overflow-auto max-h-[400px]">
         <table className="w-full text-left min-w-[600px]">
           <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -193,7 +193,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   );
 
   const renderPlayerTable = (teamPlayers: Player[]) => (
-    <div className="glass-card overflow-hidden rounded-2xl">
+    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden rounded-2xl">
       <div className="overflow-auto max-h-[400px]">
         <table className="w-full text-left min-w-[1000px]">
           <thead className="text-[13px] md:text-sm uppercase text-text/70 bg-white/[0.03]">
@@ -540,7 +540,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
             : renderPlayerTable(sortedAwayPlayers))}
         {activeTab === "team" && renderTeamStats()}
         {activeTab === "pbp" && (
-          <div className="glass-card overflow-auto max-h-[400px] rounded-2xl p-4 space-y-2">
+          <div className="bg-white/5 border border-white/10 rounded-lg overflow-auto max-h-[400px] rounded-2xl p-4 space-y-2">
             {actions
               .slice()
               .reverse()

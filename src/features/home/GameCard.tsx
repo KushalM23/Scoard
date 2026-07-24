@@ -111,7 +111,7 @@ const GameCard: React.FC<GameCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={twMerge(
-        "glass-card game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center p-2.5 sm:p-3 md:p-4",
+        "bg-white/5 border border-white/10 rounded-lg game-card-custom cursor-pointer hover:bg-white/10 transition-colors duration-300 group relative overflow-hidden flex flex-col justify-center p-2.5 sm:p-3 md:p-4",
         isLive && "border-accent/50 shadow-[0_0_30px_rgba(69,126,172,0.15)]",
       )}
     >

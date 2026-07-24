@@ -68,7 +68,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
   );
 
   return (
-    <div className="glass-card p-4 mb-4 max-w-2xl mx-auto">
+    <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
       {/* Main Scoreboard */}
       <div
         className={`flex justify-center items-center ${isScheduled ? "gap-4 md:gap-24 py-4" : "gap-8 md:gap-12"}`}

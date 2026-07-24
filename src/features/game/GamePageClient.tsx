@@ -34,7 +34,7 @@ function WinProbabilityCard({
   awayTeamName: string;
 }) {
   return (
-    <div className="glass-card mx-auto mb-4 max-w-2xl p-4">
+    <div className="bg-white/5 border border-white/10 rounded-lg mx-auto mb-4 max-w-2xl p-4">
       <h3 className="mb-4 text-center text-lg font-bold">Win Probability</h3>
 
       <div className="relative flex h-8 overflow-hidden rounded-full bg-background/30">
@@ -190,7 +190,7 @@ function PreviousMatchupCard({ matchup }: { matchup: Matchup }) {
 function PreviousMatchupsSection({ matchups }: { matchups: Matchup[] }) {
   if (!matchups || matchups.length === 0) {
     return (
-      <div className="glass-card mx-auto mb-4 max-w-2xl p-4">
+      <div className="bg-white/5 border border-white/10 rounded-lg mx-auto mb-4 max-w-2xl p-4">
         <h3 className="mb-2 text-lg font-bold">Previous Matchups</h3>
         <p className="text-sm text-text/40">No previous matchups this season.</p>
       </div>
@@ -198,7 +198,7 @@ function PreviousMatchupsSection({ matchups }: { matchups: Matchup[] }) {
   }
 
   return (
-    <div className="glass-card mx-auto mb-4 max-w-2xl p-4">
+    <div className="bg-white/5 border border-white/10 rounded-lg mx-auto mb-4 max-w-2xl p-4">
       <h3 className="mb-4 text-center text-lg font-bold">Previous Matchups</h3>
       <div className="flex flex-col gap-2">
         {matchups.map((game) => (
@@ -261,7 +261,7 @@ function TopPerformersSection({
   );
 
   return (
-    <div className="glass-card mx-auto mb-4 max-w-2xl p-4">
+    <div className="bg-white/5 border border-white/10 rounded-lg mx-auto mb-4 max-w-2xl p-4">
       <h3 className="mb-4 text-center text-lg font-display">Top Performers</h3>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>

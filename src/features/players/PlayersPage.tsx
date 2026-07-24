@@ -62,7 +62,7 @@ function PlayerCard({ player }: { player: SearchPlayerRecord }) {
 
 function PlayerCardSkeleton() {
   return (
-    <div className="glass-card flex h-[62px] items-center gap-1 overflow-hidden p-1 sm:h-[78px] sm:gap-2 sm:p-2">
+    <div className="bg-white/5 border border-white/10 rounded-lg flex h-[62px] items-center gap-1 overflow-hidden p-1 sm:h-[78px] sm:gap-2 sm:p-2">
       <Skeleton className="h-[50px] w-[52px] shrink-0 rounded-md sm:h-[60px] sm:w-[62px]" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-3/4" />
@@ -148,7 +148,7 @@ export default function PlayersPage() {
           {Array.from({ length: PAGE_SIZE }).map((_, index) => <PlayerCardSkeleton key={index} />)}
         </div>
       ) : error ? (
-        <div className="glass-card p-8 text-center text-red-300">{error}</div>
+        <div className="bg-white/5 border border-white/10 rounded-lg p-8 text-center text-red-300">{error}</div>
       ) : visiblePlayers.length ? (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5 lg:gap-4 xl:grid-cols-5">
           {visiblePlayers.map((player) => <PlayerCard key={player.id} player={player} />)}

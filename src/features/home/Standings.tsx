@@ -394,7 +394,7 @@ const Standings: React.FC = () => {
           <Skeleton className="h-10 w-44" />
           <Skeleton className="h-10 w-36 rounded-lg" />
         </div>
-        <div className="mb-8 glass-card overflow-hidden rounded-2xl p-4 md:p-6 space-y-3">
+        <div className="mb-8 bg-white/5 border border-white/10 rounded-lg overflow-hidden rounded-2xl p-4 md:p-6 space-y-3">
           <Skeleton className="h-8 w-full rounded-lg" />
           {Array.from({ length: 12 }).map((_, index) => (
             <Skeleton key={`standings-row-skeleton-${index}`} className="h-12 w-full rounded-lg" />
@@ -407,7 +407,7 @@ const Standings: React.FC = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="glass-card p-6 flex flex-col items-center gap-4 max-w-md mx-4">
+        <div className="bg-white/5 border border-white/10 rounded-lg p-6 flex flex-col items-center gap-4 max-w-md mx-4">
           <p className="text-red-400 font-mono text-center">
             {error.toUpperCase()}
           </p>

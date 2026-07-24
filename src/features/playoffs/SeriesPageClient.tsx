@@ -303,7 +303,7 @@ function SeriesScoreboard({ payload }: { payload: PlayoffSeriesPayload }) {
   };
 
   return (
-    <section className="glass-card p-4 md:p-5">
+    <section className="bg-white/5 border border-white/10 rounded-lg p-4 md:p-5">
       <div className="flex items-center justify-center mb-3">
         <p className="text-sm uppercase tracking-[0.14em] text-text/65">
           {payload.series.roundLabel}
@@ -860,7 +860,7 @@ export default function SeriesPageClient({ seriesId }: { seriesId: string }) {
 
             <section className="space-y-4">
               <div className="flex justify-center">
-                <div className="glass rounded-xl p-1 flex gap-1.5 relative">
+                <div className="bg-white/5 border border-white/10 rounded-lg rounded-xl p-1 flex gap-1.5 relative">
                   {(
                     [
                       { id: "stats", label: "Stats" },
