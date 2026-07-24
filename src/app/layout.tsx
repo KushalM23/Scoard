@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Parkinsans, Bungee, Jersey_15 } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SeasonProvider } from "@/providers/SeasonProvider";
+import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 
 const parkinsans = Parkinsans({
   subsets: ["latin"],
@@ -28,10 +29,29 @@ export const metadata: Metadata = {
   title: "Scoard!",
   description: "NBA Scores and Statistics",
   manifest: "/manifest.webmanifest",
-  themeColor: "#1a1616",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
   },
+  appleWebApp: {
+    capable: true,
+    title: "Scoard",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1a1616",
 };
 
 export default function RootLayout({
@@ -41,10 +61,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash.png" />
+      </head>
       <body
         className={`${parkinsans.variable} ${bungee.variable} ${jersey15.variable} font-sans antialiased`}
       >
         <SeasonProvider>
+          <ServiceWorkerRegistration />
           {children}
         </SeasonProvider>
       </body>
