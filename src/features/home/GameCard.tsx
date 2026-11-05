@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { motion } from "framer-motion";
 import TeamLink from "@/components/links/TeamLink";
+import { useLocalGameTime } from "@/lib/useLocalGameTime";
 
 interface Team {
   teamId: number;
@@ -56,45 +57,10 @@ const GameCard: React.FC<GameCardProps> = ({
     return isHigh ? "opacity-100" : "opacity-30";
   };
 
-  const formatToIST = (dateString: string, statusText: string) => {
-    try {
-      const timeMatch = statusText.match(/(\d+):(\d+)\s*(am|pm)\s*ET/i);
-      if (timeMatch) {
-        let [_, hours, minutes, period] = timeMatch;
-        let hour = parseInt(hours);
-        if (period.toLowerCase() === "pm" && hour !== 12) hour += 12;
-        if (period.toLowerCase() === "am" && hour === 12) hour = 0;
-
-        const datePart = dateString.split("T")[0];
-        const etDate = new Date(
-          `${datePart}T${hour.toString().padStart(2, "0")}:${minutes}:00-05:00`,
-        );
-
-        return etDate.toLocaleTimeString("en-IN", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "Asia/Kolkata",
-        });
-      }
-
-      const date = new Date(
-        dateString.endsWith("Z") ? dateString : `${dateString}-05:00`,
-      );
-      return date.toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Kolkata",
-      });
-    } catch (e) {
-      return statusText;
-    }
-  };
-
-  const scheduledLabel = scheduledDisplay?.label ?? "TIPOFF (IST)";
+  const localGameTime = useLocalGameTime(game.gameEt);
+  const scheduledLabel = scheduledDisplay?.label ?? "TIPOFF (LOCAL)";
   const scheduledValue =
-    scheduledDisplay?.value ?? formatToIST(game.gameEt, game.gameStatusText);
+    scheduledDisplay?.value ?? localGameTime;
   const scheduledDateText = scheduledDisplay?.dateText;
   const scheduledTimeText = scheduledDisplay?.timeText ?? scheduledValue;
   const hasDateTimeSplit =

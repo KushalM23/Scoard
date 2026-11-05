@@ -3,6 +3,7 @@
 import React from "react";
 import type { GameData } from "@/types";
 import TeamLink from "@/components/links/TeamLink";
+import { useLocalGameTime } from "@/lib/useLocalGameTime";
 
 interface ScoreboardProps {
   gameData: GameData;
@@ -15,46 +16,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
   const isScheduled = gameStatus === 1;
   const isHomeLeading = !isScheduled && homeTeam.score > awayTeam.score;
   const isAwayLeading = !isScheduled && awayTeam.score > homeTeam.score;
-
-  // Format time to IST
-  const formatToIST = (dateString: string, statusText: string) => {
-    try {
-      // If statusText contains a time (e.g. "7:00 pm ET"), parse it
-      const timeMatch = statusText.match(/(\d+):(\d+)\s*(am|pm)\s*ET/i);
-      if (timeMatch) {
-        let [_, hours, minutes, period] = timeMatch;
-        let hour = parseInt(hours);
-        if (period.toLowerCase() === "pm" && hour !== 12) hour += 12;
-        if (period.toLowerCase() === "am" && hour === 12) hour = 0;
-
-        // Construct date from dateString (YYYY-MM-DD)
-        const datePart = dateString.split("T")[0];
-        const etDate = new Date(
-          `${datePart}T${hour.toString().padStart(2, "0")}:${minutes}:00-05:00`,
-        );
-
-        return etDate.toLocaleTimeString("en-IN", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "Asia/Kolkata",
-        });
-      }
-
-      // Fallback to dateString parsing if no time in status text
-      const date = new Date(
-        dateString.endsWith("Z") ? dateString : `${dateString}-05:00`,
-      );
-      return date.toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Kolkata",
-      });
-    } catch (e) {
-      return statusText;
-    }
-  };
+  const localGameTime = useLocalGameTime(gameEt);
 
   const renderTimeouts = (count: number, isHome: boolean) => (
     <div className="flex gap-0.5">
@@ -112,14 +74,11 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ gameData }) => {
             {isScheduled ? (
               <div className="flex flex-col items-center gap-2">
                 <span className="text-[10px] font-bold text-text/50 tracking-widest uppercase">
-                  TIPOFF (IST)
+                  TIPOFF (LOCAL)
                 </span>
                 <div className="bg-white/5 rounded-lg px-3 py-1 border border-white/5">
                   <span className="text-xl font-mono font-medium text-text whitespace-nowrap">
-                    {formatToIST(
-                      gameEt || new Date().toISOString(),
-                      gameStatusText,
-                    )}
+                    {localGameTime}
                   </span>
                 </div>
               </div>

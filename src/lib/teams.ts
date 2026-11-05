@@ -1,7 +1,15 @@
 import type { SeasonType, TeamRange, TeamTab } from "@/types/team";
 import { parseSeasonType as parseNbaSeasonType } from "@/lib/postseason";
 
-export const CURRENT_SEASON = "2025-26";
+const currentDate = new Date();
+const currentSeasonStartYear =
+  currentDate.getMonth() >= 9
+    ? currentDate.getFullYear()
+    : currentDate.getFullYear() - 1;
+
+export const CURRENT_SEASON = `${currentSeasonStartYear}-${String(
+  (currentSeasonStartYear + 1) % 100,
+).padStart(2, "0")}`;
 const SEASON_ID_PATTERN = /^\d{4}-\d{2}$/;
 const MIN_SEASON_START_YEAR = 1996;
 

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchStatsApi, CDN_HEADERS } from '@/lib/statsApi';
+import { CURRENT_SEASON } from '@/lib/teams';
 
 // Force dynamic rendering to prevent build-time Stats API calls
 export const dynamic = 'force-dynamic';
@@ -105,20 +106,20 @@ export async function GET(
                 const results = await Promise.allSettled([
                     fetchStatsApi('commonteamroster', {
                         TeamID: homeTeamId,
-                        Season: '2025-26'
+                        Season: CURRENT_SEASON
                     }),
                     fetchStatsApi('commonteamroster', {
                         TeamID: awayTeamId,
-                        Season: '2025-26'
+                        Season: CURRENT_SEASON
                     }),
                     fetchStatsApi('teamgamelog', {
                         TeamID: homeTeamId,
-                        Season: '2025-26',
+                        Season: CURRENT_SEASON,
                         SeasonType: 'Regular Season'
                     }),
                     fetchStatsApi('leaguestandingsv3', {
                         LeagueID: '00',
-                        Season: '2025-26',
+                        Season: CURRENT_SEASON,
                         SeasonType: 'Regular Season'
                     })
                 ]);

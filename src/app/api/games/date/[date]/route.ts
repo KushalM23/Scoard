@@ -1,11 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStatsApi, CDN_HEADERS } from "@/lib/statsApi";
+import { CURRENT_SEASON } from "@/lib/teams";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ date: string }> },
 ) {
   const { date } = await params;
+  const requestedTimeZone = request.nextUrl.searchParams.get("timeZone") || "UTC";
+  let timeZone = "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: requestedTimeZone });
+    timeZone = requestedTimeZone;
+  } catch {
+    // Fall back to UTC when the client sends an unsupported timezone.
+  }
+
+  const localGameDate = (value: string) => {
+    const timestamp = new Date(value);
+    return Number.isNaN(timestamp.getTime())
+      ? null
+      : new Intl.DateTimeFormat("en-CA", {
+          timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(timestamp);
+  };
 
   try {
     // Try CDN first for today's games
@@ -20,7 +41,10 @@ export async function GET(
 
       if (cdnResponse.ok) {
         const cdnData = await cdnResponse.json();
-        if (cdnData.scoreboard.gameDate === date) {
+        if (
+          timeZone === "America/New_York" &&
+          cdnData.scoreboard.gameDate === date
+        ) {
           const hasLive = cdnData.scoreboard.games.some(
             (g: any) => g.gameStatus === 2,
           );
@@ -59,7 +83,7 @@ export async function GET(
     try {
       const standingsData = await fetchStatsApi("leaguestandingsv3", {
         LeagueID: "00",
-        Season: "2025-26",
+        Season: CURRENT_SEASON,
         SeasonType: "Regular Season",
       });
 
@@ -83,19 +107,15 @@ export async function GET(
       console.log("Standings fetch failed, continuing without records");
     }
 
-    const [year, month, day] = date.split("-");
-    const targetDateString = `${month}/${day}/${year}`;
-
-    const gameDates = scheduleData.leagueSchedule.gameDates;
-    const dayData = gameDates.find((d: any) =>
-      d.gameDate.startsWith(targetDateString),
+    const scheduledGames = scheduleData.leagueSchedule.gameDates.flatMap(
+      (day: any) => day.games,
     );
+    const dayGames = scheduledGames.filter((game: any) => {
+      const utcStart = game.gameDateTimeUTC ?? game.gameDateTimeEst;
+      return localGameDate(utcStart) === date;
+    });
 
-    if (!dayData) {
-      return NextResponse.json({ scoreboard: { games: [] } });
-    }
-
-    const games = dayData.games.map((g: any) => {
+    const games = dayGames.map((g: any) => {
       const homeRecord = standingsMap[g.homeTeam.teamId] || {
         wins: 0,
         losses: 0,
@@ -109,7 +129,7 @@ export async function GET(
         gameId: g.gameId,
         gameStatus: 1,
         gameStatusText: g.gameStatusText,
-        gameEt: g.gameDateTimeEst,
+        gameEt: g.gameDateTimeUTC ?? g.gameDateTimeEst,
         homeTeam: {
           teamId: g.homeTeam.teamId,
           teamTricode: g.homeTeam.teamTricode,

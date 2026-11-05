@@ -298,7 +298,10 @@ export default function HomeScreen() {
       try {
         if (isMounted && !isPoll) setLoading(true);
 
-        const response = await axios.get(`/api/games/date/${selectedDateString}`);
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const response = await axios.get(
+          `/api/games/date/${selectedDateString}?timeZone=${encodeURIComponent(timeZone)}`,
+        );
         const fetchedGames = response.data.scoreboard.games;
         const sortedGames = fetchedGames.sort((a: any, b: any) => {
           if (a.gameStatus === 2 && b.gameStatus !== 2) return -1;
