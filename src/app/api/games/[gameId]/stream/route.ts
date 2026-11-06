@@ -2,6 +2,7 @@ import axios from 'axios';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { fetchStatsApi, CDN_HEADERS } from '@/lib/statsApi';
+import { fetchGamePlayByPlay } from '@/lib/gamePlayByPlaySource';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -52,15 +53,12 @@ function computeDelay(data: any): number {
     return DEFAULT_DELAY;
 }
 
-async function fetchPbpData(gameId: string): Promise<any[]> {
+async function fetchPbpData(gameId: string): Promise<{ actions: any[]; error?: string }> {
     try {
-        const pbpResp = await axios.get(`https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${gameId}.json`, {
-            headers: CDN_HEADERS
-        });
-        return pbpResp.data?.game?.actions || [];
+        return { actions: await fetchGamePlayByPlay(gameId) };
     } catch (error) {
-        console.log(`PBP fetch failed for ${gameId}, returning empty actions.`);
-        return [];
+        console.error(`PBP fetch failed for ${gameId}:`, error);
+        return { actions: [], error: 'Play-by-play is temporarily unavailable.' };
     }
 }
 
@@ -103,9 +101,9 @@ async function fetchGameData(gameId: string): Promise<any> {
             
             const gameEt = data.gameTimeUTC || data.gameEt || data.gameDate || data.gameDateTimeUTC;
             
-            const pbpActions = shouldFetchPbp(data.gameStatus)
+            const pbpResult = shouldFetchPbp(data.gameStatus)
                 ? await fetchPbpData(gameId)
-                : [];
+                : { actions: [] };
 
             return {
                 gameId: data.gameId,
@@ -114,7 +112,8 @@ async function fetchGameData(gameId: string): Promise<any> {
                 gameStatusText: data.gameStatusText,
                 period: data.period,
                 clock: data.gameClock,
-                pbpActions,
+                pbpActions: pbpResult.actions,
+                pbpError: pbpResult.error,
                 homeTeam: {
                     teamId: data.homeTeam.teamId,
                     teamName: data.homeTeam.teamName,
@@ -180,9 +179,9 @@ async function fetchGameData(gameId: string): Promise<any> {
 
         const gameStatus = getValue(gameSummary, summaryHeaders, 'GAME_STATUS_ID');
 
-        const pbpActions = shouldFetchPbp(gameStatus)
+        const pbpResult = shouldFetchPbp(gameStatus)
             ? await fetchPbpData(gameId)
-            : [];
+            : { actions: [] };
 
         return {
             gameId: getValue(gameSummary, summaryHeaders, 'GAME_ID'),
@@ -191,7 +190,8 @@ async function fetchGameData(gameId: string): Promise<any> {
             gameStatusText: getValue(gameSummary, summaryHeaders, 'GAME_STATUS_TEXT'),
             period: getValue(gameSummary, summaryHeaders, 'LIVE_PERIOD'),
             clock: getValue(gameSummary, summaryHeaders, 'LIVE_PC_TIME'),
-            pbpActions,
+            pbpActions: pbpResult.actions,
+            pbpError: pbpResult.error,
             homeTeam: {
                 teamId: homeTeamId,
                 teamName: homeLineScore ? getValue(homeLineScore, lineScoreHeaders, 'TEAM_NAME') : 'Home',

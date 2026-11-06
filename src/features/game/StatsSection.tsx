@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { GameData, Player, PlayByPlayEvent } from "@/types";
 import TeamLink from "@/components/links/TeamLink";
@@ -11,6 +11,8 @@ interface StatsSectionProps {
   gameData: GameData;
   players: Player[];
   actions?: PlayByPlayEvent[];
+  selectedActionNumber?: number | null;
+  onSelectAction?: (action: PlayByPlayEvent) => void;
 }
 
 type SortKey = keyof Player | "minutes";
@@ -20,6 +22,8 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   gameData,
   players,
   actions = [],
+  selectedActionNumber = null,
+  onSelectAction,
 }) => {
   const [activeTab, setActiveTab] = useState<"home" | "away" | "team" | "pbp">(
     "home",
@@ -31,7 +35,16 @@ const StatsSection: React.FC<StatsSectionProps> = ({
     key: "isOnCourt",
     direction: "desc",
   });
+  const [selectedPeriod, setSelectedPeriod] = useState<number | "all">("all");
 
+  const orderedActions = useMemo(
+    () => [...actions].sort((a, b) => Number(a.actionNumber) - Number(b.actionNumber)),
+    [actions],
+  );
+  const periods = useMemo(
+    () => [...new Set(orderedActions.map((action) => Number(action.period)).filter((period) => period > 0))].sort((a, b) => a - b),
+    [orderedActions],
+  );
   const isScheduled = gameData.gameStatus === 1;
 
   const homePlayers = players.filter(
@@ -540,8 +553,27 @@ const StatsSection: React.FC<StatsSectionProps> = ({
             : renderPlayerTable(sortedAwayPlayers))}
         {activeTab === "team" && renderTeamStats()}
         {activeTab === "pbp" && (
-          <div className="bg-white/5 border border-white/10 rounded-lg overflow-auto max-h-[400px] rounded-2xl p-4 space-y-2">
-            {actions
+          <div className="bg-white/5 border border-white/10 rounded-lg max-h-[500px] rounded-2xl p-4 space-y-3">
+            <div className="flex flex-wrap gap-2" aria-label="Filter plays by period">
+              <button
+                type="button"
+                onClick={() => setSelectedPeriod("all")}
+                aria-pressed={selectedPeriod === "all"}
+                className={`rounded-lg px-3 py-1 text-xs font-semibold ${selectedPeriod === "all" ? "bg-primary text-background" : "bg-white/10 text-text/60 hover:bg-white/15"}`}
+              >All</button>
+              {periods.map((period) => (
+                <button
+                  type="button"
+                  key={period}
+                  onClick={() => setSelectedPeriod(period)}
+                  aria-pressed={selectedPeriod === period}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold ${selectedPeriod === period ? "bg-primary text-background" : "bg-white/10 text-text/60 hover:bg-white/15"}`}
+                >{period <= 4 ? `Q${period}` : `OT${period - 4}`}</button>
+              ))}
+            </div>
+            <div className="overflow-auto max-h-[360px] space-y-1">
+            {orderedActions
+              .filter((action) => selectedPeriod === "all" || Number(action.period) === selectedPeriod)
               .slice()
               .reverse()
               .map((action) => {
@@ -559,9 +591,12 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                 }
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={action.actionNumber}
-                    className="flex items-start gap-3 p-3"
+                    onClick={() => onSelectAction?.(action)}
+                    aria-current={Number(action.actionNumber) === selectedActionNumber ? "true" : undefined}
+                    className={`flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${Number(action.actionNumber) === selectedActionNumber ? "bg-primary/15 ring-1 ring-primary/40" : "hover:bg-white/5"}`}
                   >
                     <div className="text-xl font-mono text-text/40 mt-1 min-w-[60px] font-bold">
                       Q{action.period} {formattedClock}
@@ -581,7 +616,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                         {action.description}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             {actions.length === 0 && (
@@ -589,6 +624,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                 No plays available yet.
               </div>
             )}
+            </div>
           </div>
         )}
       </div>

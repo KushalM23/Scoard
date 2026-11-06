@@ -63,7 +63,11 @@ export async function GET(
             };
             const cacheTime = data.gameStatus === 3 ? 86400 : data.gameStatus === 1 ? 1800 : 5;
             return NextResponse.json(mappedData, {
-                 headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+                 headers: {
+                    'Cache-Control': bustCache
+                        ? 'no-store'
+                        : `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
+                 }
             });
         } catch (e) {
             console.log(`CDN fetch failed for ${gameId}, trying Stats API...`);
@@ -247,7 +251,11 @@ export async function GET(
 
         const cacheTime = gameStatus === 3 ? 86400 : gameStatus === 1 ? 1800 : 5;
         return NextResponse.json(mappedData, {
-            headers: { 'Cache-Control': `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}` }
+            headers: {
+                'Cache-Control': bustCache
+                    ? 'no-store'
+                    : `public, s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
+            }
         });
 
     } catch (error: any) {

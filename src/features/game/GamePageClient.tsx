@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { ArrowLeft } from "lucide-react";
@@ -23,6 +23,94 @@ import type {
   WinProbability as WinProbType,
 } from "@/types";
 import { useSeason } from "@/providers/SeasonProvider";
+import { normalizePlayByPlayEvents, type NormalizedGameEvent } from "@/lib/playByPlay";
+
+function normalizeLiveTeam(team: any) {
+  return {
+    ...team,
+    inBonus: team.inBonus === "1" || team.inBonus === 1 || team.inBonus === true,
+    wins: team.wins || 0,
+    losses: team.losses || 0,
+    periods: Array.isArray(team.periods)
+      ? team.periods.map((period: any) =>
+          typeof period === "object" && period !== null && "score" in period
+            ? period.score
+            : period,
+        )
+      : [],
+    statistics: {
+      ...team.statistics,
+      fastBreakPoints: team.statistics?.pointsFastBreak !== undefined
+        ? team.statistics.pointsFastBreak
+        : team.statistics?.fastBreakPoints,
+      benchPoints: team.statistics?.benchPoints,
+      pointsFromTurnovers: team.statistics?.pointsFromTurnovers,
+      reboundsOffensive: team.statistics?.reboundsOffensive,
+      reboundsDefensive: team.statistics?.reboundsDefensive,
+      biggestLead: team.statistics?.biggestLead,
+    },
+  };
+}
+
+function mapLivePlayers(game: any): Player[] {
+  const source = Array.isArray(game.players)
+    ? game.players
+    : [
+        ...(game.homeTeam?.players ?? []).map((player: any) => ({ ...player, teamId: game.homeTeam.teamId })),
+        ...(game.awayTeam?.players ?? []).map((player: any) => ({ ...player, teamId: game.awayTeam.teamId })),
+      ];
+
+  return source.map((player: any) => {
+    const stats = player.statistics || player;
+    return {
+      personId: player.personId,
+      firstName: player.firstName || "",
+      lastName: player.familyName || player.lastName || "",
+      jersey: player.jerseyNum || player.jersey || "",
+      position: player.position || "",
+      status: player.status || "",
+      notPlayingReason: player.notPlayingDescription || player.notPlayingReason,
+      points: Number(stats.points || 0),
+      rebounds: Number(stats.reboundsTotal || stats.rebounds || 0),
+      assists: Number(stats.assists || 0),
+      fouls: Number(stats.foulsPersonal || stats.fouls || 0),
+      fgPercentage: Number(stats.fieldGoalsPercentage || stats.fgPercentage || 0),
+      threePtPercentage: Number(stats.threePointersPercentage || stats.threePtPercentage || 0),
+      ftPercentage: Number(stats.freeThrowsPercentage || stats.ftPercentage || 0),
+      plusMinus: Number(stats.plusMinusPoints || stats.plusMinus || 0),
+      fg: stats.fieldGoalsMade !== undefined
+        ? `${stats.fieldGoalsMade}-${stats.fieldGoalsAttempted}`
+        : stats.fg || "0-0",
+      threePt: stats.threePointersMade !== undefined
+        ? `${stats.threePointersMade}-${stats.threePointersAttempted}`
+        : stats.threePt || "0-0",
+      ft: stats.freeThrowsMade !== undefined
+        ? `${stats.freeThrowsMade}-${stats.freeThrowsAttempted}`
+        : stats.ft || "0-0",
+      minutes: stats.minutes || "0",
+      blocks: Number(stats.blocks || 0),
+      steals: Number(stats.steals || 0),
+      turnovers: Number(stats.turnovers || 0),
+      reboundsOffensive: Number(stats.reboundsOffensive || 0),
+      reboundsDefensive: Number(stats.reboundsDefensive || 0),
+      isOnCourt: player.onCourt === "1" || player.onCourt === 1 || player.isOnCourt === true,
+      teamId: player.teamId,
+    };
+  });
+}
+
+function getAdaptivePollDelay(status: number, latestEvent?: NormalizedGameEvent): number {
+  if (status <= 1) return 30_000;
+  if (status >= 3) return 0;
+  if (!latestEvent) return 12_000;
+  if (latestEvent.type === "timeout") return 15_000;
+  if (latestEvent.type === "period") {
+    const subtype = latestEvent.subType.toLowerCase();
+    if (subtype.includes("half")) return 60_000;
+    if (subtype.includes("end")) return 30_000;
+  }
+  return 6_000;
+}
 
 function WinProbabilityCard({
   data,
@@ -296,9 +384,21 @@ export default function Game() {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [pbpData, setPbpData] = useState<PlayByPlayEvent[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [selectedActionNumber, setSelectedActionNumber] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
+  const normalizedEvents = useMemo(
+    () => normalizePlayByPlayEvents(
+      pbpData,
+      gameData
+        ? { homeTeamId: gameData.homeTeam.teamId, awayTeamId: gameData.awayTeam.teamId }
+        : undefined,
+    ),
+    [pbpData, gameData?.homeTeam.teamId, gameData?.awayTeam.teamId],
+  );
+  const latestEventsRef = useRef<NormalizedGameEvent[]>(normalizedEvents);
+  latestEventsRef.current = normalizedEvents;
 
   useEffect(() => {
     setIsDropdownDisabled(true);
@@ -324,6 +424,13 @@ export default function Game() {
   // Initial data fetch
   useEffect(() => {
     let isMounted = true;
+
+    setLoading(true);
+    setError(null);
+    setGameData(null);
+    setPbpData([]);
+    setPlayers([]);
+    setSelectedActionNumber(null);
 
     const fetchData = async () => {
       let finishedCoreLoad = false;
@@ -489,125 +596,70 @@ export default function Game() {
     };
   }, [gameId, retryTrigger]);
 
-  // SSE for real-time updates
+  // Poll from the client with adaptive delays. The SSE route keeps poller state
+  // in process memory, which is not shared across serverless instances.
   useEffect(() => {
-    if (!gameId || !gameData) return;
+    if (!gameId || !gameData || gameData.gameStatus === 3) return;
 
-    // Skip SSE for finished games
-    if (gameData.gameStatus === 3) {
-      console.log("Game finished, skipping SSE");
-      return;
-    }
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    let failures = 0;
 
-    console.log("Connecting to SSE for game:", gameId);
-    const eventSource = new EventSource(`/api/games/${gameId}/stream`);
+    const scheduleNext = (delay: number) => {
+      if (!cancelled) timeout = setTimeout(poll, delay);
+    };
 
-    eventSource.onmessage = (event) => {
+    const poll = async () => {
       try {
-        const newData = JSON.parse(event.data);
-        console.log("SSE update received for game:", gameId);
+        const [boxResult, pbpResult] = await Promise.allSettled([
+          axios.get(`/api/games/${gameId}?bustCache=true`, { timeout: 20000 }),
+          axios.get(`/api/games/${gameId}/pbp?bustCache=true`, { timeout: 20000 }),
+        ]);
+        if (cancelled) return;
 
-        const normalizeTeam = (team: any) => ({
-          ...team,
-          inBonus:
-            team.inBonus === "1" || team.inBonus === 1 || team.inBonus === true,
-          wins: team.wins || 0,
-          losses: team.losses || 0,
-          periods: Array.isArray(team.periods)
-            ? team.periods.map((p: any) =>
-                typeof p === "object" && p !== null && "score" in p
-                  ? p.score
-                  : p,
-              )
-            : [],
-          statistics: team.statistics,
-        });
-
-        const normalizedGame = {
-          ...newData,
-          homeTeam: normalizeTeam(newData.homeTeam),
-          awayTeam: normalizeTeam(newData.awayTeam),
-        };
-
-        setGameData(normalizedGame);
-        if (Array.isArray(newData.pbpActions)) {
-          setPbpData(newData.pbpActions);
+        if (boxResult.status === "rejected" && pbpResult.status === "rejected") {
+          throw boxResult.reason;
         }
 
-        // Update players if available
-        if (newData.players && Array.isArray(newData.players)) {
-          const mapPlayer = (p: any, teamId: number) => {
-            const stats = p.statistics || p;
-
-            return {
-              personId: p.personId,
-              firstName: p.firstName,
-              lastName: p.familyName || p.lastName,
-              jersey: p.jerseyNum || p.jersey,
-              position: p.position,
-              status: p.status,
-              notPlayingReason: p.notPlayingDescription || p.notPlayingReason,
-              points: stats.points || 0,
-              rebounds: stats.reboundsTotal || stats.rebounds || 0,
-              assists: stats.assists || 0,
-              fouls: stats.foulsPersonal || stats.fouls || 0,
-              fgPercentage:
-                stats.fieldGoalsPercentage || stats.fgPercentage || 0,
-              threePtPercentage:
-                stats.threePointersPercentage || stats.threePtPercentage || 0,
-              ftPercentage:
-                stats.freeThrowsPercentage || stats.ftPercentage || 0,
-              plusMinus: stats.plusMinusPoints || stats.plusMinus || 0,
-              fg: stats.fieldGoalsMade
-                ? `${stats.fieldGoalsMade}-${stats.fieldGoalsAttempted}`
-                : stats.fg || "0-0",
-              threePt: stats.threePointersMade
-                ? `${stats.threePointersMade}-${stats.threePointersAttempted}`
-                : stats.threePt || "0-0",
-              ft: stats.freeThrowsMade
-                ? `${stats.freeThrowsMade}-${stats.freeThrowsAttempted}`
-                : stats.ft || "0-0",
-              minutes: stats.minutes || "0",
-              blocks: stats.blocks || 0,
-              steals: stats.steals || 0,
-              turnovers: stats.turnovers || 0,
-              reboundsOffensive: stats.reboundsOffensive || 0,
-              reboundsDefensive: stats.reboundsDefensive || 0,
-              isOnCourt:
-                p.onCourt === "1" || p.onCourt === 1 || p.isOnCourt === true,
-              teamId: teamId,
-            };
-          };
-
-          setPlayers(newData.players.map((p: any) => mapPlayer(p, p.teamId)));
+        const rawGame = boxResult.status === "fulfilled"
+          ? boxResult.value.data.game || boxResult.value.data
+          : null;
+        if (rawGame?.gameId) {
+          setGameData({
+            ...rawGame,
+            homeTeam: normalizeLiveTeam(rawGame.homeTeam),
+            awayTeam: normalizeLiveTeam(rawGame.awayTeam),
+          });
+          setPlayers(mapLivePlayers(rawGame));
         }
-      } catch (error) {
-        console.error("Failed to parse SSE data:", error);
+
+        const actions = pbpResult.status === "fulfilled"
+          ? pbpResult.value.data?.game?.actions
+          : undefined;
+        if (Array.isArray(actions)) setPbpData(actions);
+        failures = 0;
+
+        const latestEvents = Array.isArray(actions)
+          ? normalizePlayByPlayEvents(actions)
+          : latestEventsRef.current;
+        const status = Number(rawGame?.gameStatus ?? gameData.gameStatus);
+        const delay = getAdaptivePollDelay(status, latestEvents[latestEvents.length - 1]);
+        if (delay > 0) scheduleNext(delay);
+      } catch (pollError) {
+        if (cancelled) return;
+        failures += 1;
+        console.warn("Game update poll failed; retrying with backoff", pollError);
+        scheduleNext(Math.min(60_000, 5_000 * 2 ** Math.min(failures, 3)));
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error);
-      eventSource.close();
-
-      // Fallback to manual retry after SSE failure
-      setTimeout(() => {
-        console.log("SSE failed, triggering retry");
-        setRetryTrigger((prev) => prev + 1);
-      }, 5000);
-    };
-
-    eventSource.onopen = () => {
-      console.log("SSE connection opened for game:", gameId);
-    };
-
+    const latestEvent = latestEventsRef.current[latestEventsRef.current.length - 1];
+    scheduleNext(getAdaptivePollDelay(gameData.gameStatus, latestEvent));
     return () => {
-      console.log("Closing SSE connection for game:", gameId);
-      eventSource.close();
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
     };
   }, [gameId, gameData?.gameStatus]);
-
-  // PBP now delivered via SSE stream; no separate polling.
 
   if (loading && !gameData) {
     return (
@@ -696,6 +748,7 @@ export default function Game() {
                   homeTeam={gameData.homeTeam}
                   awayTeam={gameData.awayTeam}
                   players={players}
+                  selectedActionNumber={selectedActionNumber}
                 />
               </motion.div>
             ) : (
@@ -715,7 +768,6 @@ export default function Game() {
             )}
           </div>
 
-          {/* Top Performers for Finished Games */}
           {gameData.gameStatus === 3 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -726,12 +778,8 @@ export default function Game() {
               <TopPerformersSection
                 homeTeamName={gameData.homeTeam.teamTricode}
                 awayTeamName={gameData.awayTeam.teamTricode}
-                homePlayers={players.filter(
-                  (p) => p.teamId === gameData.homeTeam.teamId,
-                )}
-                awayPlayers={players.filter(
-                  (p) => p.teamId === gameData.awayTeam.teamId,
-                )}
+                homePlayers={players.filter((player) => player.teamId === gameData.homeTeam.teamId)}
+                awayPlayers={players.filter((player) => player.teamId === gameData.awayTeam.teamId)}
               />
             </motion.div>
           )}
@@ -746,6 +794,11 @@ export default function Game() {
               gameData={gameData}
               players={players}
               actions={pbpData}
+              selectedActionNumber={selectedActionNumber}
+              onSelectAction={(action) => {
+                const actionNumber = Number(action.actionNumber);
+                setSelectedActionNumber((current) => current === actionNumber ? null : actionNumber);
+              }}
             />
           </motion.div>
         </div>

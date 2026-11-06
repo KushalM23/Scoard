@@ -55,7 +55,7 @@ for game in games:
 
 ## 2. Live Visualizer: Play-by-Play + Coordinates (CDN)
 
-**The "Game Changer" Endpoint.** This single endpoint provides the text description AND the X/Y coordinates for every event. No synchronization logic required.
+This endpoint provides play descriptions and, for some events, an X/Y event location. Coordinates describe the recorded event (for example, a shot location); they are not continuous positions for players or the ball.
 
 *   **Source:** CDN
 *   **Endpoint:** `https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{gameId}.json`
@@ -92,7 +92,11 @@ actions = data['game']['actions']
 ### Coordinate System (CDN)
 *   **x**: 0 to 100 (Court Length). 0 and 100 are the baselines.
 *   **y**: 0 to 50 (Court Width).
-*   **Note:** You must scale these values to your UI canvas size (e.g., if canvas is 500px wide, x=50 becomes 250px).
+*   **Note:** Map the feed range once to the court viewBox. Missing or invalid coordinates should leave the event in the timeline without placing a marker. Values slightly beyond the edge can occur due to feed rounding and should be clamped only within a small tolerance.
+
+Play-by-play coordinates do not provide tracking for all ten players. Avoid presenting inferred formations or continuous movement as observed data.
+
+The Stats API PlayByPlayV3 feed names shot coordinates `xLegacy` and `yLegacy`. These are relative shot-chart coordinates, not the CDN's `x`/`y` percentages; non-shot actions can carry `0` for both. Convert them only for field-goal events, using the event team and period to place the shot on the standardized attacking half. If team/period context or shot coordinates are unavailable, leave the marker off the court.
 
 ---
 

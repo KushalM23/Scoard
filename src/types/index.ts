@@ -95,8 +95,13 @@ export interface PlayByPlayEvent {
     actionType: string;
     subType?: string; // e.g., 'Layup', '3PT'
     shotResult?: 'Made' | 'Missed';
-    x: number; // 0-100
-    y: number; // 0-50
+    x?: number | null; // Event location: 0-100 along court length
+    y?: number | null; // Event location: 0-50 across court width
+    xLegacy?: number | null; // Stats API shot-chart coordinate, tenths of a foot
+    yLegacy?: number | null; // Stats API shot-chart coordinate, tenths of a foot
+    isFieldGoal?: number | boolean;
+    shotValue?: number;
+    location?: string;
     description: string;
     qualifiers?: string[];
     descriptor?: string; // Add descriptor
@@ -105,8 +110,8 @@ export interface PlayByPlayEvent {
     assistPersonId?: number;
     shotDistance?: number;
     pointsTotal?: number;
-    scoreHome?: string;
-    scoreAway?: string;
+    scoreHome?: string | number;
+    scoreAway?: string | number;
     side?: string;
 }
 

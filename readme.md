@@ -110,11 +110,12 @@ The app includes serverless API routes:
 
 All routes use NBA's official CDN and Stats APIs with no authentication required.
 
-### Live updates (SSE)
-- SSE endpoint: `/api/games/[gameId]/stream`
-- The server maintains a poller per game (CDN first, Stats API fallback). When data changes, it broadcasts a `data: { ...gameState }` event to all connected clients.
-- Clients connect with `new EventSource('/api/games/<gameId>/stream')`; heartbeats are sent every 30s to keep the connection alive.
-- Finished games stop polling automatically.
+### Live game updates
+- The game page polls `/api/games/[gameId]` and `/api/games/[gameId]/pbp` with adaptive delays and stops after the game is final.
+- The play-by-play route prefers the CDN and falls back to Stats API play-by-play v3/v2 when an archived or incomplete payload is returned. V3 shot-chart coordinates are converted for field-goal events; events without usable coordinates remain timeline-only.
+- The `/api/games/[gameId]/stream` SSE route remains available, but its per-game pollers and clients are held in process memory. That state is not shared between serverless instances, so deployments that scale across instances must not rely on it for consistent updates.
+- The court animates newly received events and can replay the same normalized event list used by the timeline. Coordinates mark recorded events only; they do not describe continuous player movement.
+- Before public release, confirm permission to display live and archived NBA play-by-play. Access to a public feed does not by itself grant display or redistribution rights.
 
 ## Project Structure
 
