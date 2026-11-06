@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Square, Maximize, Minimize } from 'lucide-react';
 import type { PlayByPlayEvent, Team, Player } from "@/types";
 import SVGCourt from './SVGCourt';
 import { getTeamColors } from "@/lib/teamColors";
-import { getEventScoreAtIndex, normalizePlayByPlayEvents } from "@/lib/playByPlay";
+import { formatGameClock, formatPeriod, getEventScoreAtIndex, normalizePlayByPlayEvents } from "@/lib/playByPlay";
 
 interface VirtualCourtProps {
     actions: PlayByPlayEvent[];
@@ -34,20 +34,26 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
     // Replay Mode State
     const [isReplaying, setIsReplaying] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
-    const [replayProgress, setReplayProgress] = useState(0);
+    const [isSeeking, setIsSeeking] = useState(false);
+    const [replayActionIndex, setReplayActionIndex] = useState(-1);
     const [replaySpeed, setReplaySpeed] = useState(2);
     const orderedActions = useMemo(
         () => [...actions].sort((left, right) => Number(left.actionNumber) - Number(right.actionNumber)),
         [actions],
     );
-    const actionIndexByNumber = useMemo(
-        () => new Map(orderedActions.map((action, index) => [Number(action.actionNumber), index])),
-        [orderedActions],
-    );
     const highestActionNumber = orderedActions.reduce(
         (highest, action) => Math.max(highest, Number(action.actionNumber) || 0),
         0,
     );
+    const replayActionCount = orderedActions.length;
+    const replaySliderMax = Math.max(replayActionCount - 1, 0);
+    const replaySliderValue = Math.max(replayActionIndex, 0);
+    const replayTrackProgress = replayActionIndex < 0
+        ? 0
+        : replaySliderMax === 0
+            ? 100
+            : (replaySliderValue / replaySliderMax) * 100;
+    const currentReplayAction = replayActionIndex >= 0 ? orderedActions[replayActionIndex] : null;
 
     const normalizedEvents = useMemo(
         () => normalizePlayByPlayEvents(actions, { homeTeamId: homeTeam.teamId, awayTeamId: awayTeam.teamId }),
@@ -60,6 +66,75 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
 
     const courtContainerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const finishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isSeekingRef = useRef(false);
+    const resumeAfterSeekingRef = useRef(false);
+
+    const showReplayAction = useCallback((action: PlayByPlayEvent) => {
+        setRecentAction(action);
+        setPossessionTeamId(Number(action.teamId) || null);
+
+        const normalizedEvent = normalizedByActionNumber.get(Number(action.actionNumber));
+        const score = normalizedEvent ? getEventScoreAtIndex(normalizedEvents, normalizedEvent.id) : null;
+        if (score) {
+            setCurrentScore(score);
+        } else if (action.scoreHome !== undefined && action.scoreAway !== undefined) {
+            setCurrentScore({ home: Number(action.scoreHome) || 0, away: Number(action.scoreAway) || 0 });
+        } else {
+            setCurrentScore({ home: 0, away: 0 });
+        }
+
+        const type = action.actionType ? action.actionType.toLowerCase() : '';
+        if (type === 'timeout') {
+            setOverlayEvent({ title: 'TIMEOUT', description: action.description || 'Timeout' });
+        } else if (type === 'substitution') {
+            setOverlayEvent({ title: 'SUBSTITUTION', description: action.description || `Sub: ${action.playerNameI}` });
+        } else if (type === 'period') {
+            const subType = action.subType ? action.subType.toLowerCase() : '';
+            const periodName = action.period <= 4 ? `Q${action.period}` : `OT${action.period - 4}`;
+            const title = subType === 'end'
+                ? `END OF ${periodName}`
+                : subType === 'start'
+                    ? `START OF ${periodName}`
+                    : 'PERIOD UPDATE';
+            setOverlayEvent({ title, description: action.description || '' });
+        } else {
+            setOverlayEvent(null);
+        }
+    }, [normalizedByActionNumber, normalizedEvents]);
+
+    const beginReplaySeek = useCallback(() => {
+        if (isSeekingRef.current) return;
+        isSeekingRef.current = true;
+        resumeAfterSeekingRef.current = isReplaying && !isPaused;
+        setIsSeeking(true);
+
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        setIsProcessing(false);
+        if (isReplaying && !isPaused) setIsPaused(true);
+    }, [isPaused, isReplaying]);
+
+    const finishReplaySeek = useCallback(() => {
+        if (!isSeekingRef.current) return;
+        isSeekingRef.current = false;
+        setIsSeeking(false);
+
+        if (resumeAfterSeekingRef.current) setIsPaused(false);
+        resumeAfterSeekingRef.current = false;
+    }, []);
+
+    useEffect(() => {
+        if (!isSeeking) return;
+        window.addEventListener('pointerup', finishReplaySeek);
+        window.addEventListener('pointercancel', finishReplaySeek);
+        return () => {
+            window.removeEventListener('pointerup', finishReplaySeek);
+            window.removeEventListener('pointercancel', finishReplaySeek);
+        };
+    }, [isSeeking, finishReplaySeek]);
 
     // Toggle fullscreen mode
     const toggleFullscreen = () => {
@@ -98,6 +173,10 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
             clearTimeout(timerRef.current);
             timerRef.current = null;
         }
+        if (finishTimerRef.current) {
+            clearTimeout(finishTimerRef.current);
+            finishTimerRef.current = null;
+        }
 
         setIsReplaying(true);
         setIsPaused(false);
@@ -108,13 +187,32 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         setEventQueue([]);
         setIsProcessing(false);
         lastProcessedIdRef.current = 0;
-        setReplayProgress(0);
+        setReplayActionIndex(-1);
 
         // Use setTimeout to ensure state is cleared before adding new events
         setTimeout(() => {
-            const sortedActions = [...actions].sort((a, b) => Number(a.actionNumber) - Number(b.actionNumber));
-            setEventQueue(sortedActions);
+            setEventQueue(orderedActions);
         }, 0);
+    };
+
+    const seekReplayToAction = (index: number) => {
+        const boundedIndex = Math.max(0, Math.min(index, orderedActions.length - 1));
+        const action = orderedActions[boundedIndex];
+        if (!action) return;
+
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        if (finishTimerRef.current) {
+            clearTimeout(finishTimerRef.current);
+            finishTimerRef.current = null;
+        }
+
+        setIsProcessing(false);
+        setReplayActionIndex(boundedIndex);
+        showReplayAction(action);
+        setEventQueue(orderedActions.slice(boundedIndex));
     };
 
     const stopReplay = () => {
@@ -126,11 +224,15 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         setCurrentScore({ home: homeTeam.score, away: awayTeam.score });
         setSideNotification(null);
         setOverlayEvent(null);
-        setReplayProgress(0);
+        setReplayActionIndex(-1);
         lastProcessedIdRef.current = highestActionNumber;
         if (timerRef.current) {
             clearTimeout(timerRef.current);
             timerRef.current = null;
+        }
+        if (finishTimerRef.current) {
+            clearTimeout(finishTimerRef.current);
+            finishTimerRef.current = null;
         }
     };
 
@@ -159,12 +261,14 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         if (isReplaying) {
             if (timerRef.current) clearTimeout(timerRef.current);
             timerRef.current = null;
+            if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+            finishTimerRef.current = null;
             setIsReplaying(false);
             setIsPaused(false);
             setEventQueue([]);
             setIsProcessing(false);
             lastProcessedIdRef.current = highestActionNumber;
-            setReplayProgress(0);
+            setReplayActionIndex(-1);
         }
         const selected = actions.find((action) => Number(action.actionNumber) === selectedActionNumber);
         if (!selected) return;
@@ -250,44 +354,18 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
         if (eventQueue.length > 0 && !isProcessing && !isPaused) {
             setIsProcessing(true);
             const currentEvent = eventQueue[0];
-            setRecentAction(currentEvent);
-
-            if (currentEvent.scoreHome !== undefined && currentEvent.scoreAway !== undefined) {
-                setCurrentScore({
-                    home: Number(currentEvent.scoreHome) || 0,
-                    away: Number(currentEvent.scoreAway) || 0
-                });
+            showReplayAction(currentEvent);
+            if (isReplaying) {
+                const currentIndex = orderedActions.indexOf(currentEvent);
+                setReplayActionIndex(currentIndex);
             }
-
-
             const type = currentEvent.actionType ? currentEvent.actionType.toLowerCase() : '';
 
-            // --- Overlay Logic (Timeouts, Subs, Quarter End) ---
-            const isOverlayEvent = type === 'timeout' || type === 'substitution' || type === 'period';
-
-            if (!isOverlayEvent) {
-                setOverlayEvent(null);
-            }
-
-            if (type === 'timeout') {
-                setOverlayEvent({ title: 'TIMEOUT', description: currentEvent.description || 'Timeout' });
-            } else if (type === 'substitution') {
-                setOverlayEvent({ title: 'SUBSTITUTION', description: currentEvent.description || `Sub: ${currentEvent.playerNameI}` });
-            } else if (type === 'period') {
-                 const subType = currentEvent.subType ? currentEvent.subType.toLowerCase() : '';
-                 const isEnd = subType === 'end';
-                 const isStart = subType === 'start';
-                 const periodName = currentEvent.period <= 4 ? `Q${currentEvent.period}` : `OT${currentEvent.period - 4}`;
-
-                 let title = 'PERIOD UPDATE';
-                 if (isEnd) title = `END OF ${periodName}`;
-                 else if (isStart) title = `START OF ${periodName}`;
-
-                 setOverlayEvent({ title, description: currentEvent.description || '' });
-            }
+            // Match the normal event pace at 1×, then scale that duration for faster replay speeds.
+            const baseDelay = (type === 'timeout' || type === 'period') ? 4000 : 2500;
+            const delay = isReplaying ? baseDelay / replaySpeed : baseDelay;
 
             // Remove from queue after delay
-            const delay = isReplaying ? 1000 / replaySpeed : ((type === 'timeout' || type === 'period') ? 4000 : 2500);
             timerRef.current = setTimeout(() => {
                 if (type === 'substitution') {
                     setOverlayEvent(null);
@@ -295,25 +373,21 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                 setEventQueue(prev => prev.slice(1));
                 setIsProcessing(false);
 
-                // Update replay progress
-                if (isReplaying && actions.length > 0) {
-                    const processedIndex = actionIndexByNumber.get(Number(currentEvent.actionNumber)) ?? -1;
-                    const total = orderedActions.length;
-                    setReplayProgress(((processedIndex + 1) / Math.max(total, 1)) * 100);
-
+                if (isReplaying && orderedActions.length > 0) {
                     // End replay when finished
                     if (eventQueue.length === 1) {
-                        setTimeout(() => stopReplay(), 1000);
+                        finishTimerRef.current = setTimeout(() => stopReplay(), 1000);
                     }
                 }
             }, delay);
         }
-    }, [eventQueue, isProcessing, players, isReplaying, isPaused, orderedActions, actionIndexByNumber, replaySpeed]);
+    }, [eventQueue, isProcessing, players, isReplaying, isPaused, orderedActions, replaySpeed, showReplayAction]);
 
     // Cleanup timer on unmount
     useEffect(() => {
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
+            if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
         };
     }, []);
 
@@ -839,15 +913,43 @@ const VirtualCourt: React.FC<VirtualCourtProps> = ({ actions, gameStatus, homeTe
                             </button>
                         </div>
                     </div>
-                    <div className="w-full bg-text/10 rounded-full h-1.5 md:h-2 overflow-hidden">
-                        <motion.div
-                            className="bg-primary h-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${replayProgress}%` }}
-                            transition={{ duration: 0.3 }}
+                    <div className="relative w-full pt-2 pb-11">
+                        <input
+                            type="range"
+                            min={0}
+                            max={replaySliderMax}
+                            step={1}
+                            value={replaySliderValue}
+                            disabled={replayActionCount === 0}
+                            onPointerDown={beginReplaySeek}
+                            onPointerUp={finishReplaySeek}
+                            onPointerCancel={finishReplaySeek}
+                            onBlur={finishReplaySeek}
+                            onChange={(event) => seekReplayToAction(Number(event.currentTarget.value))}
+                            aria-label="Seek replay to a play"
+                            aria-valuetext={currentReplayAction
+                                ? `${formatPeriod(currentReplayAction.period)}, ${formatGameClock(currentReplayAction.clock)}, ${currentReplayAction.description}`
+                                : 'Replay starting'}
+                            className="replay-seek-slider w-full"
+                            style={{
+                                background: `linear-gradient(to right, #EB5E28 ${replayTrackProgress}%, rgba(250, 240, 213, 0.12) ${replayTrackProgress}%)`,
+                            }}
                         />
+                        {isSeeking && currentReplayAction && (
+                            <div
+                                role="status"
+                                className="absolute bottom-0 z-10 -translate-x-1/2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/15 bg-surface-card px-3.5 py-2 shadow-xl shadow-black/30 ring-1 ring-white/5 md:gap-2.5 md:px-4 md:py-2.5"
+                                style={{ left: `${Math.max(8, Math.min(92, replayTrackProgress))}%` }}
+                            >
+                                <span className="rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold tracking-wide text-primary md:text-xs">
+                                    {formatPeriod(currentReplayAction.period)}
+                                </span>
+                                <span className="font-mono text-xs font-semibold tabular-nums text-text md:text-sm">
+                                    {formatGameClock(currentReplayAction.clock)}
+                                </span>
+                            </div>
+                        )}
                     </div>
-                    <p className="text-text/60 text-center text-[8px] md:text-sm mt-1 md:mt-2">{Math.round(replayProgress)}% complete</p>
                 </div>
             )}
 

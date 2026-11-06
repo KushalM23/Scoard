@@ -41,6 +41,17 @@ const StatsSection: React.FC<StatsSectionProps> = ({
     () => [...actions].sort((a, b) => Number(a.actionNumber) - Number(b.actionNumber)),
     [actions],
   );
+  const orderedActionRows = useMemo(() => {
+    const occurrenceByActionNumber = new Map<number, number>();
+
+    return orderedActions.map((action) => {
+      const actionNumber = Number(action.actionNumber);
+      const occurrence = occurrenceByActionNumber.get(actionNumber) ?? 0;
+      occurrenceByActionNumber.set(actionNumber, occurrence + 1);
+
+      return { action, key: `${actionNumber}-${occurrence}` };
+    });
+  }, [orderedActions]);
   const periods = useMemo(
     () => [...new Set(orderedActions.map((action) => Number(action.period)).filter((period) => period > 0))].sort((a, b) => a - b),
     [orderedActions],
@@ -572,11 +583,11 @@ const StatsSection: React.FC<StatsSectionProps> = ({
               ))}
             </div>
             <div className="overflow-auto max-h-[360px] space-y-1">
-            {orderedActions
-              .filter((action) => selectedPeriod === "all" || Number(action.period) === selectedPeriod)
+            {orderedActionRows
+              .filter(({ action }) => selectedPeriod === "all" || Number(action.period) === selectedPeriod)
               .slice()
               .reverse()
-              .map((action) => {
+              .map(({ action, key }) => {
                 // Format clock from PT12M00.00S to 12:00
                 let formattedClock = action.clock;
                 if (action.clock.startsWith("PT")) {
@@ -593,7 +604,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
                 return (
                   <button
                     type="button"
-                    key={action.actionNumber}
+                    key={key}
                     onClick={() => onSelectAction?.(action)}
                     aria-current={Number(action.actionNumber) === selectedActionNumber ? "true" : undefined}
                     className={`flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${Number(action.actionNumber) === selectedActionNumber ? "bg-primary/15 ring-1 ring-primary/40" : "hover:bg-white/5"}`}

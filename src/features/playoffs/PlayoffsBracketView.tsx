@@ -204,7 +204,10 @@ function PlayoffSeriesCard({
           : "cursor-default",
       ].join(" ")}
     >
-      {([card.teams.top, card.teams.bottom] as const).map((team) => {
+      {([
+        ["top", card.teams.top],
+        ["bottom", card.teams.bottom],
+      ] as const).map(([position, team]) => {
         const isTbd = team.isTbd || !team.teamId;
         const rowHeight =
           size === "compact"
@@ -221,7 +224,7 @@ function PlayoffSeriesCard({
 
         return (
           <div
-            key={`${card.id}-${team.teamId ?? team.displayName}`}
+            key={`${card.id}-${position}`}
             className={[
               "rounded-lg px-3 flex items-center gap-2.5 transition-colors",
               rowHeight,
