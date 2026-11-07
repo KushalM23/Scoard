@@ -16,6 +16,7 @@ import { getOrBuildSearchIndex } from "@/lib/search/bootstrapClient";
 import { querySearchIndex } from "@/lib/search/index";
 import { normalizeForSearch } from "@/lib/search/normalize";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSeason } from "@/providers/SeasonProvider";
 
 const SEARCH_LISTBOX_ID = "global-header-search-listbox";
 const SEARCH_INPUT_ID = "global-header-search-input";
@@ -33,6 +34,7 @@ function getSuggestionId(index: number): string {
   const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { season: globalSeason } = useSeason();
   const [query, setQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -40,11 +42,49 @@ function getSuggestionId(index: number): string {
   const [isLoadingBootstrap, setIsLoadingBootstrap] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasQualifiedPlayoffTeam, setHasQualifiedPlayoffTeam] = useState(false);
 
   const requestIdRef = useRef(0);
   const hasPreloadedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlayoffQualification = async () => {
+      try {
+        const response = await fetch(
+          `/api/standings?season=${encodeURIComponent(globalSeason)}`,
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Standings request failed with status ${response.status}`,
+          );
+        }
+
+        const standings: { clinchedPlayoffBirth?: boolean }[] =
+          await response.json();
+        if (isMounted) {
+          setHasQualifiedPlayoffTeam(
+            Array.isArray(standings) &&
+              standings.some((team) => team.clinchedPlayoffBirth === true),
+          );
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error("Failed to load playoff qualification", error);
+        setHasQualifiedPlayoffTeam(false);
+      }
+    };
+
+    setHasQualifiedPlayoffTeam(false);
+    void loadPlayoffQualification();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [globalSeason]);
 
   const hasTypedQuery = useMemo(
     () => normalizeForSearch(query).length > 0,
@@ -416,7 +456,9 @@ function getSuggestionId(index: number): string {
         { name: "Teams", href: "/teams" },
         { name: "Players", href: "/players" },
         { name: "Leaders", href: "/leaders"},
-        { name: "Playoffs", href: "/playoffs" },
+        ...(hasQualifiedPlayoffTeam
+          ? [{ name: "Playoffs", href: "/playoffs" }]
+          : []),
       ];
 
   return (

@@ -46,7 +46,16 @@ export async function GET(request: NextRequest) {
         const headers = resultSet.headers;
         const rowSet = resultSet.rowSet;
 
-        const getValue = (row: any[], key: string) => row[headers.indexOf(key)];
+        const getValue = (row: any[], key: string) => {
+            const index = headers.indexOf(key);
+            return index === -1 ? undefined : row[index];
+        };
+
+        const isClinched = (value: unknown) =>
+            value === true ||
+            value === 1 ||
+            (typeof value === 'string' &&
+                ['1', 'true', 'yes', 'y'].includes(value.toLowerCase()));
 
         const standings = rowSet.map((row: any[]) => ({
             teamId: getValue(row, 'TeamID'),
@@ -65,6 +74,7 @@ export async function GET(request: NextRequest) {
             oppPointsPg: getValue(row, 'OppPointsPG'),
             diffPointsPg: getValue(row, 'DiffPointsPG'),
             conferenceRank: getValue(row, 'PlayoffRank'),
+            clinchedPlayoffBirth: isClinched(getValue(row, 'ClinchedPlayoffBirth')),
             divisionRank: getValue(row, 'DivisionRank'),
             divgamesback: getValue(row, 'DivisionGamesBack'),
             leagueGamesBack: getValue(row, 'LeagueGamesBack'),
